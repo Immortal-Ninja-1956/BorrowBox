@@ -338,3 +338,24 @@ export async function getUserTrustScore(userId: number) {
     totalReviews: Number(result[0]?.totalReviews || 0),
   };
 }
+
+// Messages
+
+export async function getMessagesByDealId(dealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select()
+    .from(messages)
+    .where(eq(messages.dealId, dealId))
+    .orderBy(asc(messages.createdAt));
+}
+
+export async function createMessage(data: InsertMessage) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(messages).values(data);
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return insertId as number;
+}
+
