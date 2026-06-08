@@ -43,6 +43,13 @@
       "when": 1780770378556,
       "tag": "0005_wealthy_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1780940735193,
+      "tag": "0006_dapper_shatterstar",
+      "breakpoints": true
     }
   ]
 }

@@ -3,19 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Loader2, Star } from "lucide-react";
+import { ArrowLeft, Loader2, Star, CheckCircle2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { StarRating } from "@/components/ui/star-rating";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Profile() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   const [formData, setFormData] = useState({
     upiId: "",
     upiName: "",
     whatsapp: "",
   });
+  const [isOtpDialogOpen, setIsOtpDialogOpen] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
 
   // Fetch full profile from server (auth.me doesn't always include upiId etc on first load)
   const { data: serverProfile, isLoading: profileLoading } = trpc.user.getProfile.useQuery(
@@ -42,10 +47,29 @@ export default function Profile() {
   const updateProfileMutation = trpc.user.updateProfile.useMutation({
     onSuccess: () => {
       toast.success("Profile updated successfully!");
+      utils.user.getProfile.invalidate();
     },
     onError: (error) => {
       toast.error("Failed to update profile: " + error.message);
     },
+  });
+
+  const sendOtpMutation = trpc.user.sendWhatsAppOtp.useMutation({
+    onSuccess: () => {
+      toast.success("Verification code sent! (Check console for simulated OTP)");
+      setIsOtpDialogOpen(true);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const verifyOtpMutation = trpc.user.verifyWhatsAppOtp.useMutation({
+    onSuccess: () => {
+      toast.success("WhatsApp number verified successfully!");
+      setIsOtpDialogOpen(false);
+      setOtpValue("");
+      utils.user.getProfile.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
   });
 
   if (authLoading || profileLoading) {
@@ -239,9 +263,22 @@ export default function Profile() {
             </p>
 
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">
-                WhatsApp Number *
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold text-foreground">
+                  WhatsApp Number *
+                </label>
+                {(serverProfile as any)?.whatsapp && (serverProfile as any)?.whatsappVerified ? (
+                  <span className="flex items-center text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-1 rounded-full">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Verified
+                  </span>
+                ) : (serverProfile as any)?.whatsapp ? (
+                  <span className="flex items-center text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-full">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    Unverified
+                  </span>
+                ) : null}
+              </div>
               <div className="flex rounded-md shadow-sm">
                 <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground sm:text-sm font-semibold">
                   +91
@@ -254,9 +291,22 @@ export default function Profile() {
                   className="w-full rounded-l-none"
                 />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Local 10-digit number
-              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs text-muted-foreground">
+                  Local 10-digit number
+                </p>
+                {(serverProfile as any)?.whatsapp && !(serverProfile as any)?.whatsappVerified && formData.whatsapp === (serverProfile as any).whatsapp.replace("+91", "") && (
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="h-auto p-0 text-xs text-blue-600 dark:text-blue-400"
+                    onClick={() => sendOtpMutation.mutate()}
+                    disabled={sendOtpMutation.isPending}
+                  >
+                    {sendOtpMutation.isPending ? "Sending..." : "Verify Now"}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -306,6 +356,37 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* OTP Verification Dialog */}
+      <Dialog open={isOtpDialogOpen} onOpenChange={setIsOtpDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify WhatsApp Number</DialogTitle>
+            <DialogDescription>
+              Enter the 6-digit verification code sent to your WhatsApp number.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center space-y-6 py-6">
+            <InputOTP maxLength={6} value={otpValue} onChange={setOtpValue}>
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+            <Button 
+              className="w-full max-w-[200px]"
+              disabled={otpValue.length !== 6 || verifyOtpMutation.isPending}
+              onClick={() => verifyOtpMutation.mutate({ otp: otpValue })}
+            >
+              {verifyOtpMutation.isPending ? "Verifying..." : "Verify Code"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -53,6 +53,7 @@ export async function updateUserProfile(userId: number, data: {
   upiId?: string;
   upiName?: string;
   whatsapp?: string;
+  whatsappVerified?: number;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -60,7 +61,20 @@ export async function updateUserProfile(userId: number, data: {
   if (data.upiId !== undefined) updateData.upiId = data.upiId;
   if (data.upiName !== undefined) updateData.upiName = data.upiName;
   if (data.whatsapp !== undefined) updateData.whatsapp = data.whatsapp;
+  if (data.whatsappVerified !== undefined) updateData.whatsappVerified = data.whatsappVerified;
   return await db.update(users).set(updateData).where(eq(users.id, userId));
+}
+
+export async function updateUserWhatsAppOtp(userId: number, otp: string, expiresAt: Date) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(users).set({ whatsappOtp: otp, whatsappOtpExpiresAt: expiresAt }).where(eq(users.id, userId));
+}
+
+export async function verifyUserWhatsApp(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(users).set({ whatsappVerified: 1, whatsappOtp: null, whatsappOtpExpiresAt: null }).where(eq(users.id, userId));
 }
 
 // ─── Items ────────────────────────────────────────────────────────────────────

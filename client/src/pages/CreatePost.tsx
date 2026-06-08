@@ -8,8 +8,18 @@ import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
 
 export default function CreatePost() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const { data: serverProfile } = trpc.user.getProfile.useQuery(undefined, { enabled: isAuthenticated });
+  
+  const { data: userItems } = trpc.items.getBySeller.useQuery(
+    { sellerId: user?.id as number },
+    { enabled: !!user?.id }
+  );
+
+  const isUnverified = serverProfile && !(serverProfile as any).whatsappVerified;
+  const hasReachedUnverifiedLimit = isUnverified && userItems && userItems.length >= 1;
+  
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -134,6 +144,11 @@ export default function CreatePost() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (hasReachedUnverifiedLimit) {
+      toast.error("You have reached the limit of 1 unverified listing. Please verify your WhatsApp number.");
+      return;
+    }
 
     if (!formData.title.trim()) {
       toast.error("Please enter a title");
@@ -337,20 +352,40 @@ export default function CreatePost() {
           </div>
 
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900">
-              <strong>Note:</strong> Make sure your UPI ID and WhatsApp number are
-              updated in your profile. Buyers will contact you via WhatsApp, and
-              payment will be collected via UPI after delivery confirmation.
-            </p>
-          </div>
+          {hasReachedUnverifiedLimit ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-900">
+                <strong>Action Required:</strong> You must verify your WhatsApp number to create more than one listing. 
+                <Button variant="link" className="px-1 text-red-600 font-bold" onClick={() => setLocation("/profile")}>
+                  Go to Profile to Verify
+                </Button>
+              </p>
+            </div>
+          ) : isUnverified ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-sm text-amber-900">
+                <strong>Notice:</strong> Your WhatsApp number is unverified. You can only create <strong>one</strong> listing until you verify it.
+                <Button variant="link" className="px-1 text-amber-600 font-bold" onClick={() => setLocation("/profile")}>
+                  Verify Now
+                </Button>
+              </p>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-900">
+                <strong>Note:</strong> Make sure your UPI ID and WhatsApp number are
+                updated in your profile. Buyers will contact you via WhatsApp, and
+                payment will be collected via UPI after delivery confirmation.
+              </p>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex gap-4">
             <Button
               type="submit"
               className="flex-1 bg-accent hover:bg-accent/90"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!hasReachedUnverifiedLimit}
             >
               {isSubmitting ? (
                 <>

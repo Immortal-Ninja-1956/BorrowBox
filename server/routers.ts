@@ -9,6 +9,8 @@ import {
   getUserByEmail,
   getUserById,
   updateUserProfile,
+  updateUserWhatsAppOtp,
+  verifyUserWhatsApp,
   createItem,
   getItemById,
   getItemsBySellerId,
@@ -152,7 +154,15 @@ export const appRouter = router({
           ...input,
           whatsapp: input.whatsapp ? input.whatsapp.replace(/\s+/g, "") : input.whatsapp,
         };
-        await updateUserProfile(ctx.user.id, cleanedInput);
+        
+        // If whatsapp changed, set whatsappVerified to 0
+        const currentUser = await getUserById(ctx.user.id);
+        const dataToUpdate: any = { ...cleanedInput };
+        if (currentUser && cleanedInput.whatsapp && currentUser.whatsapp !== cleanedInput.whatsapp) {
+          dataToUpdate.whatsappVerified = 0;
+        }
+
+        await updateUserProfile(ctx.user.id, dataToUpdate);
         return { success: true };
       }),
 
@@ -170,6 +180,48 @@ export const appRouter = router({
         if (!user) return null;
         const trustScore = await getUserTrustScore(input.userId);
         return { id: user.id, name: user.name, whatsapp: user.whatsapp, trustScore };
+      }),
+
+    sendWhatsAppOtp: protectedProcedure.mutation(async ({ ctx }) => {
+      const user = await getUserById(ctx.user.id);
+      if (!user || !user.whatsapp) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No WhatsApp number associated with this account" });
+      }
+
+      // Generate 6-digit OTP
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      await updateUserWhatsAppOtp(user.id, otp, expiresAt);
+
+      console.log("\n========================================================");
+      console.log(`[WhatsApp Simulator] TO: ${user.whatsapp}`);
+      console.log("--------------------------------------------------------");
+      console.log(`Your BorrowBox WhatsApp verification code is: ${otp}`);
+      console.log(`This code will expire in 10 minutes.`);
+      console.log("========================================================\n");
+
+      return { success: true };
+    }),
+
+    verifyWhatsAppOtp: protectedProcedure
+      .input(z.object({
+        otp: z.string().length(6, "OTP must be exactly 6 digits"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await getUserById(ctx.user.id);
+        if (!user) throw new TRPCError({ code: "UNAUTHORIZED", message: "Unauthorized" });
+
+        if (!user.whatsappOtp || !user.whatsappOtpExpiresAt || user.whatsappOtp !== input.otp) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid OTP" });
+        }
+
+        if (user.whatsappOtpExpiresAt.getTime() < Date.now()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "OTP has expired" });
+        }
+
+        await verifyUserWhatsApp(user.id);
+        return { success: true };
       }),
   }),
 
