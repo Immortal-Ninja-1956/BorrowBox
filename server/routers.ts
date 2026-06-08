@@ -52,7 +52,9 @@ export const appRouter = router({
 
     register: publicProcedure
       .input(z.object({
-        email: z.string().email(),
+        email: z.string().email().refine(val => val.endsWith("@vitstudent.ac.in"), {
+          message: "Only @vitstudent.ac.in emails are allowed",
+        }),
         password: z.string().min(8, "Password must be at least 8 characters"),
         name: z.string().min(1),
       }))

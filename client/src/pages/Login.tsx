@@ -48,7 +48,7 @@ export default function Login() {
               <label className="block text-sm font-medium text-foreground mb-1">Email</label>
               <Input
                 type="email"
-                placeholder="you@example.com"
+                placeholder="you@vitstudent.ac.in"
                 value={form.email}
                 onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
               />

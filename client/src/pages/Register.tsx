@@ -24,6 +24,10 @@ export default function Register() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.password) { toast.error("Fill in all fields"); return; }
+    if (!form.email.toLowerCase().endsWith("@vitstudent.ac.in")) {
+      toast.error("Only @vitstudent.ac.in emails are allowed");
+      return;
+    }
     if (form.password !== form.confirm) { toast.error("Passwords don't match"); return; }
     if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     registerMutation.mutate({ name: form.name, email: form.email, password: form.password });
@@ -57,7 +61,7 @@ export default function Register() {
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Email</label>
-              <Input type="email" placeholder="you@example.com" {...field("email")} />
+              <Input type="email" placeholder="you@vitstudent.ac.in" {...field("email")} />
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Password</label>
