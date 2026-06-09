@@ -3,26 +3,17 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
+import { uploadFile, isCloudinaryConfigured } from "./storage";
 
-// Ensure uploads directory exists
+// Ensure uploads directory exists (fallback for local development)
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = `${nanoid(12)}${ext}`;
-    cb(null, uniqueName);
-  },
-});
-
+// Use memory storage to upload buffers directly
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
   fileFilter: (_req, file, cb) => {
     const allowed = /\.(jpg|jpeg|png|gif|webp)$/i;
@@ -36,11 +27,28 @@ const upload = multer({
 
 export const uploadRouter = Router();
 
-uploadRouter.post("/api/upload", upload.single("image"), (req, res) => {
+uploadRouter.post("/api/upload", upload.single("image"), async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "No image file provided" });
     return;
   }
-  const imageUrl = `/uploads/${req.file.filename}`;
-  res.json({ imageUrl });
+
+  const ext = path.extname(req.file.originalname);
+  const filename = `${nanoid(12)}${ext}`;
+
+  try {
+    if (isCloudinaryConfigured()) {
+      const imageUrl = await uploadFile(req.file.buffer, filename);
+      res.json({ imageUrl });
+    } else {
+      // Fallback to local storage on disk
+      const filepath = path.join(uploadsDir, filename);
+      await fs.promises.writeFile(filepath, req.file.buffer);
+      const imageUrl = `/uploads/${filename}`;
+      res.json({ imageUrl });
+    }
+  } catch (error: any) {
+    console.error("[Upload] Error uploading image:", error);
+    res.status(500).json({ error: error.message || "Failed to upload image" });
+  }
 });
