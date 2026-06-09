@@ -1,0 +1,1 @@
+ALTER TABLE `deals` MODIFY COLUMN `status` enum('OPEN','Contacted','Shipped','DELIVERED','CONFIRMED','PAID','CANCELLED') NOT NULL DEFAULT 'OPEN';

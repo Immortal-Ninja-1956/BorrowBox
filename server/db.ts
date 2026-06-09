@@ -1,4 +1,4 @@
-import { eq, desc, and, or, sql, like, asc } from "drizzle-orm";
+import { eq, desc, and, or, sql, like, asc, lt, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { users, items, deals, reviews, messages } from "../drizzle/schema";
 import type { InsertUser, InsertReview, InsertMessage } from "../drizzle/schema";
@@ -200,6 +200,25 @@ export async function deleteItem(itemId: number) {
 
 // ─── Deals ────────────────────────────────────────────────────────────────────
 
+export async function expireOldDeals() {
+  const db = await getDb();
+  if (!db) return;
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  await db
+    .update(deals)
+    .set({ status: "CANCELLED" as any })
+    .where(and(eq(deals.status, "OPEN"), lt(deals.createdAt, sevenDaysAgo)));
+}
+
+export async function cancelOtherDeals(itemId: number, activeDealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(deals)
+    .set({ status: "CANCELLED" as any })
+    .where(and(eq(deals.itemId, itemId), ne(deals.id, activeDealId), eq(deals.status, "OPEN")));
+}
+
 export async function createDeal(data: {
   itemId: number;
   sellerId: number;
@@ -220,6 +239,7 @@ export async function createDeal(data: {
 }
 
 export async function getDealById(dealId: number) {
+  await expireOldDeals();
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db
@@ -241,6 +261,7 @@ export async function getDealsByItemId(itemId: number) {
 }
 
 export async function getDealsBySellerId(sellerId: number) {
+  await expireOldDeals();
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const results = await db
@@ -258,6 +279,7 @@ export async function getDealsBySellerId(sellerId: number) {
 }
 
 export async function getDealsByBuyerId(buyerId: number) {
+  await expireOldDeals();
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const results = await db
@@ -308,7 +330,18 @@ export async function getUserByResetToken(token: string) {
 export async function updateUserPassword(userId: number, passwordHash: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(users).set({ passwordHash, resetToken: null, resetTokenExpiresAt: null }).where(eq(users.id, userId));
+  return await db.update(users).set({ 
+    passwordHash, 
+    resetToken: null, 
+    resetTokenExpiresAt: null,
+    tokenVersion: sql`${users.tokenVersion} + 1`
+  }).where(eq(users.id, userId));
+}
+
+export async function incrementUserTokenVersion(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(users).set({ tokenVersion: sql`${users.tokenVersion} + 1` }).where(eq(users.id, userId));
 }
 
 // Reviews

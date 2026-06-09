@@ -1,9 +1,10 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, SEVEN_DAYS_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import crypto from "crypto";
+import { Resend } from "resend";
 import {
   createUser,
   getUserByEmail,
@@ -28,6 +29,7 @@ import {
   confirmDealByBuyer,
   updateDealUpiQrCode,
   updateUserResetToken,
+  cancelOtherDeals,
   getUserByResetToken,
   updateUserPassword,
   createReview,
@@ -36,6 +38,7 @@ import {
   getUserReviews,
   getMessagesByDealId,
   createMessage,
+  incrementUserTokenVersion,
 } from "./db";
 import { hashPassword, verifyPassword, signSessionToken } from "./_core/auth";
 import { TRPCError } from "@trpc/server";
@@ -69,12 +72,12 @@ export const appRouter = router({
           passwordHash,
           name: input.name,
         });
-        const token = signSessionToken(userId, input.email);
+        const token = signSessionToken(userId, input.email, 0);
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: SEVEN_DAYS_MS });
         return { success: true };
       }),
-
+ 
     login: publicProcedure
       .input(z.object({
         email: z.string().email(),
@@ -89,13 +92,16 @@ export const appRouter = router({
         if (!valid) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
         }
-        const token = signSessionToken(user.id, user.email);
+        const token = signSessionToken(user.id, user.email, user.tokenVersion);
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: SEVEN_DAYS_MS });
         return { success: true };
       }),
-
-    logout: publicProcedure.mutation(({ ctx }) => {
+ 
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      if (ctx.user) {
+        await incrementUserTokenVersion(ctx.user.id);
+      }
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
@@ -113,13 +119,30 @@ export const appRouter = router({
         const resetToken = crypto.randomBytes(32).toString("hex");
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
         await updateUserResetToken(input.email, resetToken, expiresAt);
-        
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
         console.log("\n========================================================");
         console.log(`[Email Simulator] TO: ${input.email}`);
         console.log("--------------------------------------------------------");
         console.log(`Reset your BorrowBox password using the following link:`);
-        console.log(`http://localhost:5173/reset-password?token=${resetToken}`);
+        console.log(resetLink);
         console.log("========================================================\n");
+
+        if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== "re_your_api_key") {
+          try {
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            await resend.emails.send({
+              from: "BorrowBox <onboarding@resend.dev>",
+              to: input.email,
+              subject: "Reset your BorrowBox password",
+              html: `<p>Click <a href="${resetLink}">here</a> to reset your password.</p><p>Or copy this link: ${resetLink}</p>`,
+            });
+            console.log(`[Resend] Password reset email sent successfully to ${input.email}`);
+          } catch (error) {
+            console.error("[Resend] Failed to send password reset email:", error);
+          }
+        }
 
         return { success: true };
       }),
@@ -344,6 +367,12 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const item = await getItemById(input.itemId);
         if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
+        if (ctx.user.id === item.sellerId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sellers cannot buy their own items" });
+        }
+        if (item.status !== "OPEN") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "This item is no longer open for offers." });
+        }
         const dealId = await createDeal({
           itemId: input.itemId,
           sellerId: item.sellerId,
@@ -372,12 +401,31 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const deal = await getDealById(input.dealId);
-        if (!deal || deal.sellerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
+        if (!deal) throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.sellerId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+
+        if (input.status === "Shipped" || input.status === "DELIVERED") {
+          // Check if there is already an active/completed deal for this item
+          const otherDeals = await getDealsByItemId(deal.itemId);
+          const hasActiveDeal = otherDeals.some(
+            d => d.id !== deal.id && ["Shipped", "DELIVERED", "CONFIRMED", "PAID"].includes(d.status)
+          );
+          if (hasActiveDeal) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Another active deal is already in progress for this item."
+            });
+          }
+        }
+
         await updateDealStatus(input.dealId, input.status);
 
-        // When deal is finalized ("Shipped") or beyond, update the item status
+        // When deal is finalized ("Shipped") or beyond, update the item status and cancel other deals
         if (input.status === "Shipped" || input.status === "DELIVERED") {
           await updateItemStatus(deal.itemId, input.status);
+          await cancelOtherDeals(deal.itemId, deal.id);
         }
 
         // Notify buyer
@@ -394,7 +442,10 @@ export const appRouter = router({
       .input(z.object({ dealId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const deal = await getDealById(input.dealId);
-        if (!deal || deal.buyerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized - only buyer can confirm" });
+        if (!deal) throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.buyerId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
         if (deal.status !== "DELIVERED") throw new TRPCError({ code: "BAD_REQUEST", message: "Deal must be DELIVERED before confirming" });
         await confirmDealByBuyer(input.dealId);
         // Also update deal status to CONFIRMED
@@ -411,7 +462,10 @@ export const appRouter = router({
       .input(z.object({ dealId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const deal = await getDealById(input.dealId);
-        if (!deal || deal.buyerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized - only buyer can mark as paid" });
+        if (!deal) throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.buyerId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
         if (!deal.buyerConfirmed) throw new TRPCError({ code: "BAD_REQUEST", message: "Must confirm delivery before marking as paid" });
         // Mark deal as PAID
         await updateDealStatus(input.dealId, "PAID");
@@ -420,11 +474,14 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    getUpiQrCode: publicProcedure
+    getUpiQrCode: protectedProcedure
       .input(z.object({ dealId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         const deal = await getDealById(input.dealId);
         if (!deal) throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.buyerId && ctx.user.id !== deal.sellerId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
+        }
         return { qrCode: deal.upiQrCode };
       }),
   }),

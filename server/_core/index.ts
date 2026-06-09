@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { uploadRouter } from "../upload";
+import { authLimiter } from "./limiter";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,6 +37,11 @@ async function startServer() {
 
   // Image upload endpoint
   app.use(uploadRouter);
+
+  // Rate limiting for auth endpoints
+  app.set("trust proxy", 1);
+  app.use("/api/trpc/auth.login", authLimiter);
+  app.use("/api/trpc/auth.forgotPassword", authLimiter);
 
   app.use(
     "/api/trpc",

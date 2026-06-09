@@ -97,7 +97,7 @@ export default function Dashboard() {
   );
 
   const itemsListed = sellerItems?.length || 0;
-  const activeDeals = deals?.filter(d => d.status !== "PAID").length || 0;
+  const activeDeals = deals?.filter(d => d.status !== "PAID" && d.status !== "CANCELLED").length || 0;
 
   const updateStatusMutation = trpc.deals.updateStatus.useMutation({
     onSuccess: () => {
@@ -152,6 +152,7 @@ export default function Dashboard() {
     DELIVERED: "Delivered",
     CONFIRMED: "Confirmed",
     PAID: "Delivered & Paid",
+    CANCELLED: "Cancelled",
   };
 
   return (
@@ -375,7 +376,7 @@ export default function Dashboard() {
                 Your Active Listings Deals
               </h2>
 
-              {!deals || deals.length === 0 ? (
+              {!deals || deals.filter(d => d.status !== "CANCELLED").length === 0 ? (
                 <div className="bg-card border border-border rounded-lg p-12 text-center">
                   <p className="text-muted-foreground mb-4">
                     No active deals on your listed items yet.
@@ -386,7 +387,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {deals.map((deal) => (
+                  {deals.filter(d => d.status !== "CANCELLED").map((deal) => (
                     <DealCard
                       key={deal.id}
                       deal={deal}
@@ -667,6 +668,7 @@ function PurchasedDealCard({ deal }: { deal: any }) {
     DELIVERED: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
     CONFIRMED: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
     PAID: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400",
+    CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   };
 
   const statusLabels: Record<string, string> = {
@@ -675,6 +677,7 @@ function PurchasedDealCard({ deal }: { deal: any }) {
     DELIVERED: "Delivered",
     CONFIRMED: "Confirmed",
     PAID: "Paid",
+    CANCELLED: "Cancelled",
   };
 
   const isDelivered = deal.status === "DELIVERED";
