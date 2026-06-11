@@ -17,8 +17,23 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { StarRating } from "@/components/ui/star-rating";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { DealChat } from "@/components/DealChat";
+import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const categoryMetadata: Record<string, { icon: any; gradient: string }> = {
   Books: {
@@ -58,8 +73,14 @@ export default function ItemDetail() {
   const { id } = useParams<{ id: string }>();
   const itemId = parseInt(id || "0");
 
-  const { data: item, isLoading, refetch: refetchItem } = trpc.items.getById.useQuery({ id: itemId });
-  const { data: deals, refetch: refetchDeals } = trpc.deals.getByItem.useQuery({ itemId });
+  const {
+    data: item,
+    isLoading,
+    refetch: refetchItem,
+  } = trpc.items.getById.useQuery({ id: itemId });
+  const { data: deals, refetch: refetchDeals } = trpc.deals.getByItem.useQuery({
+    itemId,
+  });
   const { data: sellerProfile } = trpc.user.getProfileById.useQuery(
     { userId: item?.sellerId ?? 0 },
     { enabled: !!item?.sellerId }
@@ -67,11 +88,13 @@ export default function ItemDetail() {
 
   const createDealMutation = trpc.deals.create.useMutation({
     onSuccess: () => {
-      toast.success("Interest expressed successfully! Redirecting to your dashboard...");
+      toast.success(
+        "Interest expressed successfully! Redirecting to your dashboard..."
+      );
       refetchDeals();
       setLocation("/dashboard");
     },
-    onError: (err) => {
+    onError: err => {
       toast.error("Failed to start deal: " + err.message);
     },
   });
@@ -79,7 +102,8 @@ export default function ItemDetail() {
   const handleShare = () => {
     const url = window.location.href;
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(url)
+      navigator.clipboard
+        .writeText(url)
         .then(() => toast.success("Link copied to clipboard!"))
         .catch(() => toast.error("Failed to copy link."));
     } else {
@@ -113,7 +137,9 @@ export default function ItemDetail() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4 text-foreground">Item not found</h2>
+          <h2 className="text-2xl font-bold mb-4 text-foreground">
+            Item not found
+          </h2>
           <Button onClick={() => setLocation("/marketplace")} variant="outline">
             Back to Marketplace
           </Button>
@@ -124,17 +150,21 @@ export default function ItemDetail() {
 
   const handleWhatsAppContact = () => {
     if (!sellerProfile?.whatsapp) {
-      toast.error("Seller hasn't added a WhatsApp number yet. Try contacting them another way.");
+      toast.error(
+        "Seller hasn't added a WhatsApp number yet. Try contacting them another way."
+      );
       return;
     }
     const message = `Hi, I'm interested in your item: ${item.title}. Can we discuss?`;
     const encodedMessage = encodeURIComponent(message);
-    const number = sellerProfile.whatsapp.replace(/\s+/g, "").replace(/^\+/, "");
+    const number = sellerProfile.whatsapp
+      .replace(/\s+/g, "")
+      .replace(/^\+/, "");
     window.open(`https://wa.me/${number}?text=${encodedMessage}`, "_blank");
   };
 
   const isSeller = user?.id === item.sellerId;
-  const existingDeal = deals?.find((d) => d.buyerId === user?.id);
+  const existingDeal = deals?.find(d => d.buyerId === user?.id);
   const hasExistingDeal = !!existingDeal;
 
   return (
@@ -168,9 +198,13 @@ export default function ItemDetail() {
               </div>
             ) : (
               (() => {
-                const { icon: CategoryIcon, gradient } = getCategoryMeta(item.category ?? undefined);
+                const { icon: CategoryIcon, gradient } = getCategoryMeta(
+                  item.category ?? undefined
+                );
                 return (
-                  <div className={`w-full aspect-square bg-gradient-to-br ${gradient} rounded-xl flex flex-col items-center justify-center text-white p-6 shadow-md`}>
+                  <div
+                    className={`w-full aspect-square bg-gradient-to-br ${gradient} rounded-xl flex flex-col items-center justify-center text-white p-6 shadow-md`}
+                  >
                     <CategoryIcon className="w-24 h-24 opacity-80 mb-4" />
                     <span className="text-sm font-semibold opacity-90 tracking-widest uppercase">
                       {item.category || "Other"}
@@ -202,15 +236,33 @@ export default function ItemDetail() {
               <p className="text-3xl font-bold text-accent mb-2">
                 ₹{item.amount}
               </p>
-              <span
-                className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
-                  item.status === "OPEN"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {item.status === "OPEN" ? "Available" : "Sold"}
-              </span>
+              <div className="flex gap-2 flex-wrap items-center">
+                <span
+                  className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
+                    item.status === "OPEN"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {item.status === "OPEN" ? "Available" : "Sold"}
+                </span>
+                <span
+                  className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
+                    (
+                      {
+                        New: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/30",
+                        "Like New":
+                          "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-400 border border-sky-200/30",
+                        Good: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/30",
+                        Fair: "bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-400 border border-orange-200/30",
+                        Poor: "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/30",
+                      } as Record<string, string>
+                    )[item.condition] || "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  Condition: {item.condition || "Good"}
+                </span>
+              </div>
             </div>
 
             {item.category && (
@@ -232,14 +284,26 @@ export default function ItemDetail() {
             {sellerProfile && (
               <div className="bg-muted/30 border border-border rounded-lg p-6 mb-8 flex items-center justify-between flex-wrap gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Listed by</p>
-                  <p className="font-semibold text-foreground text-lg">{sellerProfile.name}</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Listed by
+                  </p>
+                  <p className="font-semibold text-foreground text-lg">
+                    {sellerProfile.name}
+                  </p>
                 </div>
                 {sellerProfile.trustScore && (
                   <div className="text-right">
                     <div className="flex items-center gap-2 justify-end mb-1">
-                      <span className="font-bold text-lg">{sellerProfile.trustScore.averageRating}</span>
-                      <StarRating rating={Math.round(Number(sellerProfile.trustScore.averageRating))} disabled size={16} />
+                      <span className="font-bold text-lg">
+                        {sellerProfile.trustScore.averageRating}
+                      </span>
+                      <StarRating
+                        rating={Math.round(
+                          Number(sellerProfile.trustScore.averageRating)
+                        )}
+                        disabled
+                        size={16}
+                      />
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Based on {sellerProfile.trustScore.totalReviews} reviews
@@ -270,13 +334,19 @@ export default function ItemDetail() {
                     </Button>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="flex-1 border-accent text-accent hover:bg-accent/10">
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-accent text-accent hover:bg-accent/10"
+                        >
                           <MessageCircle className="w-4 h-4 mr-2" />
                           Chat In-App
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[500px] p-0 border-none bg-transparent shadow-none">
-                        <DealChat dealId={existingDeal.id} otherPartyName={`Seller #${item.sellerId}`} />
+                        <DealChat
+                          dealId={existingDeal.id}
+                          otherPartyName={`Seller #${item.sellerId}`}
+                        />
                       </DialogContent>
                     </Dialog>
                   </div>
@@ -287,7 +357,9 @@ export default function ItemDetail() {
                       disabled={createDealMutation.isPending}
                       className="flex-1 bg-accent text-accent-foreground font-semibold"
                     >
-                      {createDealMutation.isPending ? "Processing..." : "I'm Interested"}
+                      {createDealMutation.isPending
+                        ? "Processing..."
+                        : "I'm Interested"}
                     </Button>
                     <Button
                       onClick={handleWhatsAppContact}
@@ -301,7 +373,8 @@ export default function ItemDetail() {
                 ) : (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
                     <p className="text-red-900 font-semibold">
-                      This item is no longer available — it has been sold to another buyer.
+                      This item is no longer available — it has been sold to
+                      another buyer.
                     </p>
                   </div>
                 )}
@@ -313,6 +386,12 @@ export default function ItemDetail() {
                 <p className="text-blue-900">
                   This is your item. You can manage it from your dashboard.
                 </p>
+              </div>
+            )}
+
+            {!isSeller && isAuthenticated && (
+              <div className="mb-8 flex justify-end">
+                <ReportListingModal itemId={itemId} itemTitle={item.title} />
               </div>
             )}
 
@@ -333,19 +412,21 @@ export default function ItemDetail() {
                 <h3 className="text-lg font-bold text-foreground mb-4">
                   Active Deals
                 </h3>
-                {deals.map((deal) => (
+                {deals.map(deal => (
                   <div key={deal.id} className="mb-4 last:mb-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Deal #{deal.id}</span>
+                      <span className="text-muted-foreground">
+                        Deal #{deal.id}
+                      </span>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
                           deal.status === "OPEN"
                             ? "bg-green-100 text-green-800"
                             : deal.status === "DELIVERED"
-                            ? "bg-blue-100 text-blue-800"
-                            : deal.status === "CONFIRMED"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-yellow-100 text-yellow-800"
+                              ? "bg-blue-100 text-blue-800"
+                              : deal.status === "CONFIRMED"
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-yellow-100 text-yellow-800"
                         }`}
                       >
                         {deal.status}
@@ -359,5 +440,71 @@ export default function ItemDetail() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ReportListingModal({ itemId, itemTitle }: { itemId: number; itemTitle: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [description, setDescription] = useState("");
+
+  const reportMutation = trpc.items.report.useMutation({
+    onSuccess: () => {
+      toast.success("Listing reported successfully. Our team will review it.");
+      setIsOpen(false);
+      setReason("");
+      setDescription("");
+    },
+    onError: (err) => {
+      toast.error("Failed to report listing: " + err.message);
+    },
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" className="text-muted-foreground hover:text-destructive flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" />
+          Report Listing
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Report Listing: {itemTitle}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Reason for reporting</label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a reason" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fake">Fake or misleading</SelectItem>
+                <SelectItem value="scam">Suspected scam</SelectItem>
+                <SelectItem value="inappropriate">Inappropriate content</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Additional details (optional)</label>
+            <Textarea
+              placeholder="Provide more context..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <Button
+            className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={!reason || reportMutation.isPending}
+            onClick={() => reportMutation.mutate({ itemId, reason, description })}
+          >
+            {reportMutation.isPending ? "Submitting..." : "Submit Report"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

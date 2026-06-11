@@ -26,7 +26,10 @@ export function isCloudinaryConfigured(): boolean {
   );
 }
 
-export async function uploadFile(buffer: Buffer, filename: string): Promise<string> {
+export async function uploadFile(
+  buffer: Buffer,
+  filename: string
+): Promise<string> {
   if (!isCloudinaryConfigured()) {
     throw new Error("Cloudinary credentials not configured.");
   }
@@ -38,7 +41,8 @@ export async function uploadFile(buffer: Buffer, filename: string): Promise<stri
       },
       (error, result) => {
         if (error) return reject(error);
-        if (!result) return reject(new Error("Cloudinary upload returned no result"));
+        if (!result)
+          return reject(new Error("Cloudinary upload returned no result"));
         resolve(result.secure_url);
       }
     );

@@ -19,6 +19,8 @@ import BuyerConfirmation from "./pages/BuyerConfirmation";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
+import AdminDashboard from "./pages/AdminDashboard";
+
 function Router() {
   return (
     <Switch>
@@ -34,6 +36,7 @@ function Router() {
       <Route path="/edit-post/:id" component={EditPost} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/profile" component={Profile} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route path="/confirm/:dealId" component={BuyerConfirmation} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
@@ -49,10 +52,7 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="dark"
-        switchable
-      >
+      <ThemeProvider defaultTheme="dark" switchable>
         <TooltipProvider>
           <Toaster />
           <Navbar />

@@ -2,7 +2,13 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, BadgeCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  BadgeCheck,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { QRCodeSVG as QRCode } from "qrcode.react";
@@ -24,7 +30,11 @@ export default function BuyerConfirmation() {
   const { dealId } = useParams<{ dealId: string }>();
   const dealIdNum = parseInt(dealId || "0");
 
-  const { data: deal, isLoading, refetch: refetchDeal } = trpc.deals.getById.useQuery({ id: dealIdNum });
+  const {
+    data: deal,
+    isLoading,
+    refetch: refetchDeal,
+  } = trpc.deals.getById.useQuery({ id: dealIdNum });
   const { data: qrData, refetch: refetchQr } = trpc.deals.getUpiQrCode.useQuery(
     { dealId: dealIdNum },
     { enabled: !!deal?.buyerConfirmed }
@@ -36,7 +46,7 @@ export default function BuyerConfirmation() {
       refetchDeal();
       refetchQr();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to confirm delivery: " + error.message);
     },
   });
@@ -46,7 +56,7 @@ export default function BuyerConfirmation() {
       toast.success("Payment marked as complete! Deal is now closed.");
       refetchDeal();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to mark as paid: " + error.message);
     },
   });
@@ -67,7 +77,9 @@ export default function BuyerConfirmation() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4 text-foreground">Deal not found</h2>
+          <h2 className="text-2xl font-bold mb-4 text-foreground">
+            Deal not found
+          </h2>
           <Button onClick={() => setLocation("/marketplace")} variant="outline">
             Back to Marketplace
           </Button>
@@ -108,7 +120,9 @@ export default function BuyerConfirmation() {
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="text-2xl font-bold text-foreground">Delivery Confirmation</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Delivery Confirmation
+          </h1>
         </div>
       </div>
 
@@ -116,7 +130,9 @@ export default function BuyerConfirmation() {
       <div className="container max-w-2xl py-12">
         {/* Deal Info */}
         <div className="bg-card border border-border rounded-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Deal Details</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-6">
+            Deal Details
+          </h2>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Deal ID:</span>
@@ -125,12 +141,16 @@ export default function BuyerConfirmation() {
             {deal.item && (
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Item:</span>
-                <span className="font-semibold text-foreground">{deal.item.title}</span>
+                <span className="font-semibold text-foreground">
+                  {deal.item.title}
+                </span>
               </div>
             )}
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Amount:</span>
-              <span className="text-2xl font-bold text-accent">₹{deal.amount}</span>
+              <span className="text-2xl font-bold text-accent">
+                ₹{deal.amount}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Current Status:</span>
@@ -139,13 +159,17 @@ export default function BuyerConfirmation() {
                   isPaid
                     ? "bg-green-100 text-green-800"
                     : deal.status === "CONFIRMED"
-                    ? "bg-purple-100 text-purple-800"
-                    : deal.status === "DELIVERED"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-yellow-100 text-yellow-800"
+                      ? "bg-purple-100 text-purple-800"
+                      : deal.status === "DELIVERED"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-yellow-100 text-yellow-800"
                 }`}
               >
-                {isPaid ? "Delivered & Paid" : deal.status === "CONFIRMED" ? "Confirmed" : deal.status}
+                {isPaid
+                  ? "Delivered & Paid"
+                  : deal.status === "CONFIRMED"
+                    ? "Confirmed"
+                    : deal.status}
               </span>
             </div>
           </div>
@@ -162,7 +186,9 @@ export default function BuyerConfirmation() {
                 </h3>
               </div>
               <p className="text-green-800">
-                This deal has been successfully completed. The item has been delivered and payment has been made. Thank you for using BorrowBox!
+                This deal has been successfully completed. The item has been
+                delivered and payment has been made. Thank you for using
+                BorrowBox!
               </p>
             </div>
             <Button
@@ -180,7 +206,8 @@ export default function BuyerConfirmation() {
               Waiting for Seller
             </h3>
             <p className="text-yellow-800">
-              The seller has not marked this item as DELIVERED yet. Once they do, you'll be able to confirm delivery and proceed with payment.
+              The seller has not marked this item as DELIVERED yet. Once they
+              do, you'll be able to confirm delivery and proceed with payment.
             </p>
           </div>
         ) : isConfirmed ? (
@@ -195,7 +222,8 @@ export default function BuyerConfirmation() {
                 </h3>
               </div>
               <p className="text-green-800">
-                You've confirmed delivery. The seller's UPI QR code is now ready for payment.
+                You've confirmed delivery. The seller's UPI QR code is now ready
+                for payment.
               </p>
             </div>
 
@@ -254,11 +282,15 @@ export default function BuyerConfirmation() {
                     How to Pay:
                   </h4>
                   <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
-                    <li>Open your UPI app (Google Pay, PhonePe, Paytm, etc.)</li>
+                    <li>
+                      Open your UPI app (Google Pay, PhonePe, Paytm, etc.)
+                    </li>
                     <li>Scan the QR code or tap the UPI link</li>
                     <li>Verify the amount and seller details</li>
                     <li>Enter your UPI PIN to complete payment</li>
-                    <li>Come back here and click "I've Completed Payment" below</li>
+                    <li>
+                      Come back here and click "I've Completed Payment" below
+                    </li>
                   </ol>
                 </div>
 
@@ -268,7 +300,9 @@ export default function BuyerConfirmation() {
                     Done paying? Complete the deal:
                   </h4>
                   <p className="text-sm text-muted-foreground mb-4">
-                    After you've successfully paid via UPI, click the button below to mark this deal as complete. Both you and the seller will see it as <strong>"Delivered & Paid"</strong>.
+                    After you've successfully paid via UPI, click the button
+                    below to mark this deal as complete. Both you and the seller
+                    will see it as <strong>"Delivered & Paid"</strong>.
                   </p>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -285,13 +319,17 @@ export default function BuyerConfirmation() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Confirm Payment</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you've completed the UPI payment? This action cannot be undone and will mark the deal as complete.
+                          Are you sure you've completed the UPI payment? This
+                          action cannot be undone and will mark the deal as
+                          complete.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => markPaidMutation.mutate({ dealId: dealIdNum })}
+                          onClick={() =>
+                            markPaidMutation.mutate({ dealId: dealIdNum })
+                          }
                           className="bg-green-600 hover:bg-green-700 text-white"
                         >
                           Confirm
@@ -312,10 +350,13 @@ export default function BuyerConfirmation() {
                 Confirm Delivery
               </h3>
               <p className="text-blue-800 mb-6">
-                Have you received the item in good condition? Please confirm delivery to proceed with payment.
+                Have you received the item in good condition? Please confirm
+                delivery to proceed with payment.
               </p>
               <Button
-                onClick={() => confirmDeliveryMutation.mutate({ dealId: dealIdNum })}
+                onClick={() =>
+                  confirmDeliveryMutation.mutate({ dealId: dealIdNum })
+                }
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
                 disabled={confirmDeliveryMutation.isPending}
               >
@@ -328,7 +369,9 @@ export default function BuyerConfirmation() {
             {/* Warning */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-800">
-                <strong>Important:</strong> Only confirm delivery if you have received and inspected the item. Once confirmed, the seller's UPI QR code will be generated for payment.
+                <strong>Important:</strong> Only confirm delivery if you have
+                received and inspected the item. Once confirmed, the seller's
+                UPI QR code will be generated for payment.
               </p>
             </div>
           </div>

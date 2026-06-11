@@ -13,7 +13,9 @@ import { authLimiter } from "./limiter";
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const server = net.createServer();
-    server.listen(port, () => { server.close(() => resolve(true)); });
+    server.listen(port, () => {
+      server.close(() => resolve(true));
+    });
     server.on("error", () => resolve(false));
   });
 }

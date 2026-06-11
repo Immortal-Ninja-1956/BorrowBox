@@ -13,6 +13,7 @@ import {
   X,
   Sun,
   Moon,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -74,7 +75,12 @@ export default function Navbar() {
 
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => {
+          {[
+            ...navLinks,
+            ...(user?.role === "admin"
+              ? [{ label: "Admin", path: "/admin", icon: Shield }]
+              : []),
+          ].map(link => {
             const isActive = location === link.path;
             return (
               <button
@@ -104,14 +110,20 @@ export default function Navbar() {
               size="icon"
               onClick={toggleTheme}
               className="text-muted-foreground hover:text-foreground hover:bg-muted"
-              title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              title={
+                theme === "dark"
+                  ? "Switch to Light Mode"
+                  : "Switch to Dark Mode"
+              }
             >
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === "dark" ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
             </Button>
           )}
-          <span className="text-sm text-muted-foreground">
-            {user?.name}
-          </span>
+          <span className="text-sm text-muted-foreground">{user?.name}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -140,7 +152,12 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-card animate-in slide-in-from-top-2 duration-200">
           <div className="container py-3 space-y-1">
-            {navLinks.map((link) => {
+            {[
+              ...navLinks,
+              ...(user?.role === "admin"
+                ? [{ label: "Admin", path: "/admin", icon: Shield }]
+                : []),
+            ].map(link => {
               const isActive = location === link.path;
               return (
                 <button
@@ -186,7 +203,10 @@ export default function Navbar() {
               )}
               <div className="flex items-center justify-between px-3 py-2 border-t border-border mt-1 pt-1">
                 <span className="text-sm text-muted-foreground text-ellipsis overflow-hidden whitespace-nowrap max-w-[180px]">
-                  Signed in as <span className="font-medium text-foreground">{user?.name}</span>
+                  Signed in as{" "}
+                  <span className="font-medium text-foreground">
+                    {user?.name}
+                  </span>
                 </span>
                 <Button
                   variant="ghost"

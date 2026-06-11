@@ -3,7 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Upload, X, ImagePlus, Loader2, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Upload,
+  X,
+  ImagePlus,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -13,13 +20,18 @@ export default function EditPost() {
   const { id } = useParams<{ id: string }>();
   const itemId = parseInt(id || "0");
 
-  const { data: item, isLoading: itemLoading, error } = trpc.items.getById.useQuery({ id: itemId });
+  const {
+    data: item,
+    isLoading: itemLoading,
+    error,
+  } = trpc.items.getById.useQuery({ id: itemId });
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     amount: "",
     category: "Other",
+    condition: "Good",
     imageUrl: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -35,6 +47,7 @@ export default function EditPost() {
         description: item.description || "",
         amount: item.amount.toString(),
         category: item.category || "Other",
+        condition: item.condition || "Good",
         imageUrl: item.imageUrl || "",
       });
     }
@@ -45,7 +58,7 @@ export default function EditPost() {
       toast.success("Item updated successfully!");
       setLocation("/dashboard");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to update item: " + error.message);
     },
   });
@@ -61,7 +74,7 @@ export default function EditPost() {
     }
     setImageFile(file);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       setImagePreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
@@ -98,7 +111,7 @@ export default function EditPost() {
   const removeImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    setFormData((prev) => ({ ...prev, imageUrl: "" }));
+    setFormData(prev => ({ ...prev, imageUrl: "" }));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -150,6 +163,7 @@ export default function EditPost() {
       description: formData.description,
       amount: formData.amount,
       category: formData.category,
+      condition: formData.condition as any,
       imageUrl: imageUrl || undefined,
     });
   };
@@ -160,7 +174,7 @@ export default function EditPost() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
@@ -197,7 +211,9 @@ export default function EditPost() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4 text-foreground">Item not found</h2>
+          <h2 className="text-2xl font-bold mb-4 text-foreground">
+            Item not found
+          </h2>
           <Button onClick={() => setLocation("/dashboard")} variant="outline">
             Back to Dashboard
           </Button>
@@ -212,8 +228,12 @@ export default function EditPost() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4 text-foreground">Unauthorized</h2>
-          <p className="text-muted-foreground mb-4">You can only edit items that you own.</p>
+          <h2 className="text-2xl font-bold mb-4 text-foreground">
+            Unauthorized
+          </h2>
+          <p className="text-muted-foreground mb-4">
+            You can only edit items that you own.
+          </p>
           <Button onClick={() => setLocation("/dashboard")} variant="outline">
             Back to Dashboard
           </Button>
@@ -227,8 +247,12 @@ export default function EditPost() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4 text-foreground">Cannot Edit Item</h2>
-          <p className="text-muted-foreground mb-4">This item has been finalized or sold and can no longer be edited.</p>
+          <h2 className="text-2xl font-bold mb-4 text-foreground">
+            Cannot Edit Item
+          </h2>
+          <p className="text-muted-foreground mb-4">
+            This item has been finalized or sold and can no longer be edited.
+          </p>
           <Button onClick={() => setLocation("/dashboard")} variant="outline">
             Back to Dashboard
           </Button>
@@ -324,6 +348,25 @@ export default function EditPost() {
             </select>
           </div>
 
+          {/* Condition */}
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Condition *
+            </label>
+            <select
+              name="condition"
+              value={formData.condition}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option>New</option>
+              <option>Like New</option>
+              <option>Good</option>
+              <option>Fair</option>
+              <option>Poor</option>
+            </select>
+          </div>
+
           {/* Image Upload */}
           <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
@@ -352,7 +395,9 @@ export default function EditPost() {
                   }`}
                 />
                 <p className="text-sm font-medium text-foreground mb-1">
-                  {isDragging ? "Drop your image here" : "Click to upload or drag and drop"}
+                  {isDragging
+                    ? "Drop your image here"
+                    : "Click to upload or drag and drop"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   JPG, PNG, GIF, or WebP · Max 5 MB
@@ -366,7 +411,7 @@ export default function EditPost() {
                   className="w-full h-64 object-cover"
                   onError={() => {
                     setImagePreview(null);
-                    setFormData((prev) => ({ ...prev, imageUrl: "" }));
+                    setFormData(prev => ({ ...prev, imageUrl: "" }));
                     toast.error("Failed to load image");
                   }}
                 />
@@ -402,9 +447,9 @@ export default function EditPost() {
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">
-              <strong>Note:</strong> Make sure your UPI ID and WhatsApp number are
-              updated in your profile. Buyers will contact you via WhatsApp, and
-              payment will be collected via UPI after delivery confirmation.
+              <strong>Note:</strong> Make sure your UPI ID and WhatsApp number
+              are updated in your profile. Buyers will contact you via WhatsApp,
+              and payment will be collected via UPI after delivery confirmation.
             </p>
           </div>
 

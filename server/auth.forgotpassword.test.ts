@@ -36,7 +36,9 @@ describe("Forgot Password Schema Validation", () => {
     });
     expect(res.success).toBe(false);
     if (!res.success) {
-      expect(res.error.issues[0].message).toBe("Password must be at least 8 characters");
+      expect(res.error.issues[0].message).toBe(
+        "Password must be at least 8 characters"
+      );
     }
   });
 });

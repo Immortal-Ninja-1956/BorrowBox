@@ -19,10 +19,12 @@ export default function ResetPassword() {
 
   const resetPasswordMutation = trpc.auth.resetPassword.useMutation({
     onSuccess: () => {
-      toast.success("Password reset successfully! Log in with your new credentials.");
+      toast.success(
+        "Password reset successfully! Log in with your new credentials."
+      );
       setLocation("/login");
     },
-    onError: (e) => toast.error(e.message),
+    onError: e => toast.error(e.message),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -54,7 +56,10 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setLocation("/")}>
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setLocation("/")}
+          >
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-accent-foreground" />
             </div>
@@ -68,38 +73,54 @@ export default function ResetPassword() {
               <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <KeyRound className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Reset Link</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Invalid Reset Link
+              </h1>
               <p className="text-muted-foreground mb-6 text-sm">
-                This password reset link is invalid, incomplete, or has expired. Please request a new link.
+                This password reset link is invalid, incomplete, or has expired.
+                Please request a new link.
               </p>
-              <Button onClick={() => setLocation("/forgot-password")} className="w-full bg-accent">
+              <Button
+                onClick={() => setLocation("/forgot-password")}
+                className="w-full bg-accent"
+              >
                 Request New Link
               </Button>
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Create New Password</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Create New Password
+              </h1>
               <p className="text-muted-foreground mb-6 text-sm">
                 Choose a strong new password that is at least 8 characters long.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">New Password</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    New Password
+                  </label>
                   <Input
                     type="password"
                     placeholder="••••••••"
                     value={passwords.password}
-                    onChange={(e) => setPasswords((p) => ({ ...p, password: e.target.value }))}
+                    onChange={e =>
+                      setPasswords(p => ({ ...p, password: e.target.value }))
+                    }
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Confirm New Password</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Confirm New Password
+                  </label>
                   <Input
                     type="password"
                     placeholder="••••••••"
                     value={passwords.confirm}
-                    onChange={(e) => setPasswords((p) => ({ ...p, confirm: e.target.value }))}
+                    onChange={e =>
+                      setPasswords(p => ({ ...p, confirm: e.target.value }))
+                    }
                   />
                 </div>
                 <Button
@@ -107,7 +128,9 @@ export default function ResetPassword() {
                   className="w-full bg-accent"
                   disabled={resetPasswordMutation.isPending}
                 >
-                  {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                  {resetPasswordMutation.isPending
+                    ? "Resetting..."
+                    : "Reset Password"}
                 </Button>
               </form>
             </>

@@ -1,7 +1,12 @@
 import { eq, desc, and, or, sql, like, asc, lt, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { users, items, deals, reviews, messages } from "../drizzle/schema";
-import type { InsertUser, InsertReview, InsertMessage } from "../drizzle/schema";
+import { users, items, deals, reviews, messages, item_reports } from "../drizzle/schema";
+import type {
+  InsertUser,
+  InsertReview,
+  InsertMessage,
+  InsertItemReport,
+} from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -38,43 +43,65 @@ export async function createUser(data: {
 export async function getUserByEmail(email: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
 export async function getUserById(userId: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function updateUserProfile(userId: number, data: {
-  upiId?: string;
-  upiName?: string;
-  whatsapp?: string;
-  whatsappVerified?: number;
-}) {
+export async function updateUserProfile(
+  userId: number,
+  data: {
+    upiId?: string;
+    upiName?: string;
+    whatsapp?: string;
+    whatsappVerified?: number;
+  }
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: any = {};
   if (data.upiId !== undefined) updateData.upiId = data.upiId;
   if (data.upiName !== undefined) updateData.upiName = data.upiName;
   if (data.whatsapp !== undefined) updateData.whatsapp = data.whatsapp;
-  if (data.whatsappVerified !== undefined) updateData.whatsappVerified = data.whatsappVerified;
+  if (data.whatsappVerified !== undefined)
+    updateData.whatsappVerified = data.whatsappVerified;
   return await db.update(users).set(updateData).where(eq(users.id, userId));
 }
 
-export async function updateUserWhatsAppOtp(userId: number, otp: string, expiresAt: Date) {
+export async function updateUserWhatsAppOtp(
+  userId: number,
+  otp: string,
+  expiresAt: Date
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(users).set({ whatsappOtp: otp, whatsappOtpExpiresAt: expiresAt }).where(eq(users.id, userId));
+  return await db
+    .update(users)
+    .set({ whatsappOtp: otp, whatsappOtpExpiresAt: expiresAt })
+    .where(eq(users.id, userId));
 }
 
 export async function verifyUserWhatsApp(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(users).set({ whatsappVerified: 1, whatsappOtp: null, whatsappOtpExpiresAt: null }).where(eq(users.id, userId));
+  return await db
+    .update(users)
+    .set({ whatsappVerified: 1, whatsappOtp: null, whatsappOtpExpiresAt: null })
+    .where(eq(users.id, userId));
 }
 
 // ─── Items ────────────────────────────────────────────────────────────────────
@@ -86,6 +113,7 @@ export async function createItem(data: {
   amount: string;
   imageUrl?: string;
   category?: string;
+  condition?: string;
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -96,6 +124,7 @@ export async function createItem(data: {
     amount: data.amount as any,
     imageUrl: data.imageUrl,
     category: data.category,
+    condition: data.condition as any,
   });
   const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
   return insertId as number;
@@ -104,7 +133,11 @@ export async function createItem(data: {
 export async function getItemById(itemId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.select().from(items).where(eq(items.id, itemId)).limit(1);
+  const result = await db
+    .select()
+    .from(items)
+    .where(eq(items.id, itemId))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -151,7 +184,10 @@ export async function getPagedItems(options: {
     );
   }
 
-  let query = db.select().from(items).where(and(...conditions));
+  let query = db
+    .select()
+    .from(items)
+    .where(and(...conditions));
 
   if (options.sortBy === "price-low") {
     query = query.orderBy(asc(items.amount)) as any;
@@ -167,13 +203,17 @@ export async function getPagedItems(options: {
   return await query.limit(options.limit).offset(options.offset);
 }
 
-export async function updateItem(itemId: number, data: {
-  title?: string;
-  description?: string;
-  amount?: string;
-  imageUrl?: string;
-  category?: string;
-}) {
+export async function updateItem(
+  itemId: number,
+  data: {
+    title?: string;
+    description?: string;
+    amount?: string;
+    imageUrl?: string;
+    category?: string;
+    condition?: string;
+  }
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: any = {};
@@ -182,6 +222,7 @@ export async function updateItem(itemId: number, data: {
   if (data.amount !== undefined) updateData.amount = data.amount;
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
   if (data.category !== undefined) updateData.category = data.category;
+  if (data.condition !== undefined) updateData.condition = data.condition;
   if (Object.keys(updateData).length === 0) return;
   return await db.update(items).set(updateData).where(eq(items.id, itemId));
 }
@@ -189,7 +230,10 @@ export async function updateItem(itemId: number, data: {
 export async function updateItemStatus(itemId: number, status: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(items).set({ status: status as any }).where(eq(items.id, itemId));
+  return await db
+    .update(items)
+    .set({ status: status as any })
+    .where(eq(items.id, itemId));
 }
 
 export async function deleteItem(itemId: number) {
@@ -216,7 +260,13 @@ export async function cancelOtherDeals(itemId: number, activeDealId: number) {
   return await db
     .update(deals)
     .set({ status: "CANCELLED" as any })
-    .where(and(eq(deals.itemId, itemId), ne(deals.id, activeDealId), eq(deals.status, "OPEN")));
+    .where(
+      and(
+        eq(deals.itemId, itemId),
+        ne(deals.id, activeDealId),
+        eq(deals.status, "OPEN")
+      )
+    );
 }
 
 export async function createDeal(data: {
@@ -272,7 +322,7 @@ export async function getDealsBySellerId(sellerId: number) {
     .from(deals)
     .innerJoin(items, eq(deals.itemId, items.id))
     .where(eq(deals.sellerId, sellerId));
-  return results.map((r) => ({
+  return results.map(r => ({
     ...r.deal,
     item: r.item,
   }));
@@ -290,7 +340,7 @@ export async function getDealsByBuyerId(buyerId: number) {
     .from(deals)
     .innerJoin(items, eq(deals.itemId, items.id))
     .where(eq(deals.buyerId, buyerId));
-  return results.map((r) => ({
+  return results.map(r => ({
     ...r.deal,
     item: r.item,
   }));
@@ -299,49 +349,75 @@ export async function getDealsByBuyerId(buyerId: number) {
 export async function updateDealStatus(dealId: number, status: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(deals).set({ status: status as any }).where(eq(deals.id, dealId));
+  return await db
+    .update(deals)
+    .set({ status: status as any })
+    .where(eq(deals.id, dealId));
 }
 
 export async function confirmDealByBuyer(dealId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(deals).set({ buyerConfirmed: 1 }).where(eq(deals.id, dealId));
+  return await db
+    .update(deals)
+    .set({ buyerConfirmed: 1 })
+    .where(eq(deals.id, dealId));
 }
 
 export async function updateDealUpiQrCode(dealId: number, qrCode: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(deals).set({ upiQrCode: qrCode }).where(eq(deals.id, dealId));
+  return await db
+    .update(deals)
+    .set({ upiQrCode: qrCode })
+    .where(eq(deals.id, dealId));
 }
 
-export async function updateUserResetToken(email: string, token: string | null, expiresAt: Date | null) {
+export async function updateUserResetToken(
+  email: string,
+  token: string | null,
+  expiresAt: Date | null
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(users).set({ resetToken: token, resetTokenExpiresAt: expiresAt }).where(eq(users.email, email));
+  return await db
+    .update(users)
+    .set({ resetToken: token, resetTokenExpiresAt: expiresAt })
+    .where(eq(users.email, email));
 }
 
 export async function getUserByResetToken(token: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.resetToken, token)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.resetToken, token))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
 export async function updateUserPassword(userId: number, passwordHash: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(users).set({ 
-    passwordHash, 
-    resetToken: null, 
-    resetTokenExpiresAt: null,
-    tokenVersion: sql`${users.tokenVersion} + 1`
-  }).where(eq(users.id, userId));
+  return await db
+    .update(users)
+    .set({
+      passwordHash,
+      resetToken: null,
+      resetTokenExpiresAt: null,
+      tokenVersion: sql`${users.tokenVersion} + 1`,
+    })
+    .where(eq(users.id, userId));
 }
 
 export async function incrementUserTokenVersion(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.update(users).set({ tokenVersion: sql`${users.tokenVersion} + 1` }).where(eq(users.id, userId));
+  return await db
+    .update(users)
+    .set({ tokenVersion: sql`${users.tokenVersion} + 1` })
+    .where(eq(users.id, userId));
 }
 
 // Reviews
@@ -381,7 +457,9 @@ export async function getUserTrustScore(userId: number) {
     .where(eq(reviews.revieweeId, userId));
 
   return {
-    averageRating: result[0]?.averageRating ? Number(result[0].averageRating).toFixed(1) : "0.0",
+    averageRating: result[0]?.averageRating
+      ? Number(result[0].averageRating).toFixed(1)
+      : "0.0",
     totalReviews: Number(result[0]?.totalReviews || 0),
   };
 }
@@ -406,3 +484,104 @@ export async function createMessage(data: InsertMessage) {
   return insertId as number;
 }
 
+// ─── Admin ────────────────────────────────────────────────────────────────────
+
+export async function getAllUsersAdmin() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      isBanned: users.isBanned,
+      createdAt: users.createdAt,
+      whatsappVerified: users.whatsappVerified,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt));
+}
+
+export async function updateUserBanStatus(userId: number, isBanned: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(users).set({ isBanned }).where(eq(users.id, userId));
+}
+
+export async function getPlatformStats() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [userCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users);
+  const [itemCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(items);
+  const [dealCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(deals);
+
+  return {
+    totalUsers: Number(userCount?.count || 0),
+    totalItems: Number(itemCount?.count || 0),
+    totalDeals: Number(dealCount?.count || 0),
+  };
+}
+
+import { alias } from "drizzle-orm/mysql-core";
+
+// ─── Reports ────────────────────────────────────────────────────────────────────
+
+export async function createItemReport(data: InsertItemReport) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(item_reports).values(data);
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return insertId as number;
+}
+
+export async function getAllItemReportsAdmin() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const reporters = alias(users, "reporters");
+  const sellers = alias(users, "sellers");
+
+  return await db
+    .select({
+      id: item_reports.id,
+      itemId: item_reports.itemId,
+      reporterId: item_reports.reporterId,
+      reason: item_reports.reason,
+      description: item_reports.description,
+      status: item_reports.status,
+      createdAt: item_reports.createdAt,
+      reporterName: reporters.name,
+      reporterEmail: reporters.email,
+      itemTitle: items.title,
+      sellerId: items.sellerId,
+      sellerName: sellers.name,
+      sellerEmail: sellers.email,
+      sellerBanned: sellers.isBanned,
+      sellerRole: sellers.role,
+    })
+    .from(item_reports)
+    .innerJoin(reporters, eq(item_reports.reporterId, reporters.id))
+    .innerJoin(items, eq(item_reports.itemId, items.id))
+    .innerJoin(sellers, eq(items.sellerId, sellers.id))
+    .orderBy(desc(item_reports.createdAt));
+}
+
+export async function updateItemReportStatus(
+  reportId: number,
+  status: "OPEN" | "RESOLVED" | "DISMISSED"
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(item_reports)
+    .set({ status })
+    .where(eq(item_reports.id, reportId));
+}

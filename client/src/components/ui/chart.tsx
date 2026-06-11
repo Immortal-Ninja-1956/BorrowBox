@@ -94,7 +94,8 @@ ${colorConfig
     )
     .join("\n");
 
-  const sanitizedHtml = typeof window !== "undefined" ? DOMPurify.sanitize(html) : html;
+  const sanitizedHtml =
+    typeof window !== "undefined" ? DOMPurify.sanitize(html) : html;
 
   return (
     <style

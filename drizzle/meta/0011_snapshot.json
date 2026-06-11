@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "8faeaa14-8c73-44fc-8a30-495c525aa0e7",
-  "prevId": "a7c2bc2f-1b0f-444d-99e3-7695d41ba974",
+  "id": "5316c59f-f718-42a9-b212-96ef3f22aa83",
+  "prevId": "08547342-d5e9-4461-997a-37406a334767",
   "tables": {
     "deals": {
       "name": "deals",
@@ -146,9 +146,17 @@
           "notNull": false,
           "autoincrement": false
         },
+        "condition": {
+          "name": "condition",
+          "type": "enum('New','Like New','Good','Fair','Poor')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'Good'"
+        },
         "status": {
           "name": "status",
-          "type": "enum('OPEN','Contacted','Shipped','DELIVERED')",
+          "type": "enum('OPEN','Contacted','Shipped','DELIVERED','SOLD')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
@@ -344,6 +352,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'user'"
+        },
+        "isBanned": {
+          "name": "isBanned",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "upiId": {
           "name": "upiId",

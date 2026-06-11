@@ -13,23 +13,34 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
-export function signSessionToken(userId: number, email: string, tokenVersion: number): string {
-  return jwt.sign(
-    { userId, email, tokenVersion },
-    ENV.cookieSecret,
-    { expiresIn: "7d" }
-  );
+export function signSessionToken(
+  userId: number,
+  email: string,
+  tokenVersion: number
+): string {
+  return jwt.sign({ userId, email, tokenVersion }, ENV.cookieSecret, {
+    expiresIn: "7d",
+  });
 }
 
-export function verifySessionToken(token: string): { userId: number; email: string; tokenVersion: number } | null {
+export function verifySessionToken(
+  token: string
+): { userId: number; email: string; tokenVersion: number } | null {
   try {
     const payload = jwt.verify(token, ENV.cookieSecret) as any;
     if (!payload?.userId || payload.tokenVersion === undefined) return null;
-    return { userId: payload.userId, email: payload.email, tokenVersion: payload.tokenVersion };
+    return {
+      userId: payload.userId,
+      email: payload.email,
+      tokenVersion: payload.tokenVersion,
+    };
   } catch {
     return null;
   }
@@ -47,6 +58,11 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
   if (!session) return null;
 
   const user = await db.getUserById(session.userId);
-  if (!user || user.tokenVersion !== session.tokenVersion) return null;
+  if (
+    !user ||
+    user.tokenVersion !== session.tokenVersion ||
+    user.isBanned === 1
+  )
+    return null;
   return user;
 }

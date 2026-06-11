@@ -10,21 +10,26 @@ import { toast } from "sonner";
 export default function CreatePost() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const { data: serverProfile } = trpc.user.getProfile.useQuery(undefined, { enabled: isAuthenticated });
-  
+  const { data: serverProfile } = trpc.user.getProfile.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
   const { data: userItems } = trpc.items.getBySeller.useQuery(
     { sellerId: user?.id as number },
     { enabled: !!user?.id }
   );
 
-  const isUnverified = serverProfile && !(serverProfile as any).whatsappVerified;
-  const hasReachedUnverifiedLimit = isUnverified && userItems && userItems.length >= 1;
-  
+  const isUnverified =
+    serverProfile && !(serverProfile as any).whatsappVerified;
+  const hasReachedUnverifiedLimit =
+    isUnverified && userItems && userItems.length >= 1;
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     amount: "",
     category: "Other",
+    condition: "Good",
     imageUrl: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -38,7 +43,7 @@ export default function CreatePost() {
       toast.success("Item posted successfully!");
       setLocation("/dashboard");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to post item: " + error.message);
     },
   });
@@ -80,7 +85,7 @@ export default function CreatePost() {
     }
     setImageFile(file);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       setImagePreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
@@ -117,7 +122,7 @@ export default function CreatePost() {
   const removeImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    setFormData((prev) => ({ ...prev, imageUrl: "" }));
+    setFormData(prev => ({ ...prev, imageUrl: "" }));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -146,7 +151,9 @@ export default function CreatePost() {
     e.preventDefault();
 
     if (hasReachedUnverifiedLimit) {
-      toast.error("You have reached the limit of 1 unverified listing. Please verify your WhatsApp number.");
+      toast.error(
+        "You have reached the limit of 1 unverified listing. Please verify your WhatsApp number."
+      );
       return;
     }
 
@@ -173,6 +180,7 @@ export default function CreatePost() {
       description: formData.description,
       amount: formData.amount,
       category: formData.category,
+      condition: formData.condition as any,
       imageUrl: imageUrl || undefined,
     });
   };
@@ -183,7 +191,7 @@ export default function CreatePost() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
@@ -276,6 +284,25 @@ export default function CreatePost() {
             </select>
           </div>
 
+          {/* Condition */}
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Condition *
+            </label>
+            <select
+              name="condition"
+              value={formData.condition}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option>New</option>
+              <option>Like New</option>
+              <option>Good</option>
+              <option>Fair</option>
+              <option>Poor</option>
+            </select>
+          </div>
+
           {/* Image Upload */}
           <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
@@ -304,7 +331,9 @@ export default function CreatePost() {
                   }`}
                 />
                 <p className="text-sm font-medium text-foreground mb-1">
-                  {isDragging ? "Drop your image here" : "Click to upload or drag and drop"}
+                  {isDragging
+                    ? "Drop your image here"
+                    : "Click to upload or drag and drop"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   JPG, PNG, GIF, or WebP · Max 5 MB
@@ -318,7 +347,7 @@ export default function CreatePost() {
                   className="w-full h-64 object-cover"
                   onError={() => {
                     setImagePreview(null);
-                    setFormData((prev) => ({ ...prev, imageUrl: "" }));
+                    setFormData(prev => ({ ...prev, imageUrl: "" }));
                     toast.error("Failed to load image");
                   }}
                 />
@@ -355,8 +384,13 @@ export default function CreatePost() {
           {hasReachedUnverifiedLimit ? (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-sm text-red-900">
-                <strong>Action Required:</strong> You must verify your WhatsApp number to create more than one listing. 
-                <Button variant="link" className="px-1 text-red-600 font-bold" onClick={() => setLocation("/profile")}>
+                <strong>Action Required:</strong> You must verify your WhatsApp
+                number to create more than one listing.
+                <Button
+                  variant="link"
+                  className="px-1 text-red-600 font-bold"
+                  onClick={() => setLocation("/profile")}
+                >
                   Go to Profile to Verify
                 </Button>
               </p>
@@ -364,8 +398,14 @@ export default function CreatePost() {
           ) : isUnverified ? (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <p className="text-sm text-amber-900">
-                <strong>Notice:</strong> Your WhatsApp number is unverified. You can only create <strong>one</strong> listing until you verify it.
-                <Button variant="link" className="px-1 text-amber-600 font-bold" onClick={() => setLocation("/profile")}>
+                <strong>Notice:</strong> Your WhatsApp number is unverified. You
+                can only create <strong>one</strong> listing until you verify
+                it.
+                <Button
+                  variant="link"
+                  className="px-1 text-amber-600 font-bold"
+                  onClick={() => setLocation("/profile")}
+                >
                   Verify Now
                 </Button>
               </p>
@@ -373,9 +413,10 @@ export default function CreatePost() {
           ) : (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Make sure your UPI ID and WhatsApp number are
-                updated in your profile. Buyers will contact you via WhatsApp, and
-                payment will be collected via UPI after delivery confirmation.
+                <strong>Note:</strong> Make sure your UPI ID and WhatsApp number
+                are updated in your profile. Buyers will contact you via
+                WhatsApp, and payment will be collected via UPI after delivery
+                confirmation.
               </p>
             </div>
           )}

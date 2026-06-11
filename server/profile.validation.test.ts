@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 
-const whatsappSchema = z.string().optional().refine((val) => {
-  if (!val) return true;
-  return /^\+\d{10,15}$/.test(val.replace(/\s+/g, ""));
-}, "WhatsApp number must be in international format (e.g., +91XXXXXXXXXX)");
+const whatsappSchema = z
+  .string()
+  .optional()
+  .refine(val => {
+    if (!val) return true;
+    return /^\+\d{10,15}$/.test(val.replace(/\s+/g, ""));
+  }, "WhatsApp number must be in international format (e.g., +91XXXXXXXXXX)");
 
 describe("WhatsApp Validation Schema", () => {
   it("should accept a valid international phone number", () => {
@@ -26,7 +29,9 @@ describe("WhatsApp Validation Schema", () => {
     const res = whatsappSchema.safeParse("919876543210");
     expect(res.success).toBe(false);
     if (!res.success) {
-      expect(res.error.issues[0].message).toBe("WhatsApp number must be in international format (e.g., +91XXXXXXXXXX)");
+      expect(res.error.issues[0].message).toBe(
+        "WhatsApp number must be in international format (e.g., +91XXXXXXXXXX)"
+      );
     }
   });
 

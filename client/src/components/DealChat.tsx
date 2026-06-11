@@ -5,7 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, Loader2, MessageSquare } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
-export function DealChat({ dealId, otherPartyName }: { dealId: number; otherPartyName: string }) {
+export function DealChat({
+  dealId,
+  otherPartyName,
+}: {
+  dealId: number;
+  otherPartyName: string;
+}) {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -54,7 +60,7 @@ export function DealChat({ dealId, otherPartyName }: { dealId: number; otherPart
             <p>No messages yet. Start the conversation!</p>
           </div>
         ) : (
-          messages.map((msg) => {
+          messages.map(msg => {
             const isMe = msg.senderId === user?.id;
             return (
               <div
@@ -71,7 +77,10 @@ export function DealChat({ dealId, otherPartyName }: { dealId: number; otherPart
                   {msg.text}
                 </div>
                 <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </div>
             );
@@ -83,10 +92,10 @@ export function DealChat({ dealId, otherPartyName }: { dealId: number; otherPart
         <div className="flex gap-2">
           <Textarea
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={e => setText(e.target.value)}
             placeholder="Type a message..."
             className="min-h-[44px] max-h-[120px] resize-y"
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();

@@ -3,12 +3,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Loader2, Star, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Star,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { StarRating } from "@/components/ui/star-rating";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Profile() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
@@ -23,10 +39,8 @@ export default function Profile() {
   const [otpValue, setOtpValue] = useState("");
 
   // Fetch full profile from server (auth.me doesn't always include upiId etc on first load)
-  const { data: serverProfile, isLoading: profileLoading } = trpc.user.getProfile.useQuery(
-    undefined,
-    { enabled: isAuthenticated }
-  );
+  const { data: serverProfile, isLoading: profileLoading } =
+    trpc.user.getProfile.useQuery(undefined, { enabled: isAuthenticated });
 
   const { data: userReviewsData } = trpc.reviews.getByUser.useQuery(
     { userId: user?.id || 0 },
@@ -39,7 +53,9 @@ export default function Profile() {
       setFormData({
         upiId: serverProfile.upiId ?? "",
         upiName: serverProfile.upiName ?? "",
-        whatsapp: serverProfile.whatsapp ? serverProfile.whatsapp.replace("+91", "") : "",
+        whatsapp: serverProfile.whatsapp
+          ? serverProfile.whatsapp.replace("+91", "")
+          : "",
       });
     }
   }, [serverProfile]);
@@ -49,17 +65,19 @@ export default function Profile() {
       toast.success("Profile updated successfully!");
       utils.user.getProfile.invalidate();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to update profile: " + error.message);
     },
   });
 
   const sendOtpMutation = trpc.user.sendWhatsAppOtp.useMutation({
     onSuccess: () => {
-      toast.success("Verification code sent! (Check console for simulated OTP)");
+      toast.success(
+        "Verification code sent! (Check console for simulated OTP)"
+      );
       setIsOtpDialogOpen(true);
     },
-    onError: (error) => toast.error(error.message),
+    onError: error => toast.error(error.message),
   });
 
   const verifyOtpMutation = trpc.user.verifyWhatsAppOtp.useMutation({
@@ -69,7 +87,7 @@ export default function Profile() {
       setOtpValue("");
       utils.user.getProfile.invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: error => toast.error(error.message),
   });
 
   if (authLoading || profileLoading) {
@@ -118,7 +136,7 @@ export default function Profile() {
 
     const cleanPhone = "+91" + formData.whatsapp.replace(/\s+/g, "");
     const phoneRegex = /^\+\d{10,15}$/;
-    
+
     if (!phoneRegex.test(cleanPhone)) {
       toast.error("WhatsApp number must be valid");
       return;
@@ -132,7 +150,7 @@ export default function Profile() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
@@ -167,21 +185,13 @@ export default function Profile() {
                 <label className="block text-sm font-semibold text-foreground mb-2">
                   Name
                 </label>
-                <Input
-                  value={user?.name || ""}
-                  disabled
-                  className="w-full"
-                />
+                <Input value={user?.name || ""} disabled className="w-full" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
                   Email
                 </label>
-                <Input
-                  value={user?.email || ""}
-                  disabled
-                  className="w-full"
-                />
+                <Input value={user?.email || ""} disabled className="w-full" />
               </div>
             </div>
 
@@ -197,7 +207,13 @@ export default function Profile() {
                     {userReviewsData.trustScore.averageRating}
                   </div>
                   <div>
-                    <StarRating rating={Math.round(Number(userReviewsData.trustScore.averageRating))} disabled size={16} />
+                    <StarRating
+                      rating={Math.round(
+                        Number(userReviewsData.trustScore.averageRating)
+                      )}
+                      disabled
+                      size={16}
+                    />
                     <p className="text-xs text-muted-foreground mt-1">
                       Based on {userReviewsData.trustScore.totalReviews} reviews
                     </p>
@@ -213,7 +229,8 @@ export default function Profile() {
               Payment Details (Required for Sellers)
             </h3>
             <p className="text-blue-800 dark:text-blue-400 text-sm mb-4">
-              These details are used to generate UPI QR codes for payment collection after delivery confirmation.
+              These details are used to generate UPI QR codes for payment
+              collection after delivery confirmation.
             </p>
 
             <div className="space-y-4">
@@ -259,7 +276,8 @@ export default function Profile() {
               Contact Details (Required for Sellers)
             </h3>
             <p className="text-green-800 dark:text-green-400 text-sm mb-4">
-              Buyers will use this WhatsApp number to contact you about your listings.
+              Buyers will use this WhatsApp number to contact you about your
+              listings.
             </p>
 
             <div>
@@ -267,7 +285,8 @@ export default function Profile() {
                 <label className="block text-sm font-semibold text-foreground">
                   WhatsApp Number *
                 </label>
-                {(serverProfile as any)?.whatsapp && (serverProfile as any)?.whatsappVerified ? (
+                {(serverProfile as any)?.whatsapp &&
+                (serverProfile as any)?.whatsappVerified ? (
                   <span className="flex items-center text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-1 rounded-full">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
                     Verified
@@ -295,17 +314,20 @@ export default function Profile() {
                 <p className="text-xs text-muted-foreground">
                   Local 10-digit number
                 </p>
-                {(serverProfile as any)?.whatsapp && !(serverProfile as any)?.whatsappVerified && formData.whatsapp === (serverProfile as any).whatsapp.replace("+91", "") && (
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    className="h-auto p-0 text-xs text-blue-600 dark:text-blue-400"
-                    onClick={() => sendOtpMutation.mutate()}
-                    disabled={sendOtpMutation.isPending}
-                  >
-                    {sendOtpMutation.isPending ? "Sending..." : "Verify Now"}
-                  </Button>
-                )}
+                {(serverProfile as any)?.whatsapp &&
+                  !(serverProfile as any)?.whatsappVerified &&
+                  formData.whatsapp ===
+                    (serverProfile as any).whatsapp.replace("+91", "") && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 text-xs text-blue-600 dark:text-blue-400"
+                      onClick={() => sendOtpMutation.mutate()}
+                      disabled={sendOtpMutation.isPending}
+                    >
+                      {sendOtpMutation.isPending ? "Sending..." : "Verify Now"}
+                    </Button>
+                  )}
               </div>
             </div>
           </div>
@@ -336,8 +358,11 @@ export default function Profile() {
               Recent Reviews
             </h3>
             <div className="space-y-4">
-              {userReviewsData.reviews.map((review) => (
-                <div key={review.id} className="border-b border-border last:border-0 pb-4 last:pb-0">
+              {userReviewsData.reviews.map(review => (
+                <div
+                  key={review.id}
+                  className="border-b border-border last:border-0 pb-4 last:pb-0"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <StarRating rating={review.rating} disabled size={14} />
                     <span className="text-xs text-muted-foreground">
@@ -345,7 +370,9 @@ export default function Profile() {
                     </span>
                   </div>
                   {review.comment && (
-                    <p className="text-sm text-foreground italic">"{review.comment}"</p>
+                    <p className="text-sm text-foreground italic">
+                      "{review.comment}"
+                    </p>
                   )}
                   <p className="text-xs text-muted-foreground mt-2 font-medium">
                     From {review.role === "buyer" ? "Buyer" : "Seller"}
@@ -377,7 +404,7 @@ export default function Profile() {
                 <InputOTPSlot index={5} />
               </InputOTPGroup>
             </InputOTP>
-            <Button 
+            <Button
               className="w-full max-w-[200px]"
               disabled={otpValue.length !== 6 || verifyOtpMutation.isPending}
               onClick={() => verifyOtpMutation.mutate({ otp: otpValue })}

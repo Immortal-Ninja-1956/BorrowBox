@@ -18,12 +18,15 @@ export default function Login() {
       toast.success("Logged in!");
       setLocation("/marketplace");
     },
-    onError: (e) => toast.error(e.message),
+    onError: e => toast.error(e.message),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.email || !form.password) { toast.error("Fill in all fields"); return; }
+    if (!form.email || !form.password) {
+      toast.error("Fill in all fields");
+      return;
+    }
     loginMutation.mutate(form);
   };
 
@@ -31,7 +34,10 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setLocation("/")}>
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setLocation("/")}
+          >
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-accent-foreground" />
             </div>
@@ -40,12 +46,16 @@ export default function Login() {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-8">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Welcome back
+          </h1>
           <p className="text-muted-foreground mb-6">Sign in to your account</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Email</label>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Email
+              </label>
               <Input
                 type="email"
                 placeholder="you@vitstudent.ac.in"
@@ -55,7 +65,9 @@ export default function Login() {
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-foreground">Password</label>
+                <label className="block text-sm font-medium text-foreground">
+                  Password
+                </label>
                 <button
                   type="button"
                   onClick={() => setLocation("/forgot-password")}
@@ -68,17 +80,26 @@ export default function Login() {
                 type="password"
                 placeholder="••••••••"
                 value={form.password}
-                onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                onChange={e =>
+                  setForm(p => ({ ...p, password: e.target.value }))
+                }
               />
             </div>
-            <Button type="submit" className="w-full bg-accent" disabled={loginMutation.isPending}>
+            <Button
+              type="submit"
+              className="w-full bg-accent"
+              disabled={loginMutation.isPending}
+            >
               {loginMutation.isPending ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{" "}
-            <button className="text-accent font-medium hover:underline" onClick={() => setLocation("/register")}>
+            <button
+              className="text-accent font-medium hover:underline"
+              onClick={() => setLocation("/register")}
+            >
               Sign up
             </button>
           </p>

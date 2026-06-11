@@ -81,31 +81,48 @@ export default function Dashboard() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  const { data: deals, isLoading, refetch } = trpc.deals.getBySeller.useQuery(
-    undefined,
-    { enabled: isAuthenticated }
-  );
+  const {
+    data: deals,
+    isLoading,
+    refetch,
+  } = trpc.deals.getBySeller.useQuery(undefined, { enabled: isAuthenticated });
 
-  const { data: buyerDeals, isLoading: isBuyerLoading } = trpc.deals.getByBuyer.useQuery(
-    undefined,
-    { enabled: isAuthenticated }
-  );
+  const {
+    data: buyerDeals,
+    isLoading: isBuyerLoading,
+    refetch: refetchBuyerDeals,
+  } = trpc.deals.getByBuyer.useQuery(undefined, { enabled: isAuthenticated });
 
-  const { data: sellerItems, refetch: refetchItems } = trpc.items.getBySeller.useQuery(
-    { sellerId: user?.id || 0 },
-    { enabled: isAuthenticated && !!user?.id }
-  );
+  const { data: sellerItems, refetch: refetchItems } =
+    trpc.items.getBySeller.useQuery(
+      { sellerId: user?.id || 0 },
+      { enabled: isAuthenticated && !!user?.id }
+    );
 
   const itemsListed = sellerItems?.length || 0;
-  const activeDeals = deals?.filter(d => d.status !== "PAID" && d.status !== "CANCELLED").length || 0;
+  const activeDeals =
+    deals?.filter(d => d.status !== "PAID" && d.status !== "CANCELLED")
+      .length || 0;
 
   const updateStatusMutation = trpc.deals.updateStatus.useMutation({
     onSuccess: () => {
       toast.success("Deal status updated!");
       refetch();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to update status: " + error.message);
+    },
+  });
+
+  const cancelDealMutation = trpc.deals.cancel.useMutation({
+    onSuccess: () => {
+      toast.success("Deal cancelled successfully!");
+      refetch();
+      refetchBuyerDeals();
+      refetchItems();
+    },
+    onError: error => {
+      toast.error("Failed to cancel deal: " + error.message);
     },
   });
 
@@ -114,7 +131,7 @@ export default function Dashboard() {
       toast.success("Item deleted.");
       refetchItems();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to delete item: " + error.message);
     },
   });
@@ -165,13 +182,12 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-foreground">
                 Welcome, {user?.name}!
               </h1>
-              <p className="text-muted-foreground mt-1">Manage your listings and purchases</p>
+              <p className="text-muted-foreground mt-1">
+                Manage your listings and purchases
+              </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                onClick={() => setLocation("/profile")}
-                variant="outline"
-              >
+              <Button onClick={() => setLocation("/profile")} variant="outline">
                 Edit Profile
               </Button>
               <Button
@@ -194,8 +210,12 @@ export default function Dashboard() {
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground font-semibold">Total Listings</p>
-              <h4 className="text-xl font-bold text-foreground">{itemsListed}</h4>
+              <p className="text-xs text-muted-foreground font-semibold">
+                Total Listings
+              </p>
+              <h4 className="text-xl font-bold text-foreground">
+                {itemsListed}
+              </h4>
             </div>
           </div>
 
@@ -204,8 +224,12 @@ export default function Dashboard() {
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground font-semibold">Active Sales</p>
-              <h4 className="text-xl font-bold text-foreground">{activeDeals}</h4>
+              <p className="text-xs text-muted-foreground font-semibold">
+                Active Sales
+              </p>
+              <h4 className="text-xl font-bold text-foreground">
+                {activeDeals}
+              </h4>
             </div>
           </div>
 
@@ -214,8 +238,12 @@ export default function Dashboard() {
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground font-semibold">Active Purchases</p>
-              <h4 className="text-xl font-bold text-foreground">{buyerDeals?.length || 0}</h4>
+              <p className="text-xs text-muted-foreground font-semibold">
+                Active Purchases
+              </p>
+              <h4 className="text-xl font-bold text-foreground">
+                {buyerDeals?.length || 0}
+              </h4>
             </div>
           </div>
 
@@ -224,9 +252,11 @@ export default function Dashboard() {
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground font-semibold">Completed Deals</p>
+              <p className="text-xs text-muted-foreground font-semibold">
+                Completed Deals
+              </p>
               <h4 className="text-xl font-bold text-foreground">
-                {deals?.filter((d) => d.status === "PAID").length || 0}
+                {deals?.filter(d => d.status === "PAID").length || 0}
               </h4>
             </div>
           </div>
@@ -237,11 +267,17 @@ export default function Dashboard() {
       <div className="container py-12">
         <Tabs defaultValue="listings" className="space-y-8">
           <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/50 p-1 rounded-xl">
-            <TabsTrigger value="listings" className="flex items-center gap-2 rounded-lg py-2 data-[state=active]:bg-background">
+            <TabsTrigger
+              value="listings"
+              className="flex items-center gap-2 rounded-lg py-2 data-[state=active]:bg-background"
+            >
               <Store className="w-4 h-4" />
               My Listings
             </TabsTrigger>
-            <TabsTrigger value="purchases" className="flex items-center gap-2 rounded-lg py-2 data-[state=active]:bg-background">
+            <TabsTrigger
+              value="purchases"
+              className="flex items-center gap-2 rounded-lg py-2 data-[state=active]:bg-background"
+            >
               <ShoppingBag className="w-4 h-4" />
               My Purchases
             </TabsTrigger>
@@ -266,8 +302,10 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {sellerItems.map((item) => {
-                    const { icon: CategoryIcon, gradient } = getCategoryMeta(item.category ?? undefined);
+                  {sellerItems.map(item => {
+                    const { icon: CategoryIcon, gradient } = getCategoryMeta(
+                      item.category ?? undefined
+                    );
                     return (
                       <div
                         key={item.id}
@@ -283,7 +321,9 @@ export default function Dashboard() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white p-3`}>
+                              <div
+                                className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white p-3`}
+                              >
                                 <CategoryIcon className="w-8 h-8 opacity-80 mb-1" />
                                 <span className="text-[10px] font-semibold opacity-90 tracking-wide uppercase">
                                   {item.category || "Other"}
@@ -326,7 +366,9 @@ export default function Dashboard() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setLocation(`/edit-post/${item.id}`)}
+                                onClick={() =>
+                                  setLocation(`/edit-post/${item.id}`)
+                                }
                                 title="Edit Listing"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -345,15 +387,22 @@ export default function Dashboard() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Listing</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Delete Listing
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete **"{item.title}"**? This action cannot be undone and will remove the item from the marketplace.
+                                    Are you sure you want to delete **"
+                                    {item.title}"**? This action cannot be
+                                    undone and will remove the item from the
+                                    marketplace.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => deleteItemMutation.mutate({ id: item.id })}
+                                    onClick={() =>
+                                      deleteItemMutation.mutate({ id: item.id })
+                                    }
                                     className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                                   >
                                     Delete
@@ -376,7 +425,8 @@ export default function Dashboard() {
                 Your Active Listings Deals
               </h2>
 
-              {!deals || deals.filter(d => d.status !== "CANCELLED").length === 0 ? (
+              {!deals ||
+              deals.filter(d => d.status !== "CANCELLED").length === 0 ? (
                 <div className="bg-card border border-border rounded-lg p-12 text-center">
                   <p className="text-muted-foreground mb-4">
                     No active deals on your listed items yet.
@@ -387,21 +437,29 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {deals.filter(d => d.status !== "CANCELLED").map((deal) => (
-                    <DealCard
-                      key={deal.id}
-                      deal={deal}
-                      statusFlow={statusFlow}
-                      statusLabels={statusLabels}
-                      onStatusUpdate={(status) => {
-                        updateStatusMutation.mutate({
-                          dealId: deal.id,
-                          status: status as any,
-                        });
-                      }}
-                      isUpdating={updateStatusMutation.isPending}
-                    />
-                  ))}
+                  {deals
+                    .filter(d => d.status !== "CANCELLED")
+                    .map(deal => (
+                      <DealCard
+                        key={deal.id}
+                        deal={deal}
+                        statusFlow={statusFlow}
+                        statusLabels={statusLabels}
+                        onStatusUpdate={status => {
+                          updateStatusMutation.mutate({
+                            dealId: deal.id,
+                            status: status as any,
+                          });
+                        }}
+                        onCancel={() =>
+                          cancelDealMutation.mutate({ dealId: deal.id })
+                        }
+                        isUpdating={
+                          updateStatusMutation.isPending ||
+                          cancelDealMutation.isPending
+                        }
+                      />
+                    ))}
                 </div>
               )}
             </div>
@@ -425,8 +483,15 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {buyerDeals.map((deal) => (
-                    <PurchasedDealCard key={deal.id} deal={deal} />
+                  {buyerDeals.map(deal => (
+                    <PurchasedDealCard
+                      key={deal.id}
+                      deal={deal}
+                      onCancel={() =>
+                        cancelDealMutation.mutate({ dealId: deal.id })
+                      }
+                      isCancelling={cancelDealMutation.isPending}
+                    />
                   ))}
                 </div>
               )}
@@ -449,10 +514,7 @@ export default function Dashboard() {
               <p className="text-foreground font-semibold">{user?.name}</p>
             </div>
           </div>
-          <Button
-            onClick={() => setLocation("/profile")}
-            className="bg-accent"
-          >
+          <Button onClick={() => setLocation("/profile")} className="bg-accent">
             Edit Profile & Payment Details
           </Button>
         </div>
@@ -461,12 +523,21 @@ export default function Dashboard() {
   );
 }
 
-function ReviewModal({ deal, isBuyer = false }: { deal: any, isBuyer?: boolean }) {
+function ReviewModal({
+  deal,
+  isBuyer = false,
+}: {
+  deal: any;
+  isBuyer?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
 
-  const { data: reviews, refetch } = trpc.reviews.getByDeal.useQuery({ dealId: deal.id }, { enabled: deal.status === "PAID" });
+  const { data: reviews, refetch } = trpc.reviews.getByDeal.useQuery(
+    { dealId: deal.id },
+    { enabled: deal.status === "PAID" }
+  );
   const { user } = useAuth();
 
   const createReviewMutation = trpc.reviews.create.useMutation({
@@ -475,9 +546,9 @@ function ReviewModal({ deal, isBuyer = false }: { deal: any, isBuyer?: boolean }
       setIsOpen(false);
       refetch();
     },
-    onError: (err) => {
+    onError: err => {
       toast.error("Failed to submit review: " + err.message);
-    }
+    },
   });
 
   if (deal.status !== "PAID") return null;
@@ -496,7 +567,10 @@ function ReviewModal({ deal, isBuyer = false }: { deal: any, isBuyer?: boolean }
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-amber-400 text-amber-600 hover:bg-amber-50">
+        <Button
+          variant="outline"
+          className="border-amber-400 text-amber-600 hover:bg-amber-50"
+        >
           Leave a Review
         </Button>
       </DialogTrigger>
@@ -506,7 +580,9 @@ function ReviewModal({ deal, isBuyer = false }: { deal: any, isBuyer?: boolean }
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="flex flex-col items-center gap-2">
-            <p className="text-sm text-muted-foreground">Rate your experience</p>
+            <p className="text-sm text-muted-foreground">
+              Rate your experience
+            </p>
             <StarRating rating={rating} onRatingChange={setRating} size={32} />
           </div>
           <div className="space-y-2">
@@ -514,14 +590,16 @@ function ReviewModal({ deal, isBuyer = false }: { deal: any, isBuyer?: boolean }
             <Textarea
               placeholder="How was your experience?"
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={e => setComment(e.target.value)}
               rows={4}
             />
           </div>
           <Button
             className="w-full bg-accent"
             disabled={rating === 0 || createReviewMutation.isPending}
-            onClick={() => createReviewMutation.mutate({ dealId: deal.id, rating, comment })}
+            onClick={() =>
+              createReviewMutation.mutate({ dealId: deal.id, rating, comment })
+            }
           >
             {createReviewMutation.isPending ? "Submitting..." : "Submit Review"}
           </Button>
@@ -536,12 +614,14 @@ function DealCard({
   statusFlow,
   statusLabels,
   onStatusUpdate,
+  onCancel,
   isUpdating,
 }: {
   deal: any;
   statusFlow: string[];
   statusLabels: Record<string, string>;
   onStatusUpdate: (status: string) => void;
+  onCancel: () => void;
   isUpdating: boolean;
 }) {
   const currentStatusIndex = statusFlow.indexOf(deal.status);
@@ -554,7 +634,8 @@ function DealCard({
             Deal #{deal.id} {deal.item && `— ${deal.item.title}`}
           </h3>
           <p className="text-muted-foreground">
-            Amount: <span className="text-accent font-bold">₹{deal.amount}</span>
+            Amount:{" "}
+            <span className="text-accent font-bold">₹{deal.amount}</span>
           </p>
         </div>
         <span
@@ -562,10 +643,12 @@ function DealCard({
             deal.status === "OPEN"
               ? "bg-green-100 text-green-800"
               : deal.status === "DELIVERED"
-              ? "bg-blue-100 text-blue-800"
-              : deal.status === "CONFIRMED"
-              ? "bg-purple-100 text-purple-800"
-              : "bg-yellow-100 text-yellow-800"
+                ? "bg-blue-100 text-blue-800"
+                : deal.status === "CONFIRMED"
+                  ? "bg-purple-100 text-purple-800"
+                  : deal.status === "CANCELLED"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-yellow-100 text-yellow-800"
           }`}
         >
           {statusLabels[deal.status] || deal.status}
@@ -575,15 +658,53 @@ function DealCard({
       <div className="mb-6 flex gap-3 flex-wrap">
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="outline" className="border-accent text-accent hover:bg-accent/10">
+            <Button
+              variant="outline"
+              className="border-accent text-accent hover:bg-accent/10"
+            >
               <MessageCircle className="w-4 h-4 mr-2" />
               Chat In-App
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] p-0 border-none bg-transparent shadow-none">
-            <DealChat dealId={deal.id} otherPartyName={`Buyer #${deal.buyerId || 'Unknown'}`} />
+            <DealChat
+              dealId={deal.id}
+              otherPartyName={`Buyer #${deal.buyerId || "Unknown"}`}
+            />
           </DialogContent>
         </Dialog>
+
+        {deal.status !== "PAID" && deal.status !== "CANCELLED" && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={isUpdating}
+                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                Cancel Deal
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel Deal</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to cancel this deal? This will mark the
+                  deal as CANCELLED and put the item back on the marketplace.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Go Back</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onCancel}
+                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                >
+                  Cancel Deal
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {/* Status Flow */}
@@ -620,7 +741,8 @@ function DealCard({
       {deal.status === "CONFIRMED" && (
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
           <p className="text-purple-900">
-            ✓ Buyer has confirmed delivery. Waiting for buyer to complete payment...
+            ✓ Buyer has confirmed delivery. Waiting for buyer to complete
+            payment...
           </p>
         </div>
       )}
@@ -650,23 +772,32 @@ function DealCard({
               includeMargin={true}
             />
           </div>
-          <p className="text-xs text-green-800 mt-2">
-            Amount: ₹{deal.amount}
-          </p>
+          <p className="text-xs text-green-800 mt-2">Amount: ₹{deal.amount}</p>
         </div>
       )}
     </div>
   );
 }
 
-function PurchasedDealCard({ deal }: { deal: any }) {
+function PurchasedDealCard({
+  deal,
+  onCancel,
+  isCancelling,
+}: {
+  deal: any;
+  onCancel: () => void;
+  isCancelling: boolean;
+}) {
   const [, setLocation] = useLocation();
 
   const statusColors: Record<string, string> = {
     OPEN: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    Shipped: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-    DELIVERED: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    CONFIRMED: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
+    Shipped:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    DELIVERED:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+    CONFIRMED:
+      "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
     PAID: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400",
     CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   };
@@ -722,47 +853,89 @@ function PurchasedDealCard({ deal }: { deal: any }) {
           )}
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>
-              Deal ID: <span className="font-semibold text-foreground">#{deal.id}</span>
+              Deal ID:{" "}
+              <span className="font-semibold text-foreground">#{deal.id}</span>
             </span>
             <span>•</span>
             <span>
-              Amount: <span className="font-bold text-accent text-sm">₹{deal.amount}</span>
+              Amount:{" "}
+              <span className="font-bold text-accent text-sm">
+                ₹{deal.amount}
+              </span>
             </span>
           </div>
         </div>
       </div>
 
       <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-        {deal.status === "PAID" && (
-          <ReviewModal deal={deal} isBuyer={true} />
-        )}
+        {deal.status === "PAID" && <ReviewModal deal={deal} isBuyer={true} />}
         {isDelivered && !isConfirmed ? (
           <Button
             onClick={() => setLocation(`/confirm/${deal.id}`)}
-            className="bg-green-600 hover:bg-green-700 text-white animate-pulse"
+            className="bg-green-600 hover:bg-green-700 text-white animate-pulse animate-duration-1000"
           >
             Confirm Delivery
           </Button>
         ) : (
-          <Button
-            onClick={() => setLocation(`/confirm/${deal.id}`)}
-            variant={isConfirmed ? "outline" : "secondary"}
-            className="w-full md:w-auto"
-          >
-            {isConfirmed ? "View Payment QR Code" : "Track Order / Confirm"}
-          </Button>
+          deal.status !== "CANCELLED" && (
+            <Button
+              onClick={() => setLocation(`/confirm/${deal.id}`)}
+              variant={isConfirmed ? "outline" : "secondary"}
+              className="w-full md:w-auto"
+            >
+              {isConfirmed ? "View Payment QR Code" : "Track Order / Confirm"}
+            </Button>
+          )
         )}
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="outline" className="border-accent text-accent hover:bg-accent/10 w-full md:w-auto">
+            <Button
+              variant="outline"
+              className="border-accent text-accent hover:bg-accent/10 w-full md:w-auto"
+            >
               <MessageCircle className="w-4 h-4 mr-2" />
               Chat In-App
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] p-0 border-none bg-transparent shadow-none">
-            <DealChat dealId={deal.id} otherPartyName={`Seller #${deal.sellerId}`} />
+            <DealChat
+              dealId={deal.id}
+              otherPartyName={`Seller #${deal.sellerId}`}
+            />
           </DialogContent>
         </Dialog>
+
+        {deal.status !== "PAID" && deal.status !== "CANCELLED" && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={isCancelling}
+                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground w-full md:w-auto"
+              >
+                Cancel Deal
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel Deal</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to cancel this deal? This will mark the
+                  deal as CANCELLED and put the item back on the marketplace.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Go Back</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onCancel}
+                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                >
+                  Cancel Deal
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   );

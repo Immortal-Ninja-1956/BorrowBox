@@ -22,8 +22,14 @@ export function ManusDialog({
         <h2 className="text-xl font-bold text-foreground mb-2">{title}</h2>
         <p className="text-muted-foreground mb-6">{description}</p>
         <div className="flex gap-3">
-          <Button className="flex-1" onClick={() => setLocation("/login")}>Sign In</Button>
-          {onClose && <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>}
+          <Button className="flex-1" onClick={() => setLocation("/login")}>
+            Sign In
+          </Button>
+          {onClose && (
+            <Button variant="outline" className="flex-1" onClick={onClose}>
+              Cancel
+            </Button>
+          )}
         </div>
       </div>
     </div>

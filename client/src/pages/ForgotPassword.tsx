@@ -16,7 +16,7 @@ export default function ForgotPassword() {
       setSubmitted(true);
       toast.success("Reset link generated! Check server console logs.");
     },
-    onError: (e) => toast.error(e.message),
+    onError: e => toast.error(e.message),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,7 +32,10 @@ export default function ForgotPassword() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setLocation("/")}>
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setLocation("/")}
+          >
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-accent-foreground" />
             </div>
@@ -47,17 +50,20 @@ export default function ForgotPassword() {
                 Reset Password
               </h1>
               <p className="text-muted-foreground mb-6 text-sm">
-                Enter the email address associated with your account and we will log the password reset link directly to your server console.
+                Enter the email address associated with your account and we will
+                log the password reset link directly to your server console.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Email Address</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Email Address
+                  </label>
                   <Input
                     type="email"
                     placeholder="you@vitstudent.ac.in"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                   />
                 </div>
                 <Button
@@ -65,7 +71,9 @@ export default function ForgotPassword() {
                   className="w-full bg-accent"
                   disabled={forgotPasswordMutation.isPending}
                 >
-                  {forgotPasswordMutation.isPending ? "Generating link..." : "Request Reset Link"}
+                  {forgotPasswordMutation.isPending
+                    ? "Generating link..."
+                    : "Request Reset Link"}
                 </Button>
               </form>
             </>
@@ -74,13 +82,19 @@ export default function ForgotPassword() {
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Reset Request Sent</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Reset Request Sent
+              </h1>
               <p className="text-muted-foreground mb-6 text-sm">
-                We've generated a password reset token. Because this is a development server, you will find the reset link inside your **server backend console logs**.
+                We've generated a password reset token. Because this is a
+                development server, you will find the reset link inside your
+                **server backend console logs**.
               </p>
               <div className="bg-muted p-3 rounded-lg text-xs font-mono text-left mb-6 break-all">
                 Check server stdout/stderr logs for: <br />
-                <span className="text-accent">http://localhost:5173/reset-password?token=...</span>
+                <span className="text-accent">
+                  http://localhost:5173/reset-password?token=...
+                </span>
               </div>
               <Button
                 variant="outline"

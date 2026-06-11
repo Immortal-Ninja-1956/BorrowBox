@@ -6,12 +6,19 @@ interface MapProps {
   className?: string;
 }
 
-export default function Map({ lat = 20.5937, lng = 78.9629, zoom = 5, className = "" }: MapProps) {
+export default function Map({
+  lat = 20.5937,
+  lng = 78.9629,
+  zoom = 5,
+  className = "",
+}: MapProps) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
     return (
-      <div className={`flex items-center justify-center bg-muted rounded-lg text-muted-foreground text-sm ${className}`}>
+      <div
+        className={`flex items-center justify-center bg-muted rounded-lg text-muted-foreground text-sm ${className}`}
+      >
         Map unavailable (set VITE_GOOGLE_MAPS_API_KEY)
       </div>
     );

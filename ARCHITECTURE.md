@@ -1,13 +1,15 @@
 # BorrowBox - System Architecture & Data Flow
 
 ## 1. High-Level Architecture
+
 BorrowBox is built as a modern, full-stack TypeScript application utilizing a monolithic architecture. The frontend and backend are tightly integrated using tRPC, which provides end-to-end type safety without the need for manual API schema generation.
 
 ### 1.1. Technology Stack
-*   **Frontend:** React (Vite), Tailwind CSS, shadcn/ui (UI components), Wouter (Routing).
-*   **Backend:** Node.js, Express, tRPC (API Layer).
-*   **Database:** PostgreSQL, accessed via Drizzle ORM.
-*   **Authentication:** Passport.js (Local Strategy) with JWT-like session management.
+
+- **Frontend:** React (Vite), Tailwind CSS, shadcn/ui (UI components), Wouter (Routing).
+- **Backend:** Node.js, Express, tRPC (API Layer).
+- **Database:** PostgreSQL, accessed via Drizzle ORM.
+- **Authentication:** Passport.js (Local Strategy) with JWT-like session management.
 
 ---
 
@@ -45,18 +47,21 @@ The relational database is built around four primary entities:
 ## 4. Key Workflows & Processes
 
 ### 4.1. The Authentication Flow
+
 1.  User submits credentials via the Register/Login forms.
 2.  Backend validates credentials using Passport.js.
 3.  A secure session cookie (`connect.sid`) is generated and returned to the client.
 4.  Subsequent tRPC requests automatically include this cookie. The `createContext` function in tRPC extracts the user ID from the session and injects the User object into the context for protected API routes.
 
 ### 4.2. The Marketplace Search Flow
+
 1.  As the user types in the search bar, a debounced React state updates.
 2.  The `Marketplace` component triggers a `trpc.items.getAll.useQuery` with the `search` string.
 3.  Simultaneously, a background autocomplete query fetches the top 5 matches and displays them in a dropdown.
 4.  The backend uses a PostgreSQL `ILIKE` query to perform case-insensitive partial matching on item titles.
 
 ### 4.3. The Deal & Payment Lifecycle
+
 This is the core business logic of BorrowBox, designed to prevent fraud:
 
 1.  **Initiation:** Buyer clicks "I want this" on an Item. A new `Deal` is created with status `OPEN`.

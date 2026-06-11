@@ -1,4 +1,12 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  decimal,
+} from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -6,6 +14,7 @@ export const users = mysqlTable("users", {
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  isBanned: int("isBanned").default(0).notNull(),
   upiId: varchar("upiId", { length: 255 }),
   upiName: varchar("upiName", { length: 255 }),
   whatsapp: varchar("whatsapp", { length: 20 }),
@@ -25,13 +34,26 @@ export type InsertUser = typeof users.$inferInsert;
 
 export const items = mysqlTable("items", {
   id: int("id").autoincrement().primaryKey(),
-  sellerId: int("sellerId").notNull(),
+  sellerId: int("sellerId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   imageUrl: text("imageUrl"),
   category: varchar("category", { length: 100 }),
-  status: mysqlEnum("status", ["OPEN", "Contacted", "Shipped", "DELIVERED"]).default("OPEN").notNull(),
+  condition: mysqlEnum("condition", ["New", "Like New", "Good", "Fair", "Poor"])
+    .default("Good")
+    .notNull(),
+  status: mysqlEnum("status", [
+    "OPEN",
+    "Contacted",
+    "Shipped",
+    "DELIVERED",
+    "SOLD",
+  ])
+    .default("OPEN")
+    .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -41,10 +63,24 @@ export type InsertItem = typeof items.$inferInsert;
 
 export const deals = mysqlTable("deals", {
   id: int("id").autoincrement().primaryKey(),
-  itemId: int("itemId").notNull(),
-  sellerId: int("sellerId").notNull(),
-  buyerId: int("buyerId"),
-  status: mysqlEnum("status", ["OPEN", "Contacted", "Shipped", "DELIVERED", "CONFIRMED", "PAID", "CANCELLED"]).default("OPEN").notNull(),
+  itemId: int("itemId")
+    .notNull()
+    .references(() => items.id, { onDelete: "cascade" }),
+  sellerId: int("sellerId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  buyerId: int("buyerId").references(() => users.id, { onDelete: "cascade" }),
+  status: mysqlEnum("status", [
+    "OPEN",
+    "Contacted",
+    "Shipped",
+    "DELIVERED",
+    "CONFIRMED",
+    "PAID",
+    "CANCELLED",
+  ])
+    .default("OPEN")
+    .notNull(),
   buyerConfirmed: int("buyerConfirmed").default(0).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   upiQrCode: text("upiQrCode"),
@@ -57,9 +93,15 @@ export type InsertDeal = typeof deals.$inferInsert;
 
 export const reviews = mysqlTable("reviews", {
   id: int("id").autoincrement().primaryKey(),
-  dealId: int("dealId").notNull(),
-  reviewerId: int("reviewerId").notNull(),
-  revieweeId: int("revieweeId").notNull(),
+  dealId: int("dealId")
+    .notNull()
+    .references(() => deals.id, { onDelete: "cascade" }),
+  reviewerId: int("reviewerId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  revieweeId: int("revieweeId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   rating: int("rating").notNull(), // 1 to 5
   comment: text("comment"),
   role: mysqlEnum("role", ["buyer", "seller"]).notNull(),
@@ -71,11 +113,34 @@ export type InsertReview = typeof reviews.$inferInsert;
 
 export const messages = mysqlTable("messages", {
   id: int("id").autoincrement().primaryKey(),
-  dealId: int("dealId").notNull(),
-  senderId: int("senderId").notNull(),
+  dealId: int("dealId")
+    .notNull()
+    .references(() => deals.id, { onDelete: "cascade" }),
+  senderId: int("senderId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   text: text("text").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
+
+export const item_reports = mysqlTable("item_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  itemId: int("itemId")
+    .notNull()
+    .references(() => items.id, { onDelete: "cascade" }),
+  reporterId: int("reporterId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  reason: varchar("reason", { length: 100 }).notNull(),
+  description: text("description"),
+  status: mysqlEnum("status", ["OPEN", "RESOLVED", "DISMISSED"])
+    .default("OPEN")
+    .notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ItemReport = typeof item_reports.$inferSelect;
+export type InsertItemReport = typeof item_reports.$inferInsert;

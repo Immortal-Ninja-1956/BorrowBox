@@ -11,11 +11,11 @@ export const authLimiter = rateLimit({
       code: -32005,
       data: {
         code: "TOO_MANY_REQUESTS",
-        httpStatus: 429
-      }
-    }
+        httpStatus: 429,
+      },
+    },
   },
   handler: (req, res, next, options) => {
     res.status(options.statusCode).json(options.message);
-  }
+  },
 });

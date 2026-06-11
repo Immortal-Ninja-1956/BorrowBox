@@ -28,17 +28,23 @@ export default function Marketplace() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  const { data: suggestionsData } = trpc.items.getAll.useQuery({
-    limit: 5,
-    offset: 0,
-    search: searchQuery || undefined,
-  }, {
-    enabled: searchQuery.length >= 2,
-  });
+  const { data: suggestionsData } = trpc.items.getAll.useQuery(
+    {
+      limit: 5,
+      offset: 0,
+      search: searchQuery || undefined,
+    },
+    {
+      enabled: searchQuery.length >= 2,
+    }
+  );
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     }
@@ -50,16 +56,19 @@ export default function Marketplace() {
   const [accumulatedItems, setAccumulatedItems] = useState<any[]>([]);
   const limit = 12;
 
-  const { data, isLoading } = trpc.items.getAll.useQuery({
-    limit,
-    offset,
-    search: searchQuery || undefined,
-    category: selectedCategory,
-    sellerId: showMyListings ? user?.id : undefined,
-    sortBy,
-  }, {
-    placeholderData: (prev) => prev,
-  });
+  const { data, isLoading } = trpc.items.getAll.useQuery(
+    {
+      limit,
+      offset,
+      search: searchQuery || undefined,
+      category: selectedCategory,
+      sellerId: showMyListings ? user?.id : undefined,
+      sortBy,
+    },
+    {
+      placeholderData: prev => prev,
+    }
+  );
 
   // Whenever filters or sorting options change, reset pagination
   useEffect(() => {
@@ -73,9 +82,9 @@ export default function Marketplace() {
       if (offset === 0) {
         setAccumulatedItems(data.items);
       } else {
-        setAccumulatedItems((prev) => {
-          const existingIds = new Set(prev.map((i) => i.id));
-          const newItems = data.items.filter((i) => !existingIds.has(i.id));
+        setAccumulatedItems(prev => {
+          const existingIds = new Set(prev.map(i => i.id));
+          const newItems = data.items.filter(i => !existingIds.has(i.id));
           return [...prev, ...newItems];
         });
       }
@@ -127,7 +136,10 @@ export default function Marketplace() {
         <div className="container py-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold text-foreground">Marketplace</h1>
-            <Button onClick={() => setLocation("/create-post")} className="bg-accent">
+            <Button
+              onClick={() => setLocation("/create-post")}
+              className="bg-accent"
+            >
               Post an Item
             </Button>
           </div>
@@ -140,7 +152,7 @@ export default function Marketplace() {
                 placeholder="Search items..."
                 value={searchQuery}
                 onFocus={() => setShowSuggestions(true)}
-                onChange={(e) => {
+                onChange={e => {
                   setSearchQuery(e.target.value);
                   setShowSuggestions(true);
                 }}
@@ -148,38 +160,44 @@ export default function Marketplace() {
               />
 
               {/* Autocomplete Dropdown */}
-              {showSuggestions && searchQuery.length >= 2 && suggestionsData?.items && suggestionsData.items.length > 0 && (
-                <div className="absolute z-50 top-full left-0 w-full mt-1 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
-                  <ul className="max-h-60 overflow-y-auto py-1">
-                    {suggestionsData.items.map((item) => (
-                      <li
-                        key={item.id}
-                        className="px-4 py-2 hover:bg-muted cursor-pointer flex items-center justify-between group"
-                        onClick={() => {
-                          setSearchQuery(item.title);
-                          if (item.category && item.category !== selectedCategory) {
-                            setSelectedCategory(item.category);
-                          }
-                          setShowSuggestions(false);
-                        }}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium text-foreground group-hover:text-accent transition-colors">
-                            {item.title}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {item.category || "Other"}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {showSuggestions &&
+                searchQuery.length >= 2 &&
+                suggestionsData?.items &&
+                suggestionsData.items.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 w-full mt-1 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+                    <ul className="max-h-60 overflow-y-auto py-1">
+                      {suggestionsData.items.map(item => (
+                        <li
+                          key={item.id}
+                          className="px-4 py-2 hover:bg-muted cursor-pointer flex items-center justify-between group"
+                          onClick={() => {
+                            setSearchQuery(item.title);
+                            if (
+                              item.category &&
+                              item.category !== selectedCategory
+                            ) {
+                              setSelectedCategory(item.category);
+                            }
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground group-hover:text-accent transition-colors">
+                              {item.title}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {item.category || "Other"}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
             </div>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={e => setSortBy(e.target.value)}
               className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent min-w-[160px] h-10 cursor-pointer"
             >
               <option value="newest">Newest First</option>
@@ -191,7 +209,7 @@ export default function Marketplace() {
 
           {/* Category Filter */}
           <div className="flex gap-2 overflow-x-auto pb-2 items-center">
-            {categories.map((cat) => (
+            {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -230,14 +248,17 @@ export default function Marketplace() {
             <p className="text-xl text-muted-foreground mb-4">
               No items found. Try adjusting your search or filters.
             </p>
-            <Button variant="outline" onClick={() => setLocation("/create-post")}>
+            <Button
+              variant="outline"
+              onClick={() => setLocation("/create-post")}
+            >
               Be the first to post!
             </Button>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {accumulatedItems.map((item) => (
+              {accumulatedItems.map(item => (
                 <ItemCard key={item.id} item={item} />
               ))}
             </div>
@@ -327,7 +348,9 @@ function ItemCard({ item }: { item: any }) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white p-4`}>
+          <div
+            className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white p-4`}
+          >
             <CategoryIcon className="w-12 h-12 opacity-80 mb-2" />
             <span className="text-xs font-semibold opacity-90 tracking-wide uppercase">
               {item.category || "Other"}
@@ -347,19 +370,35 @@ function ItemCard({ item }: { item: any }) {
         </p>
 
         {/* Price and Status */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-2xl font-bold text-accent">
-            ₹{item.amount}
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="text-2xl font-bold text-accent">₹{item.amount}</div>
+          <div className="flex gap-1.5 items-center">
+            <span
+              className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                (
+                  {
+                    New: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/30",
+                    "Like New":
+                      "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-400 border border-sky-200/30",
+                    Good: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/30",
+                    Fair: "bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-400 border border-orange-200/30",
+                    Poor: "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/30",
+                  } as Record<string, string>
+                )[item.condition] || "bg-muted text-muted-foreground"
+              }`}
+            >
+              {item.condition || "Good"}
+            </span>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                item.status === "OPEN"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              {item.status === "OPEN" ? "Available" : item.status}
+            </span>
           </div>
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              item.status === "OPEN"
-                ? "bg-green-100 text-green-800"
-                : "bg-yellow-100 text-yellow-800"
-            }`}
-          >
-            {item.status === "OPEN" ? "Available" : item.status}
-          </span>
         </div>
 
         {/* Category */}
@@ -381,7 +420,7 @@ function ItemCard({ item }: { item: any }) {
           {isOwner && (
             <Button
               variant="outline"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 setLocation(`/edit-post/${item.id}`);
               }}
