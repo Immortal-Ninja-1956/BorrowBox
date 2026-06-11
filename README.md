@@ -221,7 +221,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## ✉️ Contact
 
-- **Project Link**: ([https://github.com/your-username/borrowbox](https://github.com/Immortal-Ninja-1956/BorrowBox))
+- **Project Link**: ([https://github.com/Immortal-Ninja-1956/BorrowBox](https://github.com/Immortal-Ninja-1956/BorrowBox))
 
 ---
 
