@@ -1,0 +1,6 @@
+{
+  "name": "BorrowBox",
+  "description": "Peer-to-peer sharing and rental marketplace for college students to borrow, share, and buy items with trusted payment verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

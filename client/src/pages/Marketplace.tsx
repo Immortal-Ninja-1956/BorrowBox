@@ -15,6 +15,8 @@ import {
   Trophy,
   Package,
   Edit2,
+  SearchX,
+  PackageOpen,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
@@ -102,20 +104,7 @@ export default function Marketplace() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4 text-foreground">
-            Sign in to browse items
-          </h2>
-          <Button onClick={() => setLocation("/")} variant="outline">
-            Go to Home
-          </Button>
-        </div>
-      </div>
-    );
-  }
+
 
   // Sorting and filtering are handled server-side now.
 
@@ -244,16 +233,43 @@ export default function Marketplace() {
       {/* Items Grid */}
       <div className="container py-12">
         {accumulatedItems.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-xl text-muted-foreground mb-4">
-              No items found. Try adjusting your search or filters.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => setLocation("/create-post")}
-            >
-              Be the first to post!
-            </Button>
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
+            {searchQuery || selectedCategory !== "all" ? (
+              <>
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <SearchX className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">No matches found</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm">
+                  We couldn't find any items matching your current search or category filters. Try adjusting them!
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("all");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
+                  <PackageOpen className="w-8 h-8 text-accent" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">The marketplace is empty</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm">
+                  Be the very first to list an item on the campus peer-to-peer marketplace!
+                </p>
+                <Button
+                  className="bg-accent text-accent-foreground"
+                  onClick={() => isAuthenticated ? setLocation("/create-post") : setLocation("/login")}
+                >
+                  Post an Item
+                </Button>
+              </>
+            )}
           </div>
         ) : (
           <>

@@ -18,10 +18,15 @@ export default function Register() {
   });
 
   const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: async () => {
-      await refresh();
-      toast.success("Account created!");
-      setLocation("/marketplace");
+    onSuccess: async (data) => {
+      if (data && data.requiresVerification) {
+        toast.success("Verification code sent to your email.");
+        setLocation(`/verify-email?email=${encodeURIComponent(form.email)}`);
+      } else {
+        await refresh();
+        toast.success("Account created!");
+        setLocation("/marketplace");
+      }
     },
     onError: e => toast.error(e.message),
   });

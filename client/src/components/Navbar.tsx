@@ -31,18 +31,53 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
 
   // Don't render on Home, Login, Register, Forgot Password, or Reset Password pages — those have their own headers
-  if (
+  const isAuthPage =
     location === "/" ||
     location === "/login" ||
     location === "/register" ||
     location === "/forgot-password" ||
-    location === "/reset-password"
-  ) {
+    location === "/reset-password" ||
+    location === "/verify-email";
+
+  if (isAuthPage) {
     return null;
   }
 
-  // Don't render while loading or if not authenticated
-  if (loading || !isAuthenticated) {
+  // For unauthenticated users on public pages, show a minimal guest navbar
+  const isPublicPage =
+    location === "/marketplace" || location.startsWith("/item/");
+
+  if (!isAuthenticated && !loading) {
+    if (!isPublicPage) return null;
+    return (
+      <nav className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="container flex items-center justify-between h-16">
+          <button
+            onClick={() => handleNav("/")}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <div className="w-9 h-9 bg-accent rounded-lg flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 text-accent-foreground" />
+            </div>
+            <span className="text-xl font-bold text-accent hidden sm:inline">
+              BorrowBox
+            </span>
+          </button>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => handleNav("/login")}>
+              Sign In
+            </Button>
+            <Button size="sm" className="bg-accent" onClick={() => handleNav("/register")}>
+              Sign Up
+            </Button>
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  // Don't render while loading
+  if (loading) {
     return null;
   }
 

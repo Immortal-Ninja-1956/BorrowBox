@@ -17,6 +17,8 @@ import {
   updateUserProfile,
   updateUserWhatsAppOtp,
   verifyUserWhatsApp,
+  updateUserEmailOtp,
+  verifyUserEmail,
   createItem,
   getItemById,
   getItemsBySellerId,
@@ -91,7 +93,80 @@ export const appRouter = router({
           passwordHash,
           name: input.name,
         });
-        const token = signSessionToken(userId, input.email, 0);
+
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+        await updateUserEmailOtp(userId, otp, expiresAt);
+
+        console.log("\n========================================================");
+        console.log(`[Email Simulator] TO: ${input.email}`);
+        console.log("--------------------------------------------------------");
+        console.log(`Your BorrowBox email verification code is: ${otp}`);
+        console.log(`This code will expire in 10 minutes.`);
+        console.log("========================================================\n");
+
+        if (
+          process.env.RESEND_API_KEY &&
+          process.env.RESEND_API_KEY !== "re_your_api_key"
+        ) {
+          try {
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            await resend.emails.send({
+              from: "BorrowBox <onboarding@resend.dev>",
+              to: input.email,
+              subject: "Verify your BorrowBox Email",
+              html: `<p>Your verification code is: <strong>${otp}</strong></p><p>This code will expire in 10 minutes.</p>`,
+            });
+            console.log(
+              `[Resend] Verification email sent successfully to ${input.email}`
+            );
+          } catch (error) {
+            console.error(
+              "[Resend] Failed to send verification email:",
+              error
+            );
+          }
+        }
+
+        return { requiresVerification: true, email: input.email };
+      }),
+
+    verifyEmail: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          otp: z.string().length(6),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const user = await getUserByEmail(input.email);
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "User not found",
+          });
+        }
+        if (user.isEmailVerified === 1) {
+          return { success: true };
+        }
+        if (
+          !user.emailOtp ||
+          !user.emailOtpExpiresAt ||
+          user.emailOtp !== input.otp
+        ) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid OTP" });
+        }
+        if (user.emailOtpExpiresAt.getTime() < Date.now()) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "OTP has expired",
+          });
+        }
+
+        await verifyUserEmail(user.id);
+
+        const token = signSessionToken(user.id, user.email, user.tokenVersion);
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, {
           ...cookieOptions,
@@ -119,6 +194,12 @@ export const appRouter = router({
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "Your account has been banned.",
+          });
+        }
+        if (user.isEmailVerified === 0) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Please verify your email address first.",
           });
         }
         const valid = await verifyPassword(input.password, user.passwordHash);

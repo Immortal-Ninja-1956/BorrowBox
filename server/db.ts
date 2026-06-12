@@ -104,6 +104,28 @@ export async function verifyUserWhatsApp(userId: number) {
     .where(eq(users.id, userId));
 }
 
+export async function updateUserEmailOtp(
+  userId: number,
+  otp: string,
+  expiresAt: Date
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(users)
+    .set({ emailOtp: otp, emailOtpExpiresAt: expiresAt })
+    .where(eq(users.id, userId));
+}
+
+export async function verifyUserEmail(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(users)
+    .set({ isEmailVerified: 1, emailOtp: null, emailOtpExpiresAt: null })
+    .where(eq(users.id, userId));
+}
+
 // ─── Items ────────────────────────────────────────────────────────────────────
 
 export async function createItem(data: {

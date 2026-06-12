@@ -6,7 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import { AboutUsButton } from "./components/AboutUsButton";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Marketplace from "./pages/Marketplace";
@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import BuyerConfirmation from "./pages/BuyerConfirmation";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 
 import AdminDashboard from "./pages/AdminDashboard";
 
@@ -25,9 +26,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/about" component={Home} />
+
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/marketplace" component={Marketplace} />
@@ -49,6 +51,7 @@ function Router() {
 //   to keep consistent foreground/background color across components
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
+
 function App() {
   return (
     <ErrorBoundary>
@@ -57,7 +60,7 @@ function App() {
           <Toaster />
           <Navbar />
           <Router />
-          <AboutUsButton />
+
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

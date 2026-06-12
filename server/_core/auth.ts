@@ -61,7 +61,8 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
   if (
     !user ||
     user.tokenVersion !== session.tokenVersion ||
-    user.isBanned === 1
+    user.isBanned === 1 ||
+    user.isEmailVerified === 0
   )
     return null;
   return user;
