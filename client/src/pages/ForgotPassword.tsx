@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { ShoppingBag, ArrowLeft, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -11,21 +11,27 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const forgotPasswordMutation = trpc.auth.forgotPassword.useMutation({
-    onSuccess: () => {
-      setSubmitted(true);
-      toast.success("Reset link generated! Check server console logs.");
-    },
-    onError: e => toast.error(e.message),
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast.error("Please enter your email address");
       return;
     }
-    forgotPasswordMutation.mutate({ email });
+    
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setSubmitted(true);
+      toast.success("Reset link generated! Check your email (or console).");
+    }
   };
 
   return (
@@ -69,9 +75,9 @@ export default function ForgotPassword() {
                 <Button
                   type="submit"
                   className="w-full bg-accent"
-                  disabled={forgotPasswordMutation.isPending}
+                  disabled={isLoading}
                 >
-                  {forgotPasswordMutation.isPending
+                  {isLoading
                     ? "Generating link..."
                     : "Request Reset Link"}
                 </Button>

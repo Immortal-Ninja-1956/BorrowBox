@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,21 +17,9 @@ export default function Register() {
     confirm: "",
   });
 
-  const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: async (data) => {
-      if (data && data.requiresVerification) {
-        toast.success("Verification code sent to your email.");
-        setLocation(`/verify-email?email=${encodeURIComponent(form.email)}`);
-      } else {
-        await refresh();
-        toast.success("Account created!");
-        setLocation("/marketplace");
-      }
-    },
-    onError: e => toast.error(e.message),
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.password) {
       toast.error("Fill in all fields");
@@ -49,11 +37,32 @@ export default function Register() {
       toast.error("Password must be at least 8 characters");
       return;
     }
-    registerMutation.mutate({
-      name: form.name,
+
+    setIsLoading(true);
+    const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
+      options: {
+        data: {
+          full_name: form.name,
+        },
+      },
     });
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      if (data.session) {
+        await refresh();
+        toast.success("Account created!");
+        setLocation("/marketplace");
+      } else {
+        toast.success("Verification link sent to your email!");
+        // We can just redirect them to login page or a "Check email" page
+        setLocation("/login");
+      }
+    }
   };
 
   const field = (key: keyof typeof form) => ({
@@ -123,9 +132,9 @@ export default function Register() {
             <Button
               type="submit"
               className="w-full bg-accent"
-              disabled={registerMutation.isPending}
+              disabled={isLoading}
             >
-              {registerMutation.isPending
+              {isLoading
                 ? "Creating account..."
                 : "Create Account"}
             </Button>

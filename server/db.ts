@@ -1,5 +1,6 @@
 import { eq, desc, and, or, sql, like, asc, lt, ne } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { users, items, deals, reviews, messages, item_reports } from "../drizzle/schema";
 import type {
   InsertUser,
@@ -13,7 +14,8 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL, { prepare: false });
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -35,9 +37,8 @@ export async function createUser(data: {
     email: data.email,
     passwordHash: data.passwordHash,
     name: data.name,
-  });
-  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
-  return insertId as number;
+  }).returning({ insertId: users.id });
+  return result[0].insertId;
 }
 
 export async function getUserByEmail(email: string) {
@@ -147,9 +148,8 @@ export async function createItem(data: {
     imageUrl: data.imageUrl,
     category: data.category,
     condition: data.condition as any,
-  });
-  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
-  return insertId as number;
+  }).returning({ insertId: items.id });
+  return result[0].insertId;
 }
 
 export async function getItemById(itemId: number) {
@@ -305,9 +305,8 @@ export async function createDeal(data: {
     buyerId: data.buyerId,
     amount: data.amount as any,
     status: "OPEN",
-  });
-  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
-  return insertId as number;
+  }).returning({ insertId: deals.id });
+  return result[0].insertId;
 }
 
 export async function getDealById(dealId: number) {
@@ -447,7 +446,7 @@ export async function incrementUserTokenVersion(userId: number) {
 export async function createReview(review: InsertReview) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [result] = await db.insert(reviews).values(review);
+  const [result] = await db.insert(reviews).values(review).returning({ insertId: reviews.id });
   return result.insertId;
 }
 
@@ -501,9 +500,8 @@ export async function getMessagesByDealId(dealId: number) {
 export async function createMessage(data: InsertMessage) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(messages).values(data);
-  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
-  return insertId as number;
+  const result = await db.insert(messages).values(data).returning({ insertId: messages.id });
+  return result[0].insertId;
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -552,24 +550,23 @@ export async function getPlatformStats() {
   };
 }
 
-import { alias } from "drizzle-orm/mysql-core";
+import { aliasedTable } from "drizzle-orm";
 
 // ─── Reports ────────────────────────────────────────────────────────────────────
 
 export async function createItemReport(data: InsertItemReport) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(item_reports).values(data);
-  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
-  return insertId as number;
+  const result = await db.insert(item_reports).values(data).returning({ insertId: item_reports.id });
+  return result[0].insertId;
 }
 
 export async function getAllItemReportsAdmin() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  const reporters = alias(users, "reporters");
-  const sellers = alias(users, "sellers");
+  const reporters = aliasedTable(users, "reporters");
+  const sellers = aliasedTable(users, "sellers");
 
   return await db
     .select({

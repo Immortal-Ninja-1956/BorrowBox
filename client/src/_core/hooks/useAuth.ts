@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function useAuth() {
   const utils = trpc.useUtils();
@@ -9,31 +10,33 @@ export function useAuth() {
     refetchOnWindowFocus: false,
   });
 
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      utils.auth.me.setData(undefined, null);
-      utils.auth.me.invalidate();
-    },
-  });
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        utils.auth.me.invalidate();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [utils]);
 
   const logout = useCallback(async () => {
-    await logoutMutation.mutateAsync();
-  }, [logoutMutation]);
+    await supabase.auth.signOut();
+    utils.auth.me.setData(undefined, null);
+    utils.auth.me.invalidate();
+  }, [utils]);
 
   const state = useMemo(() => {
-    const isLoading = meQuery.isLoading || logoutMutation.isPending;
+    const isLoading = meQuery.isLoading;
     return {
       user: meQuery.data ?? null,
       loading: isLoading,
-      error: meQuery.error ?? logoutMutation.error ?? null,
+      error: meQuery.error ?? null,
       isAuthenticated: Boolean(meQuery.data),
     };
   }, [
     meQuery.data,
     meQuery.error,
     meQuery.isLoading,
-    logoutMutation.error,
-    logoutMutation.isPending,
   ]);
 
   return {

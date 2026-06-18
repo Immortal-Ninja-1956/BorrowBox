@@ -1,5 +1,3 @@
-import { COOKIE_NAME, SEVEN_DAYS_MS } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import {
   publicProcedure,
@@ -9,7 +7,6 @@ import {
 } from "./_core/trpc";
 import { z } from "zod";
 import crypto from "crypto";
-import { Resend } from "resend";
 import {
   createUser,
   getUserByEmail,
@@ -17,8 +14,6 @@ import {
   updateUserProfile,
   updateUserWhatsAppOtp,
   verifyUserWhatsApp,
-  updateUserEmailOtp,
-  verifyUserEmail,
   createItem,
   getItemById,
   getItemsBySellerId,
@@ -53,7 +48,7 @@ import {
   getAllItemReportsAdmin,
   updateItemReportStatus,
 } from "./db";
-import { hashPassword, verifyPassword, signSessionToken } from "./_core/auth";
+// Custom auth logic removed, moved to Supabase
 import { TRPCError } from "@trpc/server";
 
 export const appRouter = router({
@@ -65,245 +60,6 @@ export const appRouter = router({
       const { passwordHash, ...safe } = opts.ctx.user;
       return safe;
     }),
-
-    register: publicProcedure
-      .input(
-        z.object({
-          email: z
-            .string()
-            .email()
-            .refine(val => val.endsWith("@vitstudent.ac.in"), {
-              message: "Only @vitstudent.ac.in emails are allowed",
-            }),
-          password: z.string().min(8, "Password must be at least 8 characters"),
-          name: z.string().min(1),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const existing = await getUserByEmail(input.email);
-        if (existing) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "Email already registered",
-          });
-        }
-        const passwordHash = await hashPassword(input.password);
-        const userId = await createUser({
-          email: input.email,
-          passwordHash,
-          name: input.name,
-        });
-
-        const otp = crypto.randomInt(100000, 999999).toString();
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
-        await updateUserEmailOtp(userId, otp, expiresAt);
-
-        console.log("\n========================================================");
-        console.log(`[Email Simulator] TO: ${input.email}`);
-        console.log("--------------------------------------------------------");
-        console.log(`Your BorrowBox email verification code is: ${otp}`);
-        console.log(`This code will expire in 10 minutes.`);
-        console.log("========================================================\n");
-
-        if (
-          process.env.RESEND_API_KEY &&
-          process.env.RESEND_API_KEY !== "re_your_api_key"
-        ) {
-          try {
-            const resend = new Resend(process.env.RESEND_API_KEY);
-            await resend.emails.send({
-              from: "BorrowBox <onboarding@resend.dev>",
-              to: input.email,
-              subject: "Verify your BorrowBox Email",
-              html: `<p>Your verification code is: <strong>${otp}</strong></p><p>This code will expire in 10 minutes.</p>`,
-            });
-            console.log(
-              `[Resend] Verification email sent successfully to ${input.email}`
-            );
-          } catch (error) {
-            console.error(
-              "[Resend] Failed to send verification email:",
-              error
-            );
-          }
-        }
-
-        return { requiresVerification: true, email: input.email };
-      }),
-
-    verifyEmail: publicProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-          otp: z.string().length(6),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const user = await getUserByEmail(input.email);
-        if (!user) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "User not found",
-          });
-        }
-        if (user.isEmailVerified === 1) {
-          return { success: true };
-        }
-        if (
-          !user.emailOtp ||
-          !user.emailOtpExpiresAt ||
-          user.emailOtp !== input.otp
-        ) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid OTP" });
-        }
-        if (user.emailOtpExpiresAt.getTime() < Date.now()) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "OTP has expired",
-          });
-        }
-
-        await verifyUserEmail(user.id);
-
-        const token = signSessionToken(user.id, user.email, user.tokenVersion);
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, {
-          ...cookieOptions,
-          maxAge: SEVEN_DAYS_MS,
-        });
-        return { success: true };
-      }),
-
-    login: publicProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-          password: z.string().min(1),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const user = await getUserByEmail(input.email);
-        if (!user) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Invalid email or password",
-          });
-        }
-        if (user.isBanned === 1) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Your account has been banned.",
-          });
-        }
-        if (user.isEmailVerified === 0) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Please verify your email address first.",
-          });
-        }
-        const valid = await verifyPassword(input.password, user.passwordHash);
-        if (!valid) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Invalid email or password",
-          });
-        }
-        const token = signSessionToken(user.id, user.email, user.tokenVersion);
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, {
-          ...cookieOptions,
-          maxAge: SEVEN_DAYS_MS,
-        });
-        return { success: true };
-      }),
-
-    logout: publicProcedure.mutation(async ({ ctx }) => {
-      if (ctx.user) {
-        await incrementUserTokenVersion(ctx.user.id);
-      }
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return { success: true } as const;
-    }),
-
-    forgotPassword: publicProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const user = await getUserByEmail(input.email);
-        if (!user) {
-          return { success: true };
-        }
-        const resetToken = crypto.randomBytes(32).toString("hex");
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-        await updateUserResetToken(input.email, resetToken, expiresAt);
-        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
-
-        console.log(
-          "\n========================================================"
-        );
-        console.log(`[Email Simulator] TO: ${input.email}`);
-        console.log("--------------------------------------------------------");
-        console.log(`Reset your BorrowBox password using the following link:`);
-        console.log(resetLink);
-        console.log(
-          "========================================================\n"
-        );
-
-        if (
-          process.env.RESEND_API_KEY &&
-          process.env.RESEND_API_KEY !== "re_your_api_key"
-        ) {
-          try {
-            const resend = new Resend(process.env.RESEND_API_KEY);
-            await resend.emails.send({
-              from: "BorrowBox <onboarding@resend.dev>",
-              to: input.email,
-              subject: "Reset your BorrowBox password",
-              html: `<p>Click <a href="${resetLink}">here</a> to reset your password.</p><p>Or copy this link: ${resetLink}</p>`,
-            });
-            console.log(
-              `[Resend] Password reset email sent successfully to ${input.email}`
-            );
-          } catch (error) {
-            console.error(
-              "[Resend] Failed to send password reset email:",
-              error
-            );
-          }
-        }
-
-        return { success: true };
-      }),
-
-    resetPassword: publicProcedure
-      .input(
-        z.object({
-          token: z.string(),
-          password: z.string().min(8, "Password must be at least 8 characters"),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const user = await getUserByResetToken(input.token);
-        if (
-          !user ||
-          !user.resetTokenExpiresAt ||
-          user.resetTokenExpiresAt.getTime() < Date.now()
-        ) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid or expired reset token",
-          });
-        }
-        const passwordHash = await hashPassword(input.password);
-        await updateUserPassword(user.id, passwordHash);
-        return { success: true };
-      }),
   }),
 
   // User profile management

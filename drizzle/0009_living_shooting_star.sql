@@ -1,1 +1,0 @@
-ALTER TABLE `items` MODIFY COLUMN `status` enum('OPEN','Contacted','Shipped','DELIVERED','SOLD') NOT NULL DEFAULT 'OPEN';

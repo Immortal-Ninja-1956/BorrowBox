@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { ShoppingBag, ArrowLeft, KeyRound } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -17,17 +17,9 @@ export default function ResetPassword() {
     setToken(tokenParam);
   }, []);
 
-  const resetPasswordMutation = trpc.auth.resetPassword.useMutation({
-    onSuccess: () => {
-      toast.success(
-        "Password reset successfully! Log in with your new credentials."
-      );
-      setLocation("/login");
-    },
-    onError: e => toast.error(e.message),
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) {
       toast.error("Missing password reset token");
@@ -46,10 +38,18 @@ export default function ResetPassword() {
       return;
     }
 
-    resetPasswordMutation.mutate({
-      token,
-      password: passwords.password,
+    setIsLoading(true);
+    const { error } = await supabase.auth.updateUser({
+      password: passwords.password
     });
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Password reset successfully! Log in with your new credentials.");
+      setLocation("/login");
+    }
   };
 
   return (
@@ -126,9 +126,9 @@ export default function ResetPassword() {
                 <Button
                   type="submit"
                   className="w-full bg-accent"
-                  disabled={resetPasswordMutation.isPending}
+                  disabled={isLoading}
                 >
-                  {resetPasswordMutation.isPending
+                  {isLoading
                     ? "Resetting..."
                     : "Reset Password"}
                 </Button>

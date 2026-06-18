@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { ShoppingBag, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -26,25 +26,30 @@ export default function VerifyEmail() {
     }
   }, [location, setLocation]);
 
-  const verifyMutation = trpc.auth.verifyEmail.useMutation({
-    onSuccess: async () => {
-      await refresh();
-      toast.success("Email verified successfully!");
-      setLocation("/marketplace");
-    },
-    onError: e => toast.error(e.message),
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp || otp.length !== 6) {
       toast.error("Please enter a valid 6-digit verification code");
       return;
     }
-    verifyMutation.mutate({
+    
+    setIsLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
       email,
-      otp,
+      token: otp,
+      type: "email",
     });
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      await refresh();
+      toast.success("Email verified successfully!");
+      setLocation("/marketplace");
+    }
   };
 
   return (
@@ -87,9 +92,9 @@ export default function VerifyEmail() {
             <Button
               type="submit"
               className="w-full bg-accent hover:bg-accent/90"
-              disabled={verifyMutation.isPending || otp.length !== 6}
+              disabled={isLoading || otp.length !== 6}
             >
-              {verifyMutation.isPending ? (
+              {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Verifying...

@@ -1,1 +1,0 @@
-ALTER TABLE `items` ADD `condition` enum('New','Like New','Good','Fair','Poor') DEFAULT 'Good' NOT NULL;

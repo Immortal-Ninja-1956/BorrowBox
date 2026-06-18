@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,22 +12,29 @@ export default function Login() {
   const { refresh } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
 
-  const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async () => {
-      await refresh();
-      toast.success("Logged in!");
-      setLocation("/marketplace");
-    },
-    onError: e => toast.error(e.message),
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.email || !form.password) {
       toast.error("Fill in all fields");
       return;
     }
-    loginMutation.mutate(form);
+    
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    });
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      await refresh();
+      toast.success("Logged in!");
+      setLocation("/marketplace");
+    }
   };
 
   return (
@@ -88,9 +95,9 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full bg-accent"
-              disabled={loginMutation.isPending}
+              disabled={isLoading}
             >
-              {loginMutation.isPending ? "Signing in..." : "Sign In"}
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 
