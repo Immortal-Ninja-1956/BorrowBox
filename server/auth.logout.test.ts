@@ -5,7 +5,7 @@ import { revokeToken, isTokenRevoked } from "./db";
 
 describe("Token Revocation System", () => {
   it("should successfully revoke a token and verify it is revoked", async () => {
-    const dummyToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummyPayload.dummySignature";
+    const dummyToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummyPayload.dummySignature-${Math.random()}-${Date.now()}`;
     const tokenHash = hashToken(dummyToken);
 
     // Initial state: not revoked

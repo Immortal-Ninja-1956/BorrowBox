@@ -4,6 +4,7 @@ import type { User } from "../../drizzle/schema";
 import { createClient } from "@supabase/supabase-js";
 import * as cookie from "cookie";
 import crypto from "crypto";
+import { TRPCError } from "@trpc/server";
 
 // Initialize the Supabase backend client.
 // The anon key is sufficient here — we only need to verify the user's JWT.
@@ -51,60 +52,86 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
     }
   }
 
-  if (!token) {
-    return null;
+  // If a token is asserted, we MUST verify it. Fail-closed.
+  if (token) {
+    // Check if token has been revoked (e.g., via logout)
+    const tokenHash = hashToken(token);
+    if (await db.isTokenRevoked(tokenHash)) {
+      console.warn("[Auth] Rejected revoked token attempt");
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Session token has been revoked",
+      });
+    }
+
+    try {
+      // 2. Verify token with Supabase
+      const {
+        data: { user: authUser },
+        error,
+      } = await supabase.auth.getUser(token);
+
+      if (error || !authUser || !authUser.email) {
+        console.warn(`[Auth] Supabase token verification failed: ${error?.message || "No user payload"}`);
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: error?.message || "Invalid or expired session token",
+        });
+      }
+
+      // 3. Server-side domain restriction ───────────────────────────────────────
+      // Reject any Supabase-verified user whose email is not from the allowed
+      // domain. This is the server-side counterpart to the client-side check in
+      // Register.tsx. It guards against anyone who calls supabase.auth.signUp()
+      // directly using the public anon key (which is embedded in every page load).
+      if (!isAllowedEmail(authUser.email)) {
+        console.warn(`[Auth] Blocked non-VIT email: ${authUser.email}`);
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only VIT student emails are permitted on this platform.",
+        });
+      }
+      // ─────────────────────────────────────────────────────────────────────────
+
+      // 4. Look up local DB user record
+      let user = await db.getUserByEmail(authUser.email);
+
+      // 5. Auto-create local record on first sign-in via Supabase.
+      //    The domain check above guarantees only @vitstudent.ac.in reaches here.
+      if (!user) {
+        const userId = await db.createUser({
+          email: authUser.email,
+          passwordHash: "", // Supabase is now the password authority
+          name:
+            authUser.user_metadata?.full_name ||
+            authUser.email.split("@")[0],
+        });
+        // Mark as verified — Supabase already enforced email confirmation
+        await db.verifyUserEmail(userId);
+        user = await db.getUserById(userId);
+      }
+
+      // 6. Reject banned users
+      if (!user || user.isBanned === 1) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Your account has been banned.",
+        });
+      }
+
+      return user ?? null;
+    } catch (err) {
+      if (err instanceof TRPCError) {
+        throw err;
+      }
+      console.error("[Auth] Transient or network error during authentication verification:", err);
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Authentication service is currently unavailable.",
+      });
+    }
   }
 
-  // Check if token has been revoked (e.g., via logout)
-  const tokenHash = hashToken(token);
-  if (await db.isTokenRevoked(tokenHash)) {
-    console.warn("[Auth] Rejected revoked token attempt");
-    return null;
-  }
-
-  // 2. Verify token with Supabase
-  const {
-    data: { user: authUser },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  if (error || !authUser || !authUser.email) {
-    return null;
-  }
-
-  // 3. Server-side domain restriction ───────────────────────────────────────
-  // Reject any Supabase-verified user whose email is not from the allowed
-  // domain. This is the server-side counterpart to the client-side check in
-  // Register.tsx. It guards against anyone who calls supabase.auth.signUp()
-  // directly using the public anon key (which is embedded in every page load).
-  if (!isAllowedEmail(authUser.email)) {
-    console.warn(`[Auth] Blocked non-VIT email: ${authUser.email}`);
-    return null;
-  }
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // 4. Look up local DB user record
-  let user = await db.getUserByEmail(authUser.email);
-
-  // 5. Auto-create local record on first sign-in via Supabase.
-  //    The domain check above guarantees only @vitstudent.ac.in reaches here.
-  if (!user) {
-    const userId = await db.createUser({
-      email: authUser.email,
-      passwordHash: "", // Supabase is now the password authority
-      name:
-        authUser.user_metadata?.full_name ||
-        authUser.email.split("@")[0],
-    });
-    // Mark as verified — Supabase already enforced email confirmation
-    await db.verifyUserEmail(userId);
-    user = await db.getUserById(userId);
-  }
-
-  // 6. Reject banned users
-  if (!user || user.isBanned === 1) {
-    return null;
-  }
-
-  return user ?? null;
+  // If no token was asserted, we proceed as guest
+  return null;
 }
