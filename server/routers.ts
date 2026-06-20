@@ -166,7 +166,7 @@ export const appRouter = router({
       return safe;
     }),
 
-    getProfileById: publicProcedure
+    getProfileById: protectedProcedure
       .input(z.object({ userId: z.number() }))
       .query(async ({ input }) => {
         const user = await getUserById(input.userId);
@@ -177,6 +177,20 @@ export const appRouter = router({
           name: user.name,
           whatsapp: user.whatsapp,
           trustScore,
+        };
+      }),
+
+    getPublicProfileById: publicProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const user = await getUserById(input.userId);
+        if (!user) return null;
+        const trustScore = await getUserTrustScore(input.userId);
+        return {
+          id: user.id,
+          name: user.name,
+          trustScore,
+          whatsapp: null as string | null,
         };
       }),
 

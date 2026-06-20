@@ -166,7 +166,18 @@ Currently, only Email/OTP and Email/Password sign-ins are supported. If Google O
 | **Logout Does Not Revoke Already-Issued Access Tokens** | `server/_core/auth.ts`, `server/routers.ts` | **✅ RESOLVED** | Added a database-backed JWT revocation list (`revoked_tokens` table). On logout, the token's SHA-256 hash is stored with its expiration timestamp. Incoming requests are audited against this blacklist on every API call. |
 | **Fail-Open Behavior on Supabase Verification Failure** | `server/_core/auth.ts` | **✅ RESOLVED** | Rewrote `authenticateRequest` to strictly fail-closed. If a token is asserted but fails verification due to any error, expiry, domain restriction, or connection blip, it explicitly throws a `TRPCError` instead of falling back to guest mode. |
 | **No MFA or Brute-Force Protection on App Surface** | Supabase Dashboard | ❌ Pending | Password brute-force is delegated to Supabase Auth. Enable hCaptcha on signup/login forms in the Supabase Dashboard, and monitor Supabase rate limit logs. |
-| `POST /api/upload` has no auth check | `server/upload.ts:30` | ❌ Pending | Add Supabase token verification middleware before the Multer handler. Extract Bearer token or cookie, call `supabase.auth.getUser()`, reject if invalid. |
+| **`POST /api/upload` Has No Auth Check** | `server/upload.ts` | **✅ RESOLVED** | Added `authenticateRequest` middleware to the REST route. Unauthenticated upload requests are rejected with a 401 response before reaching the Multer file parser. |
+| **No File Content/Type Validation Beyond Size** | `server/upload.ts` | **✅ RESOLVED** | Disallowed SVG entirely. Added strict MIME-type (`image/jpeg`, `image/png`, `image/gif`, `image/webp`) allowlists and implemented server-side magic bytes checking on the uploaded file buffer to prevent disguised executable uploads. |
+| **Content-Security-Policy Not Configured** | `server/_core/index.ts` | **✅ RESOLVED** | Installed and configured `helmet` middleware. Implemented a Content-Security-Policy (CSP) that limits asset origins (`res.cloudinary.com`, `*.supabase.co`), blocks standard framing, and turns on `nosniff`. |
+| **`user.getProfileById` Is Public and Leaks PII (IDOR)** | `server/routers.ts`, `client/src/pages/ItemDetail.tsx` | **✅ RESOLVED** | Converted `getProfileById` to a `protectedProcedure` (blocking guest harvesting/IDOR). Created a new `getPublicProfileById` endpoint (returning only `{ id, name, trustScore }`) for unauthenticated visitors. The frontend now calls the public API for guests and the secure API for authenticated users. |
+
+### 🟡 LOW RISK / INFORMATIONAL AUDITS
+
+| Audit Focus | Location | Status | Analysis / Verification |
+|---|---|---|---|
+| **SQL Injection Risk** | `server/db.ts`, `server/routers.ts` | **✅ VERIFIED SAFE** | Checked for raw SQL templates. The only `sql` template usages are for incrementing `tokenVersion` (`sql`${users.tokenVersion} + 1``). Drizzle ORM is used exclusively and parameterizes all query parameters correctly. |
+| **SSRF on Cloudinary Integration** | `server/storage.ts` | **✅ VERIFIED SAFE** | Cloudinary uploads are processed via `cloudinary.uploader.upload_stream` using local buffers received from Multer memory storage. The application never accepts or fetches remote URLs, eliminating SSRF vectors. |
+| **NoSQL/LDAP/Gadget Chains** | Whole App | **✅ VERIFIED SAFE** | The stack has no NoSQL databases, LDAP, XML parsing, or unsafe deserialization libraries. SuperJSON handles known primitive serialization safely. |
 
 ---
 

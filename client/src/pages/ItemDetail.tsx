@@ -81,10 +81,15 @@ export default function ItemDetail() {
   const { data: deals, refetch: refetchDeals } = trpc.deals.getByItem.useQuery({
     itemId,
   });
-  const { data: sellerProfile } = trpc.user.getProfileById.useQuery(
+  const { data: authenticatedSellerProfile } = trpc.user.getProfileById.useQuery(
     { userId: item?.sellerId ?? 0 },
-    { enabled: !!item?.sellerId }
+    { enabled: !!item?.sellerId && isAuthenticated }
   );
+  const { data: publicSellerProfile } = trpc.user.getPublicProfileById.useQuery(
+    { userId: item?.sellerId ?? 0 },
+    { enabled: !!item?.sellerId && !isAuthenticated }
+  );
+  const sellerProfile = isAuthenticated ? authenticatedSellerProfile : publicSellerProfile;
 
   const createDealMutation = trpc.deals.create.useMutation({
     onSuccess: () => {
