@@ -109,6 +109,11 @@ The auth system was **fully migrated from custom JWT/cookie to Supabase Auth** a
 ### Key Implication
 - Security against XSS is maximized. The token is only held in-memory (tab-lifetime) on the client, and the server relies on the browser's automatic cookie transmission.
 
+### Future Google OAuth Integration Notice
+Currently, only Email/OTP and Email/Password sign-ins are supported. If Google OAuth is added in the future:
+- Developers must configure and enforce the `hd` (hosted domain) parameter checks on the OAuth provider side to restrict authentication attempts strictly to `@vitstudent.ac.in`.
+- The server-side domain check in `server/_core/auth.ts` will continue to validate the email domain on every API request.
+
 ---
 
 ## 5. Database Schema (PostgreSQL via Drizzle ORM)
