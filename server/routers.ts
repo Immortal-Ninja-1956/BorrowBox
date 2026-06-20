@@ -47,6 +47,7 @@ import {
   createItemReport,
   getAllItemReportsAdmin,
   updateItemReportStatus,
+  revokeToken,
 } from "./db";
 // Custom auth logic removed, moved to Supabase
 import { TRPCError } from "@trpc/server";
@@ -60,6 +61,63 @@ export const appRouter = router({
       const { passwordHash, ...safe } = opts.ctx.user;
       return safe;
     }),
+    syncSession: publicProcedure
+      .input(z.object({ accessToken: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const { getSessionCookieOptions } = await import("./_core/cookies");
+        ctx.res.cookie("sb-access-token", input.accessToken, getSessionCookieOptions(ctx.req));
+        return { success: true };
+      }),
+    clearSession: publicProcedure
+      .mutation(async ({ ctx }) => {
+        const { getSessionCookieOptions } = await import("./_core/cookies");
+        const { hashToken } = await import("./_core/auth");
+        const cookie = await import("cookie");
+
+        // 1. Extract the token to revoke
+        let token: string | undefined;
+        const authHeader = ctx.req.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          token = authHeader.split(" ")[1];
+        }
+        if (!token && ctx.req.headers.cookie) {
+          try {
+            const parsedCookies = cookie.parse(ctx.req.headers.cookie);
+            token = parsedCookies["sb-access-token"];
+          } catch (err) {
+            console.error("[Auth] Error parsing cookie for revocation:", err);
+          }
+        }
+
+        // 2. Revoke the token if found
+        if (token) {
+          try {
+            const tokenHash = hashToken(token);
+            // Parse JWT expiry (exp is Unix timestamp in seconds)
+            const parts = token.split(".");
+            let expiresAt = new Date(Date.now() + 3600 * 1000); // fallback: 1 hour
+            if (parts.length === 3) {
+              const payloadJson = Buffer.from(parts[1], "base64").toString("utf-8");
+              const payload = JSON.parse(payloadJson);
+              if (payload && typeof payload.exp === "number") {
+                expiresAt = new Date(payload.exp * 1000);
+              }
+            }
+            await revokeToken(tokenHash, expiresAt);
+          } catch (err) {
+            console.error("[Auth] Failed to revoke session token:", err);
+          }
+        }
+
+        const options = getSessionCookieOptions(ctx.req);
+        ctx.res.clearCookie("sb-access-token", {
+          path: options.path,
+          domain: options.domain,
+          secure: options.secure,
+          sameSite: options.sameSite,
+        });
+        return { success: true };
+      }),
   }),
 
   // User profile management

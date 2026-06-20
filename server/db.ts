@@ -1,7 +1,7 @@
 import { eq, desc, and, or, sql, like, asc, lt, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { users, items, deals, reviews, messages, item_reports } from "../drizzle/schema";
+import { users, items, deals, reviews, messages, item_reports, revoked_tokens } from "../drizzle/schema";
 import type {
   InsertUser,
   InsertReview,
@@ -603,4 +603,36 @@ export async function updateItemReportStatus(
     .update(item_reports)
     .set({ status })
     .where(eq(item_reports.id, reportId));
+}
+
+// ─── Token Revocation ────────────────────────────────────────────────────────
+
+export async function revokeToken(tokenHash: string, expiresAt: Date) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Clean up any already-expired tokens concurrently to keep DB clean
+  try {
+    await db.delete(revoked_tokens).where(lt(revoked_tokens.expiresAt, new Date()));
+  } catch (err) {
+    console.error("[Database] Error cleaning up expired tokens:", err);
+  }
+
+  return await db.insert(revoked_tokens).values({
+    tokenHash,
+    expiresAt,
+  }).onConflictDoNothing();
+}
+
+export async function isTokenRevoked(tokenHash: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const result = await db
+    .select()
+    .from(revoked_tokens)
+    .where(eq(revoked_tokens.tokenHash, tokenHash))
+    .limit(1);
+
+  return result.length > 0;
 }

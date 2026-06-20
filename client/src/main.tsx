@@ -19,7 +19,7 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       async fetch(input, init) {
-        // Fetch current session from Supabase
+        // Fetch current session from Supabase (if loaded in memory)
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
 
@@ -34,7 +34,7 @@ const trpcClient = trpc.createClient({
         return globalThis.fetch(input, {
           ...(init ?? {}),
           headers,
-          credentials: "omit", // Using token now, cookies not strictly needed for auth
+          credentials: "same-origin", // Required to automatically send the HttpOnly session cookie
         });
       },
     }),

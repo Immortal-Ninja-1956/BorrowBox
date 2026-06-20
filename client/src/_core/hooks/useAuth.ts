@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 
 export function useAuth() {
   const utils = trpc.useUtils();
+  const syncSession = trpc.auth.syncSession.useMutation();
+  const clearSession = trpc.auth.clearSession.useMutation();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
@@ -11,19 +13,38 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (session?.access_token) {
+          try {
+            await syncSession.mutateAsync({ accessToken: session.access_token });
+          } catch (err) {
+            console.error("Failed to sync session cookie:", err);
+          }
+        }
+        utils.auth.me.invalidate();
+      } else if (event === "SIGNED_OUT") {
+        try {
+          await clearSession.mutateAsync();
+        } catch (err) {
+          console.error("Failed to clear session cookie:", err);
+        }
         utils.auth.me.invalidate();
       }
     });
     return () => subscription.unsubscribe();
-  }, [utils]);
+  }, [utils, syncSession, clearSession]);
 
   const logout = useCallback(async () => {
+    try {
+      await clearSession.mutateAsync();
+    } catch (err) {
+      console.error("Failed to clear session cookie during logout:", err);
+    }
     await supabase.auth.signOut();
     utils.auth.me.setData(undefined, null);
     utils.auth.me.invalidate();
-  }, [utils]);
+  }, [utils, clearSession]);
 
   const state = useMemo(() => {
     const isLoading = meQuery.isLoading;

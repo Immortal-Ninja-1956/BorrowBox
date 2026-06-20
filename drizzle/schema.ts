@@ -133,3 +133,12 @@ export const item_reports = pgTable("item_reports", {
 
 export type ItemReport = typeof item_reports.$inferSelect;
 export type InsertItemReport = typeof item_reports.$inferInsert;
+
+export const revoked_tokens = pgTable("revoked_tokens", {
+  id: serial("id").primaryKey(),
+  tokenHash: varchar("tokenHash", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+});
+
+export type RevokedToken = typeof revoked_tokens.$inferSelect;
+export type InsertRevokedToken = typeof revoked_tokens.$inferInsert;
