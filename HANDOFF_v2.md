@@ -170,6 +170,8 @@ Currently, only Email/OTP and Email/Password sign-ins are supported. If Google O
 | **No File Content/Type Validation Beyond Size** | `server/upload.ts` | **✅ RESOLVED** | Disallowed SVG entirely. Added strict MIME-type (`image/jpeg`, `image/png`, `image/gif`, `image/webp`) allowlists and implemented server-side magic bytes checking on the uploaded file buffer to prevent disguised executable uploads. |
 | **Content-Security-Policy Not Configured** | `server/_core/index.ts` | **✅ RESOLVED** | Installed and configured `helmet` middleware. Implemented a Content-Security-Policy (CSP) that limits asset origins (`res.cloudinary.com`, `*.supabase.co`), blocks standard framing, and turns on `nosniff`. |
 | **`user.getProfileById` Is Public and Leaks PII (IDOR)** | `server/routers.ts`, `client/src/pages/ItemDetail.tsx` | **✅ RESOLVED** | Converted `getProfileById` to a `protectedProcedure` (blocking guest harvesting/IDOR). Created a new `getPublicProfileById` endpoint (returning only `{ id, name, trustScore }`) for unauthenticated visitors. The frontend now calls the public API for guests and the secure API for authenticated users. |
+| **`deals.getById` / `deals.getByItem` Leak Buyer PII (IDOR)** | `server/routers.ts` | **✅ RESOLVED** | Converted both procedures to `protectedProcedure`. `getById` now strictly verifies the caller is either the buyer or the seller. `getByItem` now restricts visibility (sellers see all deals; buyers only see their own deal). |
+| **WhatsApp OTP Secrets Logged to Stdout** | `server/routers.ts` | **✅ RESOLVED** | Gated the terminal logs printout by checking `process.env.NODE_ENV !== "production"`. In production, the raw code is never printed to stdout logs. |
 
 ### 🟡 LOW RISK / INFORMATIONAL AUDITS
 
@@ -178,6 +180,9 @@ Currently, only Email/OTP and Email/Password sign-ins are supported. If Google O
 | **SQL Injection Risk** | `server/db.ts`, `server/routers.ts` | **✅ VERIFIED SAFE** | Checked for raw SQL templates. The only `sql` template usages are for incrementing `tokenVersion` (`sql`${users.tokenVersion} + 1``). Drizzle ORM is used exclusively and parameterizes all query parameters correctly. |
 | **SSRF on Cloudinary Integration** | `server/storage.ts` | **✅ VERIFIED SAFE** | Cloudinary uploads are processed via `cloudinary.uploader.upload_stream` using local buffers received from Multer memory storage. The application never accepts or fetches remote URLs, eliminating SSRF vectors. |
 | **NoSQL/LDAP/Gadget Chains** | Whole App | **✅ VERIFIED SAFE** | The stack has no NoSQL databases, LDAP, XML parsing, or unsafe deserialization libraries. SuperJSON handles known primitive serialization safely. |
+| **PII Stored Unencrypted at Column Level** | Database | **✅ VERIFIED SAFE** | Supabase database volumes, replicas, and backups are hosted on AWS RDS and fully encrypted at rest using AWS KMS by default. Gating tRPC procedures securely prevents unauthorized retrieval. |
+| **No Right-to-Erasure (GDPR)** | `server/db.ts`, `server/routers.ts` | **✅ RESOLVED** | Added `user.deleteAccount` mutation which soft-deletes and anonymizes user rows (replacing PII with placeholders, scrubbing UPI/WhatsApp details, and banning/resetting session tokens) to comply with Erasure laws without breaking foreign-key cascades on deal logs and reviews. |
+| **TLS/SSL DB Connection Enforcement** | `server/db.ts`, `.env.example` | **✅ RESOLVED** | Enforced `{ ssl: "require" }` in the Postgres client for non-local connections. Updated `.env.example` to document secure connection query parameter formatting (`?sslmode=require`). |
 
 ---
 

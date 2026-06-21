@@ -14,7 +14,11 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const client = postgres(process.env.DATABASE_URL, { prepare: false });
+      const isLocal = process.env.DATABASE_URL.includes("localhost") || process.env.DATABASE_URL.includes("127.0.0.1");
+      const client = postgres(process.env.DATABASE_URL, { 
+        prepare: false, 
+        ssl: isLocal ? undefined : "require",
+      });
       _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
@@ -102,6 +106,31 @@ export async function verifyUserWhatsApp(userId: number) {
   return await db
     .update(users)
     .set({ whatsappVerified: 1, whatsappOtp: null, whatsappOtpExpiresAt: null })
+    .where(eq(users.id, userId));
+}
+
+export async function anonymizeUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(users)
+    .set({
+      email: `deleted_user_${userId}@deleted.invalid`,
+      name: "Deleted User",
+      passwordHash: "DELETED",
+      upiId: null,
+      upiName: null,
+      whatsapp: null,
+      whatsappVerified: 0,
+      whatsappOtp: null,
+      whatsappOtpExpiresAt: null,
+      emailOtp: null,
+      emailOtpExpiresAt: null,
+      resetToken: null,
+      resetTokenExpiresAt: null,
+      isBanned: 1,
+      tokenVersion: sql`${users.tokenVersion} + 1`,
+    })
     .where(eq(users.id, userId));
 }
 

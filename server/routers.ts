@@ -14,6 +14,7 @@ import {
   updateUserProfile,
   updateUserWhatsAppOtp,
   verifyUserWhatsApp,
+  anonymizeUser,
   createItem,
   getItemById,
   getItemsBySellerId,
@@ -159,6 +160,12 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    deleteAccount: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        await anonymizeUser(ctx.user.id);
+        return { success: true };
+      }),
+
     getProfile: protectedProcedure.query(async ({ ctx }) => {
       const user = await getUserById(ctx.user.id);
       if (!user) return null;
@@ -209,12 +216,16 @@ export const appRouter = router({
 
       await updateUserWhatsAppOtp(user.id, otp, expiresAt);
 
-      console.log("\n========================================================");
-      console.log(`[WhatsApp Simulator] TO: ${user.whatsapp}`);
-      console.log("--------------------------------------------------------");
-      console.log(`Your BorrowBox WhatsApp verification code is: ${otp}`);
-      console.log(`This code will expire in 10 minutes.`);
-      console.log("========================================================\n");
+      if (process.env.NODE_ENV !== "production") {
+        console.log("\n========================================================");
+        console.log(`[WhatsApp Simulator] TO: ${user.whatsapp}`);
+        console.log("--------------------------------------------------------");
+        console.log(`Your BorrowBox WhatsApp verification code is: ${otp}`);
+        console.log(`This code will expire in 10 minutes.`);
+        console.log("========================================================\n");
+      } else {
+        console.log(`[WhatsApp] OTP sent to user ID: ${user.id}`);
+      }
 
       return { success: true };
     }),
@@ -456,13 +467,45 @@ export const appRouter = router({
         return { success: true, dealId };
       }),
 
-    getById: publicProcedure
+    getById: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => await getDealById(input.id)),
+      .query(async ({ ctx, input }) => {
+        const deal = await getDealById(input.id);
+        if (!deal) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Deal not found",
+          });
+        }
+        if (ctx.user.id !== deal.buyerId && ctx.user.id !== deal.sellerId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You are not authorized to view this deal.",
+          });
+        }
+        return deal;
+      }),
 
-    getByItem: publicProcedure
+    getByItem: protectedProcedure
       .input(z.object({ itemId: z.number() }))
-      .query(async ({ input }) => await getDealsByItemId(input.itemId)),
+      .query(async ({ ctx, input }) => {
+        const allDeals = await getDealsByItemId(input.itemId);
+        if (allDeals.length === 0) return [];
+
+        const item = await getItemById(input.itemId);
+        if (!item) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Item not found",
+          });
+        }
+
+        if (ctx.user.id === item.sellerId) {
+          return allDeals;
+        }
+
+        return allDeals.filter(d => d.buyerId === ctx.user.id);
+      }),
 
     getBySeller: protectedProcedure.query(
       async ({ ctx }) => await getDealsBySellerId(ctx.user.id)

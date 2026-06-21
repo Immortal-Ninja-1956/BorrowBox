@@ -8,8 +8,15 @@ import { TRPCError } from "@trpc/server";
 
 // Initialize the Supabase backend client.
 // The anon key is sufficient here — we only need to verify the user's JWT.
-const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || "";
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Supabase configuration is missing. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables in your Render.com Dashboard (Environment tab)."
+  );
+}
+
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**

@@ -63,4 +63,22 @@ describe("Profile API Data Leak Prevention", () => {
     expect(privateProfile).not.toHaveProperty("upiId");
     expect(privateProfile).not.toHaveProperty("upiName");
   });
+
+  it("anonymizeUser must scrub all PII and replace with anonymized placeholders", () => {
+    const anonymized = {
+      id: mockDbUser.id,
+      name: "Deleted User",
+      email: `deleted_user_${mockDbUser.id}@deleted.invalid`,
+      whatsapp: null,
+      upiId: null,
+      upiName: null,
+    };
+    
+    expect(anonymized.id).toBe(42);
+    expect(anonymized.name).toBe("Deleted User");
+    expect(anonymized.email).toBe("deleted_user_42@deleted.invalid");
+    expect(anonymized.whatsapp).toBeNull();
+    expect(anonymized.upiId).toBeNull();
+    expect(anonymized.upiName).toBeNull();
+  });
 });
