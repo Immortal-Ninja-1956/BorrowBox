@@ -172,6 +172,7 @@ Currently, only Email/OTP and Email/Password sign-ins are supported. If Google O
 | **`user.getProfileById` Is Public and Leaks PII (IDOR)** | `server/routers.ts`, `client/src/pages/ItemDetail.tsx` | **✅ RESOLVED** | Converted `getProfileById` to a `protectedProcedure` (blocking guest harvesting/IDOR). Created a new `getPublicProfileById` endpoint (returning only `{ id, name, trustScore }`) for unauthenticated visitors. The frontend now calls the public API for guests and the secure API for authenticated users. |
 | **`deals.getById` / `deals.getByItem` Leak Buyer PII (IDOR)** | `server/routers.ts` | **✅ RESOLVED** | Converted both procedures to `protectedProcedure`. `getById` now strictly verifies the caller is either the buyer or the seller. `getByItem` now restricts visibility (sellers see all deals; buyers only see their own deal). |
 | **WhatsApp OTP Secrets Logged to Stdout** | `server/routers.ts` | **✅ RESOLVED** | Gated the terminal logs printout by checking `process.env.NODE_ENV !== "production"`. In production, the raw code is never printed to stdout logs. |
+| **No CORS Policy Configured** | `server/_core/index.ts` | **✅ RESOLVED** | Installed and integrated `cors` middleware, restricting cross-origin requests to trusted origins (`FRONTEND_URL` and development `localhost` connections) and disabling CORS credentials forwarding. |
 
 ### 🟡 LOW RISK / INFORMATIONAL AUDITS
 

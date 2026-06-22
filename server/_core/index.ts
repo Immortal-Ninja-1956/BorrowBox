@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { uploadRouter } from "../upload";
 import { authLimiter } from "./limiter";
 import helmet from "helmet";
+import cors from "cors";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -31,6 +32,18 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // Configure CORS policy
+  app.use(
+    cors({
+      origin: [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        process.env.FRONTEND_URL,
+      ].filter(Boolean) as string[],
+      credentials: false,
+    })
+  );
 
   // Set up security headers and CSP
   app.use(
