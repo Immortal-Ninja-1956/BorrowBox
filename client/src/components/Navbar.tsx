@@ -50,24 +50,24 @@ export default function Navbar() {
   if (!isAuthenticated && !loading) {
     if (!isPublicPage) return null;
     return (
-      <nav className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
+      <nav className="glass-navbar">
         <div className="container flex items-center justify-between h-16">
           <button
             onClick={() => handleNav("/")}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+            className="flex items-center gap-2.5 group transition-opacity cursor-pointer"
           >
-            <div className="w-9 h-9 bg-accent rounded-lg flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5 text-accent-foreground" />
+            <div className="w-9 h-9 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground animate-pulse">
+              <ShoppingBag className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors" />
             </div>
-            <span className="text-xl font-bold text-accent hidden sm:inline">
+            <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden sm:inline">
               BorrowBox
             </span>
           </button>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => handleNav("/login")}>
+            <Button variant="ghost" size="sm" onClick={() => handleNav("/login")} className="hover:bg-muted/50 font-medium">
               Sign In
             </Button>
-            <Button size="sm" className="bg-accent" onClick={() => handleNav("/register")}>
+            <Button size="sm" className="bg-primary hover:bg-primary/95 text-primary-foreground shadow-md font-semibold transition-all hover:shadow-primary/20" onClick={() => handleNav("/register")}>
               Sign Up
             </Button>
           </div>
@@ -93,23 +93,23 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
+    <nav className="glass-navbar">
       <div className="container flex items-center justify-between h-16">
         {/* Brand */}
         <button
           onClick={() => handleNav("/")}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2.5 group transition-opacity"
         >
-          <div className="w-9 h-9 bg-accent rounded-lg flex items-center justify-center">
-            <ShoppingBag className="w-5 h-5 text-accent-foreground" />
+          <div className="w-9 h-9 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground">
+            <ShoppingBag className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors" />
           </div>
-          <span className="text-xl font-bold text-accent hidden sm:inline">
+          <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden sm:inline">
             BorrowBox
           </span>
         </button>
 
         {/* Desktop Nav Links */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1.5">
           {[
             ...navLinks,
             ...(user?.role === "admin"
@@ -122,11 +122,11 @@ export default function Navbar() {
                 key={link.path}
                 onClick={() => handleNav(link.path)}
                 className={`
-                  flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
+                  flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200
                   ${
                     isActive
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      ? "bg-primary/15 border border-primary/20 text-primary shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
                   }
                 `}
               >
@@ -144,7 +144,7 @@ export default function Navbar() {
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               title={
                 theme === "dark"
                   ? "Switch to Light Mode"
@@ -158,12 +158,12 @@ export default function Navbar() {
               )}
             </Button>
           )}
-          <span className="text-sm text-muted-foreground">{user?.name}</span>
+          <span className="text-sm font-medium text-foreground bg-muted/40 border border-border/30 px-3 py-1 rounded-full">{user?.name}</span>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="text-muted-foreground hover:text-destructive"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
             <LogOut className="w-4 h-4 mr-1" />
             Logout
@@ -173,7 +173,7 @@ export default function Navbar() {
         {/* Mobile Hamburger */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+          className="md:hidden p-2 rounded-lg hover:bg-muted/50 border border-border/30 transition-colors"
         >
           {mobileOpen ? (
             <X className="w-5 h-5 text-foreground" />
@@ -185,7 +185,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-card animate-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden border-t border-border/40 bg-card/95 backdrop-blur-md animate-in slide-in-from-top-2 duration-200">
           <div className="container py-3 space-y-1">
             {[
               ...navLinks,
@@ -199,11 +199,11 @@ export default function Navbar() {
                   key={link.path}
                   onClick={() => handleNav(link.path)}
                   className={`
-                    flex items-center gap-3 w-full px-3 py-3 rounded-lg text-sm font-medium transition-all
+                    flex items-center gap-3 w-full px-3.5 py-3 rounded-lg text-sm font-medium transition-all
                     ${
                       isActive
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        ? "bg-primary/15 border border-primary/20 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     }
                   `}
                 >
@@ -212,15 +212,15 @@ export default function Navbar() {
                 </button>
               );
             })}
-            <div className="border-t border-border pt-2 mt-2">
+            <div className="border-t border-border/40 pt-2.5 mt-2.5">
               {toggleTheme && (
                 <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-sm text-muted-foreground">Theme</span>
+                  <span className="text-sm text-muted-foreground font-medium">Theme</span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={toggleTheme}
-                    className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                    className="text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   >
                     {theme === "dark" ? (
                       <>
@@ -236,10 +236,10 @@ export default function Navbar() {
                   </Button>
                 </div>
               )}
-              <div className="flex items-center justify-between px-3 py-2 border-t border-border mt-1 pt-1">
+              <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 mt-1.5 pt-2">
                 <span className="text-sm text-muted-foreground text-ellipsis overflow-hidden whitespace-nowrap max-w-[180px]">
                   Signed in as{" "}
-                  <span className="font-medium text-foreground">
+                  <span className="font-semibold text-foreground">
                     {user?.name}
                   </span>
                 </span>
@@ -247,7 +247,7 @@ export default function Navbar() {
                   variant="ghost"
                   size="sm"
                   onClick={handleLogout}
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <LogOut className="w-4 h-4 mr-1" />
                   Logout

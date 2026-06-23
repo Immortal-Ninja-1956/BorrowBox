@@ -37,222 +37,198 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card">
-        <div className="container flex items-center justify-between h-16">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-              <ShoppingBag className="w-6 h-6 text-accent-foreground" />
+    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col justify-between">
+      {/* Background Glowing Blobs */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/4 -translate-y-1/2 -z-10 w-[300px] h-[300px] rounded-full bg-secondary/10 blur-[100px] pointer-events-none" />
+
+      {/* Main Content Container */}
+      <div className="flex-grow">
+        {/* Hero */}
+        <section className="py-24 px-4 md:py-36">
+          <div className="container max-w-4xl mx-auto text-center relative">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6 animate-fade-in">
+              <Zap className="w-3.5 h-3.5 animate-pulse" />
+              <span>Exclusively for College Campuses</span>
             </div>
-            <h1 className="text-2xl font-bold text-accent">BorrowBox</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors mr-2"
-              title="Toggle Theme"
-            >
-              {theme === "light" ? (
-                <Moon className="w-5 h-5" />
+            <h2 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-foreground leading-[1.1]">
+              Borrow. Share. <span className="gradient-text">Repeat.</span>
+            </h2>
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+              The ultimate peer-to-peer marketplace for college students. List items, connect via WhatsApp, and complete secure handovers with verified QR payments.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {isAuthenticated ? (
+                <>
+                  <Button
+                    size="lg"
+                    className="text-base font-semibold px-8 py-6 h-auto bg-primary hover:bg-primary/95 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all duration-300 rounded-xl"
+                    onClick={() => setLocation("/marketplace")}
+                  >
+                    Explore Marketplace <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-base font-semibold px-8 py-6 h-auto border-border hover:bg-muted/50 rounded-xl"
+                    onClick={() => setLocation("/create-post")}
+                  >
+                    Post an Item
+                  </Button>
+                </>
               ) : (
-                <Sun className="w-5 h-5" />
+                <>
+                  <Button
+                    size="lg"
+                    className="text-base font-semibold px-8 py-6 h-auto bg-primary hover:bg-primary/95 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all duration-300 rounded-xl w-full sm:w-auto"
+                    onClick={() => setLocation("/marketplace")}
+                  >
+                    Explore Marketplace <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-base font-semibold px-8 py-6 h-auto border-border hover:bg-muted/50 rounded-xl w-full sm:w-auto"
+                    onClick={() => setLocation("/login")}
+                  >
+                    Sign In
+                  </Button>
+                </>
               )}
-            </button>
-            {isAuthenticated ? (
-              <div className="flex items-center gap-4">
-                <span className="font-medium text-foreground">
-                  Welcome, {user?.name}
-                </span>
-                <Button onClick={() => setLocation("/dashboard")}>
-                  Go to Dashboard
-                </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="py-24 px-4 bg-muted/30 border-y border-border/40 relative">
+          <div className="container relative z-10">
+            <div className="text-center max-w-3xl mx-auto mb-20">
+              <h3 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-foreground">
+                Why Choose BorrowBox?
+              </h3>
+              <p className="text-muted-foreground text-lg">
+                We've built a trust-first marketplace tailored to campus needs.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="p-8 rounded-2xl glass-card premium-hover-card">
+                <div className="w-12 h-12 bg-primary/10 border border-primary/25 rounded-xl flex items-center justify-center mb-6">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <h4 className="text-xl font-bold mb-3 text-foreground">
+                  Direct Chats
+                </h4>
+                <p className="text-muted-foreground leading-relaxed">
+                  Chat in real-time right inside the app or hop on WhatsApp. Arrange pickups directly with your peers.
+                </p>
               </div>
-            ) : (
-              <>
-                <Button variant="ghost" onClick={() => setLocation("/login")}>
-                  Login
-                </Button>
-                <Button onClick={() => setLocation("/register")}>
-                  Sign Up
-                </Button>
-              </>
+              <div className="p-8 rounded-2xl glass-card premium-hover-card">
+                <div className="w-12 h-12 bg-secondary/15 border border-secondary/35 rounded-xl flex items-center justify-center mb-6">
+                  <CheckCircle className="w-6 h-6 text-secondary" />
+                </div>
+                <h4 className="text-xl font-bold mb-3 text-foreground">
+                  Satisfied Then Paid
+                </h4>
+                <p className="text-muted-foreground leading-relaxed">
+                  The seller's UPI QR code unlocks only after you confirm delivery. Complete trust, zero friction.
+                </p>
+              </div>
+              <div className="p-8 rounded-2xl glass-card premium-hover-card">
+                <div className="w-12 h-12 bg-primary/10 border border-primary/25 rounded-xl flex items-center justify-center mb-6">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
+                <h4 className="text-xl font-bold mb-3 text-foreground">
+                  Verified Students
+                </h4>
+                <p className="text-muted-foreground leading-relaxed">
+                  Restricted to college community members. Trade books, electronics, calculators, and furniture safely.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="py-24 px-4 relative">
+          <div className="container max-w-4xl relative z-10">
+            <div className="text-center max-w-3xl mx-auto mb-20">
+              <h3 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-foreground">
+                How It Works
+              </h3>
+              <p className="text-muted-foreground text-lg">
+                Four simple steps to buy, sell, borrow, or share on your campus.
+              </p>
+            </div>
+            <div className="relative border-l border-border/60 pl-8 ml-6 space-y-12">
+              {[
+                {
+                  n: 1,
+                  title: "Post or Browse Listings",
+                  desc: "Create an item listing with photos, category, and price in seconds. Or explore the marketplace using search and filters.",
+                },
+                {
+                  n: 2,
+                  title: "Connect & Negotiate",
+                  desc: "Chat securely via the in-app chat or use WhatsApp to details about the handover location and timing.",
+                },
+                {
+                  n: 3,
+                  title: "Meet & Confirm Handover",
+                  desc: "Meet on campus to inspect the item. The seller marks the status as shipped, and delivery updates instantly.",
+                },
+                {
+                  n: 4,
+                  title: "UPI QR Payment Release",
+                  desc: "Confirm delivery on your dashboard. This automatically reveals the seller's UPI QR code to scan and complete payment.",
+                },
+              ].map(({ n, title, desc }) => (
+                <div key={n} className="relative group">
+                  {/* Step Number Dot */}
+                  <div className="absolute -left-[50px] top-1 w-9 h-9 rounded-full bg-background border border-border group-hover:border-primary/50 text-foreground group-hover:text-primary flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-xs">
+                    {n}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold mb-2 text-foreground transition-colors group-hover:text-primary">
+                      {title}
+                    </h4>
+                    <p className="text-muted-foreground leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-24 px-4 relative bg-gradient-to-br from-primary/95 to-primary text-primary-foreground overflow-hidden">
+          <div className="absolute -right-32 -bottom-32 w-96 h-96 rounded-full bg-secondary/20 blur-[100px] pointer-events-none" />
+          <div className="absolute -left-32 -top-32 w-96 h-96 rounded-full bg-background/10 blur-[80px] pointer-events-none" />
+
+          <div className="container text-center relative z-10">
+            <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">
+              Ready to Join the BorrowBox Community?
+            </h3>
+            <p className="text-lg md:text-xl mb-10 opacity-90 max-w-2xl mx-auto leading-relaxed">
+              Start trading books, items, and gear safely with your college mates today.
+            </p>
+            {!isAuthenticated && (
+              <Button
+                size="lg"
+                className="bg-background text-primary hover:bg-background/90 text-base font-semibold px-8 py-6 h-auto shadow-xl rounded-xl transition-all duration-300 hover:scale-105"
+                onClick={() => setLocation("/register")}
+              >
+                Create Free Account
+              </Button>
             )}
           </div>
-        </div>
-      </nav>
+        </section>
+      </div>
 
-      {/* Hero */}
-      <section className="py-20 px-4 md:py-32">
-        <div className="container max-w-4xl mx-auto text-center">
-          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-foreground">
-            Borrow. Share. <span className="text-accent">Repeat.</span>
-          </h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            The ultimate peer-to-peer marketplace for college students. Buy and
-            sell items securely with trusted payment verification after delivery
-            confirmation.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {isAuthenticated ? (
-              <>
-                <Button
-                  size="lg"
-                  className="text-lg"
-                  onClick={() => setLocation("/marketplace")}
-                >
-                  Explore Marketplace <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-lg"
-                  onClick={() => setLocation("/create-post")}
-                >
-                  Post an Item
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  size="lg"
-                  className="text-lg"
-                  onClick={() => setLocation("/marketplace")}
-                >
-                  Explore Marketplace <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-lg"
-                  onClick={() => setLocation("/login")}
-                >
-                  Sign In
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-20 px-4 bg-card border-y border-border">
-        <div className="container">
-          <h3 className="text-4xl font-bold text-center mb-16 text-foreground">
-            Why Choose BorrowBox?
-          </h3>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-xl bg-background border border-border hover:shadow-lg transition-all">
-              <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6 text-accent" />
-              </div>
-              <h4 className="text-xl font-bold mb-3 text-foreground">
-                Instant Connections
-              </h4>
-              <p className="text-muted-foreground">
-                Connect with sellers directly via WhatsApp. No middleman, just
-                direct communication.
-              </p>
-            </div>
-            <div className="p-8 rounded-xl bg-background border border-border hover:shadow-lg transition-all">
-              <div className="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center mb-4">
-                <CheckCircle className="w-6 h-6 text-secondary" />
-              </div>
-              <h4 className="text-xl font-bold mb-3 text-foreground">
-                Secure Payments
-              </h4>
-              <p className="text-muted-foreground">
-                UPI QR codes generated only after delivery confirmation. Pay
-                when you're satisfied.
-              </p>
-            </div>
-            <div className="p-8 rounded-xl bg-background border border-border hover:shadow-lg transition-all">
-              <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-accent" />
-              </div>
-              <h4 className="text-xl font-bold mb-3 text-foreground">
-                Student Community
-              </h4>
-              <p className="text-muted-foreground">
-                Built for college students, by college students. Trusted by
-                university users.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 px-4">
-        <div className="container max-w-4xl">
-          <h3 className="text-4xl font-bold text-center mb-16 text-foreground">
-            How It Works
-          </h3>
-          <div className="space-y-8">
-            {[
-              {
-                n: 1,
-                title: "Post or Browse",
-                desc: "Sellers list items with photos and prices. Buyers browse the marketplace.",
-              },
-              {
-                n: 2,
-                title: "Connect via WhatsApp",
-                desc: "Interested buyers contact sellers directly. Negotiate and arrange pickup/delivery.",
-              },
-              {
-                n: 3,
-                title: "Track Status",
-                desc: "Sellers update deal status: OPEN → Finalized → DELIVERED.",
-              },
-              {
-                n: 4,
-                title: "Confirm & Pay",
-                desc: "Buyer confirms delivery. Seller's UPI QR code appears. Buyer scans and pays.",
-              },
-            ].map(({ n, title, desc }) => (
-              <div key={n} className="flex gap-6 items-start">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-bold text-lg">
-                  {n}
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold mb-2 text-foreground">
-                    {title}
-                  </h4>
-                  <p className="text-muted-foreground">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 px-4 bg-accent text-accent-foreground">
-        <div className="container text-center">
-          <h3 className="text-4xl font-bold mb-6">
-            Ready to Join the BorrowBox Community?
-          </h3>
-          <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
-            Start buying and selling with your college friends today.
-          </p>
-          {!isAuthenticated && (
-            <Button
-              size="lg"
-              className="bg-accent-foreground text-accent hover:bg-accent-foreground/90 text-lg"
-              onClick={() => setLocation("/register")}
-            >
-              Sign Up Now
-            </Button>
-          )}
-        </div>
-      </section>
-
-      <footer className="border-t border-border bg-card py-8 px-4">
+      {/* Footer */}
+      <footer className="border-t border-border/40 bg-card py-10 px-4 relative">
         <div className="container text-center text-muted-foreground">
-          <p>
-            &copy; 2026 BorrowBox. Built for college students, by college
-            students.
+          <p className="text-sm font-medium">
+            &copy; 2026 BorrowBox. Built for college students, by college students.
           </p>
         </div>
       </footer>
