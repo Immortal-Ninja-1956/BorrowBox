@@ -93,7 +93,7 @@ export default function Marketplace() {
     }
   }, [data?.items, offset]);
 
-  if (authLoading || (isLoading && accumulatedItems.length === 0)) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -145,7 +145,7 @@ export default function Marketplace() {
           </div>
 
           {/* Search & Sort Bar */}
-          <div className="flex gap-4 mb-6 flex-col sm:flex-row">
+          <div className="flex gap-4 flex-col sm:flex-row">
             <div className="relative flex-1" ref={searchContainerRef}>
               <Search className="absolute left-3.5 top-3.5 w-4 h-4 text-muted-foreground z-10" />
               <Input
@@ -208,6 +208,23 @@ export default function Marketplace() {
             </select>
           </div>
 
+          {/* Quick Search Chips */}
+          <div className="flex gap-2 flex-wrap items-center mt-3.5 mb-6 text-xs">
+            <span className="text-muted-foreground font-semibold">Try searching:</span>
+            {["Physics 101", "Lab Coat", "Study Lamp", "Keyboard", "Water Bottle", "Chair"].map(term => (
+              <button
+                key={term}
+                onClick={() => {
+                  setSearchQuery(term);
+                  setShowSuggestions(false);
+                }}
+                className="px-2.5 py-1 bg-card/30 border border-border/30 hover:border-primary/40 hover:bg-muted/50 rounded-lg text-muted-foreground hover:text-foreground transition-all cursor-pointer font-medium"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+
           {/* Category Filter */}
           <div className="flex gap-2 overflow-x-auto pb-2 items-center no-scrollbar">
             {categories.map(cat => (
@@ -244,7 +261,15 @@ export default function Marketplace() {
 
       {/* Items Grid */}
       <div className="container py-12 relative z-10">
-        {accumulatedItems.length === 0 ? (
+        {isLoading && accumulatedItems.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {Array(6)
+              .fill(0)
+              .map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+          </div>
+        ) : accumulatedItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center animate-in fade-in zoom-in-95 duration-500 glass-card rounded-2xl p-10 max-w-2xl mx-auto">
             {searchQuery || selectedCategory !== "all" ? (
               <>
@@ -466,6 +491,27 @@ function ItemCard({ item }: { item: any }) {
             </Button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div className="glass-card rounded-2xl overflow-hidden h-[420px] border border-border/40 p-5 flex flex-col justify-between animate-pulse">
+      <div>
+        <div className="w-full h-48 bg-muted/60 rounded-xl mb-4" />
+        <div className="flex gap-2 mb-3">
+          <div className="w-16 h-4 bg-muted/60 rounded" />
+          <div className="w-16 h-4 bg-muted/60 rounded" />
+        </div>
+        <div className="w-3/4 h-5 bg-muted/80 rounded mb-2.5" />
+        <div className="w-full h-4 bg-muted/40 rounded mb-1.5" />
+        <div className="w-5/6 h-4 bg-muted/40 rounded" />
+      </div>
+      <div>
+        <div className="w-24 h-7 bg-muted/80 rounded mb-4" />
+        <div className="w-full h-10 bg-muted/60 rounded-xl" />
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import {
   Shirt,
   Trophy,
   Package,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StarRating } from "@/components/ui/star-rating";
@@ -73,6 +74,8 @@ export default function ItemDetail() {
   const { id } = useParams<{ id: string }>();
   const itemId = parseInt(id || "0");
 
+  const [copied, setCopied] = useState(false);
+
   const {
     data: item,
     isLoading,
@@ -106,10 +109,16 @@ export default function ItemDetail() {
 
   const handleShare = () => {
     const url = window.location.href;
+    const onSuccess = () => {
+      setCopied(true);
+      toast.success("Link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    };
+
     if (navigator.clipboard) {
       navigator.clipboard
         .writeText(url)
-        .then(() => toast.success("Link copied to clipboard!"))
+        .then(onSuccess)
         .catch(() => toast.error("Failed to copy link."));
     } else {
       const textArea = document.createElement("textarea");
@@ -118,7 +127,7 @@ export default function ItemDetail() {
       textArea.select();
       try {
         document.execCommand("copy");
-        toast.success("Link copied to clipboard!");
+        onSuccess();
       } catch (err) {
         toast.error("Failed to copy link.");
       }
@@ -160,7 +169,7 @@ export default function ItemDetail() {
       );
       return;
     }
-    const message = `Hi, I'm interested in your item: ${item.title}. Can we discuss?`;
+    const message = `Hi, I saw your listing for "${item.title}" priced at ₹${item.amount} on BorrowBox. Is it still available?\nLink: ${window.location.href}`;
     const encodedMessage = encodeURIComponent(message);
     const number = sellerProfile.whatsapp
       .replace(/\s+/g, "")
@@ -230,10 +239,21 @@ export default function ItemDetail() {
                 variant="outline"
                 size="sm"
                 onClick={handleShare}
-                className="flex items-center gap-2 border-border"
+                className={`flex items-center gap-2 border-border/50 rounded-xl transition-all duration-200 ${
+                  copied ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : ""
+                }`}
               >
-                <Share2 className="w-4 h-4" />
-                Share Link
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-500 animate-in zoom-in-50 duration-200" />
+                    Link Copied!
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4" />
+                    Share Link
+                  </>
+                )}
               </Button>
             </div>
 

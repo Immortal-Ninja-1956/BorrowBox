@@ -3,9 +3,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Upload, X, ImagePlus, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Upload,
+  X,
+  ImagePlus,
+  Loader2,
+  BookOpen,
+  Laptop,
+  Sofa,
+  Shirt,
+  Trophy,
+  Package,
+  Check,
+  ChevronRight,
+  ChevronLeft
+} from "lucide-react";
 import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
+
+const categoryMetadata = [
+  { name: "Books", icon: BookOpen, desc: "Textbooks, novels, notes" },
+  { name: "Electronics", icon: Laptop, desc: "Gadgets, accessories, chargers" },
+  { name: "Furniture", icon: Sofa, desc: "Chairs, study tables, lamps" },
+  { name: "Clothing", icon: Shirt, desc: "Lab coats, jerseys, casuals" },
+  { name: "Sports", icon: Trophy, desc: "Rackets, balls, gym gear" },
+  { name: "Other", icon: Package, desc: "Miscellaneous campus items" },
+];
+
+const conditionMetadata = [
+  { name: "New", desc: "Unused in original packaging" },
+  { name: "Like New", desc: "Excellent condition, barely used" },
+  { name: "Good", desc: "Fully functional, minor wear & tear" },
+  { name: "Fair", desc: "Shows sign of use, works completely" },
+  { name: "Poor", desc: "Heavily used, might need minor fixes" },
+];
 
 export default function CreatePost() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
@@ -24,6 +56,7 @@ export default function CreatePost() {
   const hasReachedUnverifiedLimit =
     isUnverified && userItems && userItems.length >= 1;
 
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -35,6 +68,7 @@ export default function CreatePost() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,32 +81,6 @@ export default function CreatePost() {
       toast.error("Failed to post item: " + error.message);
     },
   });
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-          <p className="text-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4 text-foreground">
-            Sign in to post an item
-          </h2>
-          <Button onClick={() => setLocation("/")} variant="outline">
-            Go to Home
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -129,6 +137,18 @@ export default function CreatePost() {
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return formData.imageUrl || null;
     setUploading(true);
+    setUploadProgress(10);
+
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 15;
+      });
+    }, 100);
+
     try {
       const fd = new FormData();
       fd.append("image", imageFile);
@@ -138,13 +158,53 @@ export default function CreatePost() {
         throw new Error(err.error || "Upload failed");
       }
       const data = await res.json();
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 300));
       return data.imageUrl;
     } catch (err: any) {
+      clearInterval(progressInterval);
       toast.error("Image upload failed: " + err.message);
       return null;
     } finally {
       setUploading(false);
     }
+  };
+
+  const validateStep = (step: number) => {
+    if (step === 1) {
+      if (!formData.title.trim()) {
+        toast.error("Please enter an item title");
+        return false;
+      }
+      if (!formData.amount.trim()) {
+        toast.error("Please enter a price");
+        return false;
+      }
+      const priceNum = Number(formData.amount);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        toast.error("Price must be a positive number");
+        return false;
+      }
+    }
+    if (step === 2) {
+      if (!formData.description.trim()) {
+        toast.error("Please enter a description for your item");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep(prev => prev - 1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,19 +217,7 @@ export default function CreatePost() {
       return;
     }
 
-    if (!formData.title.trim()) {
-      toast.error("Please enter a title");
-      return;
-    }
-
-    if (!formData.amount.trim()) {
-      toast.error("Please enter a price");
-      return;
-    }
-
-    const priceNum = Number(formData.amount);
-    if (isNaN(priceNum) || priceNum <= 0) {
-      toast.error("Price must be a positive number");
+    if (!validateStep(1) || !validateStep(2)) {
       return;
     }
 
@@ -186,9 +234,7 @@ export default function CreatePost() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -197,258 +243,437 @@ export default function CreatePost() {
     }));
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-foreground text-sm font-semibold">Loading post wizard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4 text-foreground">
+            Sign in to post an item
+          </h2>
+          <Button onClick={() => setLocation("/")} variant="outline">
+            Go to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const isSubmitting = uploading || createItemMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Mesh blobs */}
+      <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 -z-10 w-[400px] h-[400px] rounded-full bg-primary/5 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/3 right-1/4 -translate-y-1/2 -z-10 w-[300px] h-[300px] rounded-full bg-secondary/5 blur-[80px] pointer-events-none" />
+
       {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="container py-4 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation("/marketplace")}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <h1 className="text-2xl font-bold text-foreground">Post an Item</h1>
+      <div className="border-b border-border/40 bg-card/50 backdrop-blur-md sticky top-0 z-30">
+        <div className="container py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLocation("/marketplace")}
+              className="rounded-full h-9 w-9 border border-border/40 hover:bg-muted/50"
+            >
+              <ArrowLeft className="w-4 h-4 text-foreground" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Post a New Listing</h1>
+              <p className="text-xs text-muted-foreground">List your gear for the campus community</p>
+            </div>
+          </div>
+
+          {/* Steps indicators */}
+          <div className="hidden md:flex items-center gap-2">
+            {[1, 2, 3].map(step => (
+              <div key={step} className="flex items-center">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    currentStep === step
+                      ? "bg-primary text-primary-foreground shadow-xs shadow-primary/20 scale-105"
+                      : currentStep > step
+                        ? "bg-green-500 text-white"
+                        : "bg-muted text-muted-foreground border border-border/40"
+                  }`}
+                >
+                  {currentStep > step ? <Check className="w-3.5 h-3.5" /> : step}
+                </div>
+                {step < 3 && (
+                  <div
+                    className={`w-10 h-0.5 mx-1 transition-colors ${
+                      currentStep > step ? "bg-green-500" : "bg-muted"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Form */}
-      <div className="container max-w-2xl py-12">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Item Title *
-            </label>
-            <Input
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="e.g., Used Textbook - Physics 101"
-              className="w-full"
-            />
-          </div>
+      <div className="container max-w-2xl py-12 relative z-10">
+        {/* Step indicator (mobile only) */}
+        <div className="md:hidden flex items-center justify-between mb-8 px-2">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+            Step {currentStep} of 3
+          </span>
+          <span className="text-sm font-semibold text-foreground">
+            {currentStep === 1 && "Basic Details"}
+            {currentStep === 2 && "Specifications"}
+            {currentStep === 3 && "Media & Review"}
+          </span>
+        </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Describe the item condition, features, etc..."
-              rows={6}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          </div>
+        {/* Wizard Form */}
+        <div className="glass-card rounded-2xl border border-border/40 p-6 md:p-8 shadow-xl">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* STEP 1: Details */}
+            {currentStep === 1 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="border-b border-border/30 pb-4">
+                  <h3 className="text-lg font-bold text-foreground">Basic Information</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Let buyers know the name and category of your listing.</p>
+                </div>
 
-          {/* Price */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Price (₹) *
-            </label>
-            <Input
-              name="amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={formData.amount}
-              onChange={handleChange}
-              placeholder="e.g., 500"
-              className="w-full"
-            />
-          </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    Item Title *
+                  </label>
+                  <Input
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    placeholder="e.g., Used Physics 101 Textbook"
+                    className="h-11 bg-card/40 border-border/50 focus:border-primary/50 rounded-xl"
+                  />
+                </div>
 
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Category
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option>Books</option>
-              <option>Electronics</option>
-              <option>Furniture</option>
-              <option>Clothing</option>
-              <option>Sports</option>
-              <option>Other</option>
-            </select>
-          </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    Price (₹) *
+                  </label>
+                  <Input
+                    name="amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={handleChange}
+                    placeholder="e.g., 450"
+                    className="h-11 bg-card/40 border-border/50 focus:border-primary/50 rounded-xl"
+                  />
+                </div>
 
-          {/* Condition */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Condition *
-            </label>
-            <select
-              name="condition"
-              value={formData.condition}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option>New</option>
-              <option>Like New</option>
-              <option>Good</option>
-              <option>Fair</option>
-              <option>Poor</option>
-            </select>
-          </div>
-
-          {/* Image Upload */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Item Image
-            </label>
-
-            {!imagePreview && !formData.imageUrl ? (
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`
-                  w-full border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
-                  transition-all duration-200 ease-in-out
-                  ${
-                    isDragging
-                      ? "border-accent bg-accent/10 scale-[1.02]"
-                      : "border-border hover:border-accent/50 hover:bg-muted/50"
-                  }
-                `}
-              >
-                <ImagePlus
-                  className={`w-12 h-12 mx-auto mb-3 transition-colors ${
-                    isDragging ? "text-accent" : "text-muted-foreground"
-                  }`}
-                />
-                <p className="text-sm font-medium text-foreground mb-1">
-                  {isDragging
-                    ? "Drop your image here"
-                    : "Click to upload or drag and drop"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  JPG, PNG, GIF, or WebP · Max 5 MB
-                </p>
-              </div>
-            ) : (
-              <div className="relative w-full rounded-xl overflow-hidden border border-border bg-muted">
-                <img
-                  src={imagePreview || formData.imageUrl}
-                  alt="Preview"
-                  className="w-full h-64 object-cover"
-                  onError={() => {
-                    setImagePreview(null);
-                    setFormData(prev => ({ ...prev, imageUrl: "" }));
-                    toast.error("Failed to load image");
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3">
-                  <p className="text-white text-sm font-medium truncate">
-                    {imageFile?.name || "Image preview"}
-                  </p>
-                  {imageFile && (
-                    <p className="text-white/70 text-xs">
-                      {(imageFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  )}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                    Category *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {categoryMetadata.map(cat => {
+                      const CatIcon = cat.icon;
+                      const isSelected = formData.category === cat.name;
+                      return (
+                        <div
+                          key={cat.name}
+                          onClick={() => setFormData(prev => ({ ...prev, category: cat.name }))}
+                          className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all duration-200 ${
+                            isSelected
+                              ? "bg-primary/5 border-primary shadow-xs shadow-primary/10"
+                              : "bg-card/30 border-border/50 hover:bg-muted/40 hover:border-border/80"
+                          }`}
+                        >
+                          <div
+                            className={`p-2 rounded-lg ${
+                              isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            <CatIcon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-foreground">{cat.name}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{cat.desc}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileInputChange}
-              className="hidden"
-            />
-          </div>
+            {/* STEP 2: Specs */}
+            {currentStep === 2 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="border-b border-border/30 pb-4">
+                  <h3 className="text-lg font-bold text-foreground">Item Specifications</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Describe your item's condition and other specific details.</p>
+                </div>
 
-          {/* Info Box */}
-          {hasReachedUnverifiedLimit ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-red-900">
-                <strong>Action Required:</strong> You must verify your WhatsApp
-                number to create more than one listing.
-                <Button
-                  variant="link"
-                  className="px-1 text-red-600 font-bold"
-                  onClick={() => setLocation("/profile")}
-                >
-                  Go to Profile to Verify
-                </Button>
-              </p>
-            </div>
-          ) : isUnverified ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-900">
-                <strong>Notice:</strong> Your WhatsApp number is unverified. You
-                can only create <strong>one</strong> listing until you verify
-                it.
-                <Button
-                  variant="link"
-                  className="px-1 text-amber-600 font-bold"
-                  onClick={() => setLocation("/profile")}
-                >
-                  Verify Now
-                </Button>
-              </p>
-            </div>
-          ) : (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Make sure your UPI ID and WhatsApp number
-                are updated in your profile. Buyers will contact you via
-                WhatsApp, and payment will be collected via UPI after delivery
-                confirmation.
-              </p>
-            </div>
-          )}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                    Condition *
+                  </label>
+                  <div className="space-y-2">
+                    {conditionMetadata.map(cond => {
+                      const isSelected = formData.condition === cond.name;
+                      return (
+                        <div
+                          key={cond.name}
+                          onClick={() => setFormData(prev => ({ ...prev, condition: cond.name }))}
+                          className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all duration-200 ${
+                            isSelected
+                              ? "bg-primary/5 border-primary shadow-xs shadow-primary/10"
+                              : "bg-card/30 border-border/50 hover:bg-muted/40 hover:border-border/80"
+                          }`}
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-foreground">{cond.name}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{cond.desc}</p>
+                          </div>
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                              isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                            }`}
+                          >
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-background" />}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-          {/* Submit Button */}
-          <div className="flex gap-4">
-            <Button
-              type="submit"
-              className="flex-1 bg-accent hover:bg-accent/90"
-              disabled={isSubmitting || !!hasReachedUnverifiedLimit}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {uploading ? "Uploading image..." : "Posting..."}
-                </>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    Description *
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    placeholder="Provide details about size, condition details, pickup location, or rental timeframe..."
+                    rows={6}
+                    className="w-full px-4.5 py-3 border border-border/50 rounded-xl bg-card/30 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 text-sm placeholder:text-muted-foreground/60 transition-all"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Media & Review */}
+            {currentStep === 3 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="border-b border-border/30 pb-4">
+                  <h3 className="text-lg font-bold text-foreground">Media & Review</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Upload a photo and review your listing configuration.</p>
+                </div>
+
+                {/* Upload Section */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    Upload Photo
+                  </label>
+
+                  {!imagePreview && !formData.imageUrl ? (
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`
+                        w-full border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer
+                        transition-all duration-200 ease-in-out
+                        ${
+                          isDragging
+                            ? "border-primary bg-primary/5 scale-[1.01]"
+                            : "border-border/50 hover:border-primary/50 hover:bg-muted/40"
+                        }
+                      `}
+                    >
+                      <ImagePlus
+                        className={`w-10 h-10 mx-auto mb-3 transition-colors ${
+                          isDragging ? "text-primary" : "text-muted-foreground"
+                        }`}
+                      />
+                      <p className="text-sm font-semibold text-foreground mb-1">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        JPG, PNG, GIF, or WebP (Max 5 MB)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative w-full rounded-2xl overflow-hidden border border-border/40 bg-muted">
+                      <img
+                        src={imagePreview || formData.imageUrl}
+                        alt="Preview"
+                        className="w-full h-64 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4.5 py-4">
+                        <p className="text-white text-sm font-bold truncate">
+                          {imageFile?.name || "Selected Image"}
+                        </p>
+                        {imageFile && (
+                          <p className="text-white/80 text-xs mt-0.5">
+                            {(imageFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Simulated Upload progress bar */}
+                {uploading && (
+                  <div className="space-y-2 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <span>Uploading Image...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-150 ease-out"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Review Panel */}
+                <div className="bg-muted/30 border border-border/40 rounded-xl p-4.5 space-y-3.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Listing Summary</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Title</span>
+                      <span className="font-semibold text-foreground line-clamp-1">{formData.title}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Price</span>
+                      <span className="font-semibold text-foreground text-primary">₹{formData.amount}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Category</span>
+                      <span className="font-semibold text-foreground">{formData.category}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Condition</span>
+                      <span className="font-semibold text-foreground">{formData.condition}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notice Box */}
+                {hasReachedUnverifiedLimit ? (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-xs text-red-600 dark:text-red-400">
+                    <strong>Action Required:</strong> You must verify your WhatsApp number to create more than one listing.
+                    <Button
+                      variant="link"
+                      onClick={() => setLocation("/profile")}
+                      className="text-red-500 hover:text-red-600 font-bold p-0 ml-1.5 h-auto text-xs"
+                    >
+                      Go to Profile to Verify
+                    </Button>
+                  </div>
+                ) : isUnverified ? (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-xs text-amber-600 dark:text-amber-400">
+                    <strong>Notice:</strong> Your WhatsApp is unverified. You can create <strong>one</strong> listing until verified.
+                    <Button
+                      variant="link"
+                      onClick={() => setLocation("/profile")}
+                      className="text-amber-500 hover:text-amber-600 font-bold p-0 ml-1.5 h-auto text-xs"
+                    >
+                      Verify Now
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-xs text-blue-600 dark:text-blue-400">
+                    <strong>Note:</strong> UPI ID and WhatsApp must be updated in your profile to complete transactions.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Stepper Actions */}
+            <div className="flex justify-between items-center pt-4 border-t border-border/40 gap-4">
+              {currentStep > 1 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={isSubmitting}
+                  className="rounded-xl px-5 h-11 font-semibold border-border/50"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
               ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Post Item
-                </>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLocation("/marketplace")}
+                  className="rounded-xl px-5 h-11 font-semibold border-border/50"
+                >
+                  Cancel
+                </Button>
               )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setLocation("/marketplace")}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
+
+              {currentStep < 3 ? (
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  className="bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl px-6 h-11 font-semibold ml-auto"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !!hasReachedUnverifiedLimit}
+                  className="bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl px-6 h-11 font-semibold ml-auto"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {uploading ? `Uploading (${uploadProgress}%)` : "Posting..."}
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Post Item
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
