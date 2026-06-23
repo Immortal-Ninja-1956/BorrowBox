@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -11,6 +11,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -83,14 +84,28 @@ export default function Login() {
                   Forgot password?
                 </button>
               </div>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={e =>
-                  setForm(p => ({ ...p, password: e.target.value }))
-                }
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={e =>
+                    setForm(p => ({ ...p, password: e.target.value }))
+                  }
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <Button
               type="submit"

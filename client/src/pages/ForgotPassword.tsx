@@ -99,7 +99,7 @@ export default function ForgotPassword() {
               <div className="bg-muted p-3 rounded-lg text-xs font-mono text-left mb-6 break-all">
                 Check server stdout/stderr logs for: <br />
                 <span className="text-accent">
-                  http://localhost:5173/reset-password?token=...
+                  {window.location.origin}/reset-password?token=...
                 </span>
               </div>
               <Button

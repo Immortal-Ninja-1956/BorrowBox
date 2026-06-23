@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { ShoppingBag, ArrowLeft, KeyRound } from "lucide-react";
+import { ShoppingBag, ArrowLeft, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -10,6 +10,8 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const [token, setToken] = useState<string | null>(null);
   const [passwords, setPasswords] = useState({ password: "", confirm: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -101,27 +103,55 @@ export default function ResetPassword() {
                   <label className="block text-sm font-medium text-foreground mb-1">
                     New Password
                   </label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={passwords.password}
-                    onChange={e =>
-                      setPasswords(p => ({ ...p, password: e.target.value }))
-                    }
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={passwords.password}
+                      onChange={e =>
+                        setPasswords(p => ({ ...p, password: e.target.value }))
+                      }
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
                     Confirm New Password
                   </label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={passwords.confirm}
-                    onChange={e =>
-                      setPasswords(p => ({ ...p, confirm: e.target.value }))
-                    }
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showConfirm ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={passwords.confirm}
+                      onChange={e =>
+                        setPasswords(p => ({ ...p, confirm: e.target.value }))
+                      }
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none"
+                    >
+                      {showConfirm ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <Button
                   type="submit"
