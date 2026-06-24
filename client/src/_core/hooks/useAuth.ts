@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase";
 
 export function useAuth() {
   const utils = trpc.useUtils();
-  const syncSession = trpc.auth.syncSession.useMutation();
   const clearSession = trpc.auth.clearSession.useMutation();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
@@ -13,32 +12,21 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    // On mount, immediately check if Supabase already has a session.
-    // This is critical for Google OAuth redirects: after the redirect, the page
-    // reloads fresh and onAuthStateChange fires "INITIAL_SESSION" not "SIGNED_IN",
-    // so we must manually sync the token to the server cookie on first load.
-    const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        try {
-          await syncSession.mutateAsync({ accessToken: session.access_token });
-        } catch (err) {
-          console.error("Failed to sync initial session cookie:", err);
-        }
-        utils.auth.me.invalidate();
-      }
-    };
-    initSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        if (session?.access_token) {
-          try {
-            await syncSession.mutateAsync({ accessToken: session.access_token });
-          } catch (err) {
-            console.error("Failed to sync session cookie:", err);
-          }
-        }
+    // Listen to ALL auth state changes including INITIAL_SESSION.
+    // After a Google OAuth redirect, Supabase fires "INITIAL_SESSION" (not "SIGNED_IN")
+    // once it has parsed the access token from the URL hash. At that point
+    // main.tsx's fetch wrapper can already read session?.access_token and will
+    // attach the Bearer header automatically, so we just need to invalidate/refetch.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (
+        event === "INITIAL_SESSION" ||
+        event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED"
+      ) {
+        // Invalidate so that the next call re-runs with the fresh Bearer token
+        // that main.tsx will inject from supabase.auth.getSession().
         utils.auth.me.invalidate();
       } else if (event === "SIGNED_OUT") {
         try {
@@ -46,11 +34,12 @@ export function useAuth() {
         } catch (err) {
           console.error("Failed to clear session cookie:", err);
         }
+        utils.auth.me.setData(undefined, null);
         utils.auth.me.invalidate();
       }
     });
     return () => subscription.unsubscribe();
-  }, [utils]);
+  }, [utils]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const logout = useCallback(async () => {
     try {
