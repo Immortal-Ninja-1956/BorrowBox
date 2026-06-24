@@ -30,6 +30,17 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
+  const handleNav = (path: string) => {
+    setLocation(path);
+    setMobileOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileOpen(false);
+    setLocation("/");
+  };
+
   // Don't render on Home, Login, Register, Forgot Password, or Reset Password pages — those have their own headers
   const isAuthPage =
     location === "/" ||
@@ -80,17 +91,6 @@ export default function Navbar() {
   if (loading) {
     return null;
   }
-
-  const handleNav = (path: string) => {
-    setLocation(path);
-    setMobileOpen(false);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    setMobileOpen(false);
-    setLocation("/");
-  };
 
   return (
     <nav className="glass-navbar">
