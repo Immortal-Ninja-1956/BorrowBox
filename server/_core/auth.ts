@@ -86,19 +86,7 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
         });
       }
 
-      // 3. Server-side domain restriction ───────────────────────────────────────
-      // Reject any Supabase-verified user whose email is not from the allowed
-      // domain. This is the server-side counterpart to the client-side check in
-      // Register.tsx. It guards against anyone who calls supabase.auth.signUp()
-      // directly using the public anon key (which is embedded in every page load).
-      if (!isAllowedEmail(authUser.email)) {
-        console.warn(`[Auth] Blocked non-VIT email: ${authUser.email}`);
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only VIT student emails are permitted on this platform.",
-        });
-      }
-      // ─────────────────────────────────────────────────────────────────────────
+      // Removed Server-side domain restriction as per user request
 
       // 4. Look up local DB user record
       let user = await db.getUserByEmail(authUser.email);

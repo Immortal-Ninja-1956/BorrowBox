@@ -138,9 +138,6 @@ export default function Login() {
                   provider: "google",
                   options: {
                     redirectTo: `${window.location.origin}/marketplace`,
-                    queryParams: {
-                      hd: "vitstudent.ac.in",
-                    },
                   },
                 });
                 if (error) throw error;
