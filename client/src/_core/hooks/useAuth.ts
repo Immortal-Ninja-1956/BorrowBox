@@ -13,6 +13,23 @@ export function useAuth() {
   });
 
   useEffect(() => {
+    // On mount, immediately check if Supabase already has a session.
+    // This is critical for Google OAuth redirects: after the redirect, the page
+    // reloads fresh and onAuthStateChange fires "INITIAL_SESSION" not "SIGNED_IN",
+    // so we must manually sync the token to the server cookie on first load.
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        try {
+          await syncSession.mutateAsync({ accessToken: session.access_token });
+        } catch (err) {
+          console.error("Failed to sync initial session cookie:", err);
+        }
+        utils.auth.me.invalidate();
+      }
+    };
+    initSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         if (session?.access_token) {
@@ -33,7 +50,7 @@ export function useAuth() {
       }
     });
     return () => subscription.unsubscribe();
-  }, [utils, syncSession, clearSession]);
+  }, [utils]);
 
   const logout = useCallback(async () => {
     try {
