@@ -1,22 +1,32 @@
 import { trpc } from "@/lib/trpc";
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export function useAuth() {
   const utils = trpc.useUtils();
   const clearSession = trpc.auth.clearSession.useMutation();
+  const [sessionReady, setSessionReady] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
-    retry: false,
+    retry: 1,
+    retryDelay: 500,
     refetchOnWindowFocus: false,
+    // Only fire the auth.me query once we know whether Supabase has a session.
+    // This prevents the "null poisoning" bug where an early tokenless request
+    // caches null and isAuthenticated stays false even after login.
+    enabled: sessionReady,
   });
 
   useEffect(() => {
-    // Listen to ALL auth state changes including INITIAL_SESSION.
-    // After a Google OAuth redirect, Supabase fires "INITIAL_SESSION" (not "SIGNED_IN")
-    // once it has parsed the access token from the URL hash. At that point
-    // main.tsx's fetch wrapper can already read session?.access_token and will
-    // attach the Bearer header automatically, so we just need to invalidate/refetch.
+    // On mount, check if Supabase already has a persisted session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true);
+      }
+      setInitialCheckDone(true);
+    });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -26,17 +36,21 @@ export function useAuth() {
         event === "TOKEN_REFRESHED" ||
         event === "PASSWORD_RECOVERY"
       ) {
-        // Invalidate so that the next call re-runs with the fresh Bearer token
-        // that main.tsx will inject from supabase.auth.getSession().
-        utils.auth.me.invalidate();
+        if (session) {
+          setSessionReady(true);
+          // Small delay to ensure session is written to sessionStorage
+          // before the tRPC fetch wrapper reads it via getSession()
+          await new Promise((r) => setTimeout(r, 50));
+          utils.auth.me.invalidate();
+        }
       } else if (event === "SIGNED_OUT") {
+        setSessionReady(false);
         try {
           await clearSession.mutateAsync();
         } catch (err) {
           console.error("Failed to clear session cookie:", err);
         }
         utils.auth.me.setData(undefined, null);
-        utils.auth.me.invalidate();
       }
     });
     return () => subscription.unsubscribe();
@@ -48,13 +62,29 @@ export function useAuth() {
     } catch (err) {
       console.error("Failed to clear session cookie during logout:", err);
     }
+    setSessionReady(false);
     await supabase.auth.signOut();
     utils.auth.me.setData(undefined, null);
-    utils.auth.me.invalidate();
   }, [utils, clearSession]);
 
+  const refresh = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      setSessionReady(true);
+      // Small delay so sessionStorage is ready
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return meQuery.refetch();
+  }, [meQuery]);
+
   const state = useMemo(() => {
-    const isLoading = meQuery.isLoading;
+    // Still loading if:
+    // 1. We haven't checked Supabase for an existing session yet, OR
+    // 2. We know there IS a session but auth.me hasn't returned yet
+    const isLoading =
+      !initialCheckDone ||
+      (sessionReady && (meQuery.isLoading || meQuery.isFetching));
+
     return {
       user: meQuery.data ?? null,
       loading: isLoading,
@@ -62,14 +92,17 @@ export function useAuth() {
       isAuthenticated: Boolean(meQuery.data),
     };
   }, [
+    initialCheckDone,
+    sessionReady,
     meQuery.data,
     meQuery.error,
     meQuery.isLoading,
+    meQuery.isFetching,
   ]);
 
   return {
     ...state,
-    refresh: () => meQuery.refetch(),
+    refresh,
     logout,
   };
 }

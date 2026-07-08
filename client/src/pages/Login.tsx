@@ -32,7 +32,13 @@ export default function Login() {
     if (error) {
       toast.error(error.message);
     } else {
-      await refresh();
+      // Wait for auth state to fully sync before navigating
+      try {
+        await refresh();
+      } catch {
+        // refresh may fail transiently; the onAuthStateChange listener
+        // in useAuth will retry via invalidation
+      }
       toast.success("Logged in!");
       setLocation("/marketplace");
     }
