@@ -23,9 +23,20 @@ const trpcClient = trpc.createClient({
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
 
-        const headers: Record<string, string> = {
-          ...((init?.headers as Record<string, string>) || {}),
-        };
+        let headers: Record<string, string> = {};
+        if (init?.headers) {
+          if (init.headers instanceof Headers) {
+            init.headers.forEach((value, key) => {
+              headers[key] = value;
+            });
+          } else if (Array.isArray(init.headers)) {
+            init.headers.forEach(([key, value]) => {
+              headers[key] = value;
+            });
+          } else {
+            headers = { ...init.headers } as Record<string, string>;
+          }
+        }
 
         if (token) {
           headers["Authorization"] = `Bearer ${token}`;

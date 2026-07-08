@@ -59,6 +59,8 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
     }
   }
 
+
+
   // If a token is asserted, we MUST verify it. Fail-closed.
   if (token) {
     // Check if token has been revoked (e.g., via logout)
@@ -88,18 +90,18 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
 
       // Removed Server-side domain restriction as per user request
 
-      // 4. Look up local DB user record
-      let user = await db.getUserByEmail(authUser.email);
+      // 4. Look up local DB user record (case-insensitive)
+      const userEmail = authUser.email.toLowerCase();
+      let user = await db.getUserByEmail(userEmail);
 
       // 5. Auto-create local record on first sign-in via Supabase.
-      //    The domain check above guarantees only @vitstudent.ac.in reaches here.
       if (!user) {
         const userId = await db.createUser({
-          email: authUser.email,
+          email: userEmail,
           passwordHash: "", // Supabase is now the password authority
           name:
             authUser.user_metadata?.full_name ||
-            authUser.email.split("@")[0],
+            userEmail.split("@")[0],
         });
         // Mark as verified — Supabase already enforced email confirmation
         await db.verifyUserEmail(userId);
