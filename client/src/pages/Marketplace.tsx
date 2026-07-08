@@ -6,7 +6,6 @@ import { trpc } from "@/lib/trpc";
 import {
   MessageCircle,
   Search,
-  MapPin,
   Loader2,
   BookOpen,
   Laptop,
@@ -17,6 +16,7 @@ import {
   Edit2,
   SearchX,
   PackageOpen,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
@@ -72,13 +72,11 @@ export default function Marketplace() {
     }
   );
 
-  // Whenever filters or sorting options change, reset pagination
   useEffect(() => {
     setOffset(0);
     setAccumulatedItems([]);
   }, [searchQuery, selectedCategory, showMyListings, sortBy]);
 
-  // Accumulate pages of items
   useEffect(() => {
     if (data?.items) {
       if (offset === 0) {
@@ -96,17 +94,10 @@ export default function Marketplace() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-accent mx-auto mb-4" />
-          <p className="text-foreground">Loading marketplace...</p>
-        </div>
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
-
-
-
-  // Sorting and filtering are handled server-side now.
 
   const categories = [
     "all",
@@ -119,136 +110,126 @@ export default function Marketplace() {
   ];
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background Glowing Blobs */}
-      <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 -z-10 w-[400px] h-[400px] rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/3 right-1/4 -translate-y-1/2 -z-10 w-[300px] h-[300px] rounded-full bg-secondary/5 blur-[80px] pointer-events-none" />
-
-      {/* Header */}
-      <div className="border-b border-border/40 bg-card/50 backdrop-blur-xs relative z-10">
+    <div className="min-h-screen bg-background">
+      {/* Clean, Structured Header */}
+      <div className="bg-card border-b border-border sticky top-16 z-30 shadow-sm">
         <div className="container py-8">
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
-                Marketplace
+              <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-2">
+                Discover
               </h1>
-              <p className="text-muted-foreground mt-1 text-sm md:text-base">
-                Discover, borrow, buy, or share items within your college campus
+              <p className="text-muted-foreground text-lg max-w-xl">
+                Find exactly what you need on campus. Borrow, buy, or share items with your peers.
               </p>
             </div>
             <Button
               onClick={() => setLocation("/create-post")}
-              className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 rounded-xl px-6 py-5.5 h-auto transition-all"
+              size="lg"
+              className="bg-primary text-primary-foreground font-semibold rounded-xl w-full md:w-auto"
             >
               Post an Item
             </Button>
           </div>
 
-          {/* Search & Sort Bar */}
-          <div className="flex gap-4 flex-col sm:flex-row">
-            <div className="relative flex-1" ref={searchContainerRef}>
-              <Search className="absolute left-3.5 top-3.5 w-4 h-4 text-muted-foreground z-10" />
+          {/* Minimal Search and Filter Bar */}
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative w-full md:flex-1" ref={searchContainerRef}>
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-muted-foreground" />
+              </div>
               <Input
-                placeholder="Search items by title, desc..."
+                placeholder="Search items, categories, or keywords..."
                 value={searchQuery}
                 onFocus={() => setShowSuggestions(true)}
                 onChange={e => {
                   setSearchQuery(e.target.value);
                   setShowSuggestions(true);
                 }}
-                className="pl-10 w-full relative z-0 h-11 bg-card/60 border-border/50 focus:border-primary/50 focus:ring-primary/20 rounded-xl"
+                className="w-full pl-12 h-14 bg-background border-border hover:border-muted-foreground/30 focus:border-primary rounded-xl text-base transition-colors"
               />
-
-              {/* Autocomplete Dropdown */}
+              
               {showSuggestions &&
                 searchQuery.length >= 2 &&
                 suggestionsData?.items &&
                 suggestionsData.items.length > 0 && (
-                  <div className="absolute z-50 top-full left-0 w-full mt-2 glass-card border border-border/40 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-                    <ul className="max-h-60 overflow-y-auto py-1.5 divide-y divide-border/20">
+                  <div className="absolute z-50 top-full left-0 w-full mt-2 bg-popover border border-border rounded-xl shadow-lg overflow-hidden animate-in fade-in duration-200">
+                    <ul className="max-h-64 overflow-y-auto divide-y divide-border/50">
                       {suggestionsData.items.map(item => (
-                        <li
-                          key={item.id}
-                          className="px-4 py-3 hover:bg-muted/50 cursor-pointer flex items-center justify-between group"
-                          onClick={() => {
-                            setSearchQuery(item.title);
-                            if (
-                              item.category &&
-                              item.category !== selectedCategory
-                            ) {
-                              setSelectedCategory(item.category);
-                            }
-                            setShowSuggestions(false);
-                          }}
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-foreground group-hover:text-primary transition-colors text-sm">
-                              {item.title}
-                            </span>
-                            <span className="text-xs text-muted-foreground mt-0.5">
-                              {item.category || "Other"}
-                            </span>
-                          </div>
-                          <span className="text-sm font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">₹{item.amount}</span>
-                        </li>
+                         <li
+                         key={item.id}
+                         className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center justify-between"
+                         onClick={() => {
+                           setSearchQuery(item.title);
+                           if (item.category && item.category !== selectedCategory) {
+                             setSelectedCategory(item.category);
+                           }
+                           setShowSuggestions(false);
+                         }}
+                       >
+                         <div className="flex flex-col">
+                           <span className="font-medium text-foreground text-sm">
+                             {item.title}
+                           </span>
+                           <span className="text-xs text-muted-foreground">
+                             {item.category || "Other"}
+                           </span>
+                         </div>
+                         <span className="text-sm font-semibold text-foreground">₹{item.amount}</span>
+                       </li>
                       ))}
                     </ul>
                   </div>
                 )}
             </div>
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-border/50 rounded-xl bg-card/60 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-w-[170px] h-11 cursor-pointer text-sm font-medium transition-all"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-            </select>
+
+            <div className="flex gap-4 w-full md:w-auto">
+              <div className="relative flex-1 md:w-48">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value)}
+                  className="w-full h-14 pl-10 pr-10 appearance-none bg-background border border-border hover:border-muted-foreground/30 focus:border-primary rounded-xl text-sm font-medium text-foreground cursor-pointer transition-colors"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Quick Search Chips */}
-          <div className="flex gap-2 flex-wrap items-center mt-3.5 mb-6 text-xs">
-            <span className="text-muted-foreground font-semibold">Try searching:</span>
-            {["Physics 101", "Lab Coat", "Study Lamp", "Keyboard", "Water Bottle", "Chair"].map(term => (
-              <button
-                key={term}
-                onClick={() => {
-                  setSearchQuery(term);
-                  setShowSuggestions(false);
-                }}
-                className="px-2.5 py-1 bg-card/30 border border-border/30 hover:border-primary/40 hover:bg-muted/50 rounded-lg text-muted-foreground hover:text-foreground transition-all cursor-pointer font-medium"
-              >
-                {term}
-              </button>
-            ))}
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex gap-2 overflow-x-auto pb-2 items-center no-scrollbar">
+          {/* Clean Category Navigation */}
+          <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-2 no-scrollbar">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4.5 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-all duration-200 border ${
+                className={`px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                   selectedCategory === cat
-                    ? "bg-primary border-primary text-primary-foreground shadow-xs shadow-primary/20"
-                    : "bg-card/40 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    ? "bg-foreground text-background"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 {cat === "all" ? "All Categories" : cat}
               </button>
             ))}
+            
             {isAuthenticated && user && (
               <>
-                <div className="h-5 w-px bg-border/60 mx-2 flex-shrink-0" />
+                <div className="w-px h-6 bg-border mx-2 flex-shrink-0" />
                 <button
                   onClick={() => setShowMyListings(!showMyListings)}
-                  className={`px-4.5 py-2 rounded-full whitespace-nowrap text-sm font-semibold border transition-all duration-200 ${
+                  className={`px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     showMyListings
-                      ? "bg-secondary border-secondary text-secondary-foreground shadow-xs shadow-secondary/25"
-                      : "bg-card/40 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   My Listings
@@ -259,79 +240,64 @@ export default function Marketplace() {
         </div>
       </div>
 
-      {/* Items Grid */}
-      <div className="container py-12 relative z-10">
+      {/* Structured Grid Layout */}
+      <div className="container py-10">
         {isLoading && accumulatedItems.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {Array(6)
-              .fill(0)
-              .map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array(8).fill(0).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         ) : accumulatedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center animate-in fade-in zoom-in-95 duration-500 glass-card rounded-2xl p-10 max-w-2xl mx-auto">
+          <div className="flex flex-col items-center justify-center py-32 text-center">
             {searchQuery || selectedCategory !== "all" ? (
               <>
-                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-6 border border-border/30">
-                  <SearchX className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-2xl font-bold text-foreground mb-3">No matches found</h3>
-                <p className="text-muted-foreground mb-8 max-w-sm leading-relaxed text-sm">
-                  We couldn't find any items matching your current filters. Try refining your search query or category.
+                <SearchX className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">No results found</h3>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  We couldn't find anything matching your search. Try adjusting your filters or search terms.
                 </p>
-                <Button
-                  variant="outline"
-                  className="rounded-xl border-border px-6 hover:bg-muted/50 font-semibold"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedCategory("all");
-                  }}
-                >
+                <Button variant="outline" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }}>
                   Clear Filters
                 </Button>
               </>
             ) : (
               <>
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-primary/20">
-                  <PackageOpen className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-2xl font-bold text-foreground mb-3">The marketplace is empty</h3>
-                <p className="text-muted-foreground mb-8 max-w-sm leading-relaxed text-sm">
-                  Be the first to list something in this category! Gear, books, notes, or furniture.
+                <PackageOpen className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">Marketplace is empty</h3>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  There are no items listed yet. Be the first to list something!
                 </p>
-                <Button
-                  className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold shadow-md shadow-primary/20 rounded-xl px-6 py-5 h-auto transition-all"
-                  onClick={() => isAuthenticated ? setLocation("/create-post") : setLocation("/login")}
-                >
-                  Post an Item
+                <Button onClick={() => isAuthenticated ? setLocation("/create-post") : setLocation("/login")}>
+                  List an Item
                 </Button>
               </>
             )}
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {accumulatedItems.map(item => (
                 <ItemCard key={item.id} item={item} />
               ))}
             </div>
 
             {data?.nextOffset && (
-              <div className="flex justify-center mt-14">
+              <div className="flex justify-center mt-12">
                 <Button
                   onClick={() => setOffset(data.nextOffset!)}
                   disabled={isLoading}
                   variant="outline"
-                  className="px-8 py-5 h-auto bg-card border-border/50 hover:bg-muted text-foreground font-semibold rounded-xl shadow-xs transition-all hover:scale-102"
+                  size="lg"
+                  className="rounded-xl w-full sm:w-auto"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin text-primary" />
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Loading...
                     </>
                   ) : (
-                    "Load More Items"
+                    "Show more items"
                   )}
                 </Button>
               </div>
@@ -343,31 +309,13 @@ export default function Marketplace() {
   );
 }
 
-const categoryMetadata: Record<string, { icon: any; gradient: string }> = {
-  Books: {
-    icon: BookOpen,
-    gradient: "from-amber-400/90 to-orange-600/90",
-  },
-  Electronics: {
-    icon: Laptop,
-    gradient: "from-blue-400/90 to-indigo-600/90",
-  },
-  Furniture: {
-    icon: Sofa,
-    gradient: "from-emerald-400/90 to-teal-600/90",
-  },
-  Clothing: {
-    icon: Shirt,
-    gradient: "from-pink-400/90 to-rose-600/90",
-  },
-  Sports: {
-    icon: Trophy,
-    gradient: "from-yellow-400/90 to-amber-600/90",
-  },
-  Other: {
-    icon: Package,
-    gradient: "from-purple-400/90 to-violet-600/90",
-  },
+const categoryMetadata: Record<string, { icon: any }> = {
+  Books: { icon: BookOpen },
+  Electronics: { icon: Laptop },
+  Furniture: { icon: Sofa },
+  Clothing: { icon: Shirt },
+  Sports: { icon: Trophy },
+  Other: { icon: Package },
 };
 
 function getCategoryMeta(category?: string) {
@@ -375,121 +323,94 @@ function getCategoryMeta(category?: string) {
   return categoryMetadata[normalized] || categoryMetadata["Other"];
 }
 
+// Minimal, Premium Card Design
 function ItemCard({ item }: { item: any }) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isOwner = user?.id === item.sellerId;
-
-  const handleContact = () => {
-    setLocation(`/item/${item.id}`);
-  };
-
-  const { icon: CategoryIcon, gradient } = getCategoryMeta(item.category);
+  const { icon: CategoryIcon } = getCategoryMeta(item.category);
 
   return (
     <div 
-      className="glass-card premium-hover-card rounded-2xl overflow-hidden flex flex-col justify-between h-[420px] group cursor-pointer"
-      onClick={handleContact}
+      onClick={() => setLocation(`/item/${item.id}`)}
+      className="group flex flex-col bg-card rounded-2xl border border-border hover:border-primary/50 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg dark:hover:shadow-primary/5 h-full"
     >
-      <div>
-        {/* Image / Placeholder */}
-        <div className="w-full h-48 bg-muted overflow-hidden relative">
-          {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div
-              className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white p-4 transition-transform duration-500 group-hover:scale-102`}
-            >
-              <CategoryIcon className="w-12 h-12 opacity-80 mb-2 drop-shadow-sm" />
-              <span className="text-[10px] font-bold opacity-90 tracking-wider uppercase bg-black/15 backdrop-blur-xs px-2 py-0.5 rounded-full">
-                {item.category || "Other"}
-              </span>
-            </div>
-          )}
-          {/* Availability Badge Overlay */}
-          <div className="absolute top-3 right-3 z-10">
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-sm ${
-                item.status === "OPEN"
-                  ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
-                  : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
-              }`}
-            >
-              {item.status === "OPEN" ? "Available" : item.status}
+      {/* Image Area */}
+      <div className="aspect-[4/3] w-full bg-muted relative overflow-hidden">
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt={item.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/50 transition-transform duration-500 group-hover:scale-105">
+            <CategoryIcon className="w-10 h-10 mb-2 opacity-50" />
+            <span className="text-xs font-medium uppercase tracking-widest opacity-60">
+              {item.category || "Other"}
             </span>
           </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-5">
-          <div className="flex gap-1.5 items-center mb-3">
-            <span
-              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${
-                (
-                  {
-                    New: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-                    "Like New":
-                      "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
-                    Good: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-                    Fair: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-                    Poor: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
-                  } as Record<string, string>
-                )[item.condition] || "bg-muted/50 border-border/40 text-muted-foreground"
-              }`}
-            >
-              {item.condition || "Good"}
+        )}
+        
+        {/* Simple Status Badge */}
+        {item.status !== "OPEN" && (
+          <div className="absolute top-3 right-3">
+            <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-background/90 text-foreground backdrop-blur-sm shadow-sm border border-border/50">
+              {item.status}
             </span>
-            {item.category && (
-              <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider bg-muted/40 border border-border/20 px-2 py-0.5 rounded-md">
-                {item.category}
-              </span>
-            )}
           </div>
-
-          <h3 className="text-base font-bold text-foreground mb-1.5 line-clamp-1 group-hover:text-primary transition-colors">
-            {item.title}
-          </h3>
-
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            {item.description}
-          </p>
-        </div>
+        )}
       </div>
 
-      <div className="p-5 pt-0">
-        {/* Price and Actions */}
-        <div className="flex items-center justify-between mb-4 mt-auto">
-          <div className="text-2xl font-black text-foreground">₹{item.amount}</div>
+      {/* Content Area */}
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {item.condition || "Good"}
+          </span>
+          <span className="w-1 h-1 rounded-full bg-border" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {item.category || "Other"}
+          </span>
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            onClick={e => {
-              e.stopPropagation();
-              handleContact();
-            }}
-            className="flex-1 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold rounded-xl shadow-xs transition-all hover:shadow-md hover:shadow-primary/10 h-10 text-xs"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            View Details
-          </Button>
-          {isOwner && (
-            <Button
-              variant="outline"
-              onClick={e => {
-                e.stopPropagation();
-                setLocation(`/edit-post/${item.id}`);
-              }}
-              title="Edit Listing"
-              className="hover:border-primary hover:text-primary transition-colors border-border/50 rounded-xl h-10 w-10 p-0"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </Button>
-          )}
+        <h3 className="text-base font-semibold text-foreground line-clamp-1 mb-1 group-hover:text-primary transition-colors">
+          {item.title}
+        </h3>
+        
+        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-4 flex-1">
+          {item.description}
+        </p>
+
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
+          <div className="text-xl font-bold text-foreground">
+            ₹{item.amount}
+          </div>
+          
+          <div className="flex gap-2">
+            {isOwner ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLocation(`/edit-post/${item.id}`);
+                }}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -498,20 +419,21 @@ function ItemCard({ item }: { item: any }) {
 
 function SkeletonCard() {
   return (
-    <div className="glass-card rounded-2xl overflow-hidden h-[420px] border border-border/40 p-5 flex flex-col justify-between animate-pulse">
-      <div>
-        <div className="w-full h-48 bg-muted/60 rounded-xl mb-4" />
+    <div className="bg-card rounded-2xl border border-border overflow-hidden h-full flex flex-col animate-pulse">
+      <div className="aspect-[4/3] w-full bg-muted/50" />
+      <div className="p-5 flex flex-col flex-1">
         <div className="flex gap-2 mb-3">
-          <div className="w-16 h-4 bg-muted/60 rounded" />
-          <div className="w-16 h-4 bg-muted/60 rounded" />
+          <div className="w-12 h-3 bg-muted rounded" />
+          <div className="w-16 h-3 bg-muted rounded" />
         </div>
-        <div className="w-3/4 h-5 bg-muted/80 rounded mb-2.5" />
-        <div className="w-full h-4 bg-muted/40 rounded mb-1.5" />
-        <div className="w-5/6 h-4 bg-muted/40 rounded" />
-      </div>
-      <div>
-        <div className="w-24 h-7 bg-muted/80 rounded mb-4" />
-        <div className="w-full h-10 bg-muted/60 rounded-xl" />
+        <div className="w-3/4 h-5 bg-muted rounded mb-2" />
+        <div className="w-full h-4 bg-muted/60 rounded mb-1" />
+        <div className="w-5/6 h-4 bg-muted/60 rounded mb-4" />
+        
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
+          <div className="w-20 h-6 bg-muted rounded" />
+          <div className="w-8 h-8 bg-muted rounded-full" />
+        </div>
       </div>
     </div>
   );
