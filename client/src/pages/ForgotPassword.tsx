@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { ShoppingBag, ArrowLeft, CheckCircle } from "lucide-react";
+import { ShoppingBag, ArrowLeft, CheckCircle, Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -30,7 +30,7 @@ export default function ForgotPassword() {
       toast.error(error.message);
     } else {
       setSubmitted(true);
-      toast.success("Reset link generated! Check your email (or console).");
+      toast.success("Password reset link sent to your email!");
     }
   };
 
@@ -56,8 +56,8 @@ export default function ForgotPassword() {
                 Reset Password
               </h1>
               <p className="text-muted-foreground mb-6 text-sm">
-                Enter the email address associated with your account and we will
-                log the password reset link directly to your server console.
+                Enter your email address and we'll send you a link to reset your
+                password.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -78,8 +78,8 @@ export default function ForgotPassword() {
                   disabled={isLoading}
                 >
                   {isLoading
-                    ? "Generating link..."
-                    : "Request Reset Link"}
+                    ? "Sending link..."
+                    : "Send Reset Link"}
                 </Button>
               </form>
             </>
@@ -89,18 +89,21 @@ export default function ForgotPassword() {
                 <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <h1 className="text-2xl font-bold text-foreground mb-2">
-                Reset Request Sent
+                Check Your Email
               </h1>
               <p className="text-muted-foreground mb-6 text-sm">
-                We've generated a password reset token. Because this is a
-                development server, you will find the reset link inside your
-                **server backend console logs**.
+                We've sent a password reset link to{" "}
+                <strong className="text-foreground">{email}</strong>. Click the
+                link in the email to choose a new password.
               </p>
-              <div className="bg-muted p-3 rounded-lg text-xs font-mono text-left mb-6 break-all">
-                Check server stdout/stderr logs for: <br />
-                <span className="text-accent">
-                  {window.location.origin}/reset-password?token=...
-                </span>
+              <div className="bg-muted/50 border border-border/50 p-4 rounded-lg text-xs text-muted-foreground text-left mb-6 space-y-2">
+                <div className="flex items-start gap-2">
+                  <Mail className="w-4 h-4 mt-0.5 text-accent shrink-0" />
+                  <span>
+                    The email may take a minute to arrive. Check your spam folder
+                    if you don't see it.
+                  </span>
+                </div>
               </div>
               <Button
                 variant="outline"

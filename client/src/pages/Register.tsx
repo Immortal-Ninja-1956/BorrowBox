@@ -60,9 +60,8 @@ export default function Register() {
         toast.success("Account created!");
         setLocation("/marketplace");
       } else {
-        toast.success("Verification link sent to your email!");
-        // We can just redirect them to login page or a "Check email" page
-        setLocation("/login");
+        toast.success("Check your email for a verification link!");
+        setLocation(`/verify-email?email=${encodeURIComponent(form.email)}`);
       }
     }
   };

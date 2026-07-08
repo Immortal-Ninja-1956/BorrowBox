@@ -2,31 +2,63 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { ShoppingBag, ArrowLeft, KeyRound, Eye, EyeOff } from "lucide-react";
+import { ShoppingBag, ArrowLeft, KeyRound, Eye, EyeOff, CheckCircle, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
-  const [token, setToken] = useState<string | null>(null);
   const [passwords, setPasswords] = useState({ password: "", confirm: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tokenParam = params.get("token");
-    setToken(tokenParam);
-  }, []);
+    // When Supabase redirects the user back after clicking the reset link,
+    // the URL contains a hash fragment like:
+    //   /reset-password#access_token=...&type=recovery
+    //
+    // Supabase's client library automatically picks up this hash fragment
+    // via onAuthStateChange and fires a PASSWORD_RECOVERY event with a valid session.
+    // We listen for that event to know the user is authorized to reset their password.
 
-  const [isLoading, setIsLoading] = useState(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) {
+        setHasSession(true);
+        setIsReady(true);
+      } else if (event === "INITIAL_SESSION" && session) {
+        // If user already has a session (e.g. page was refreshed after recovery),
+        // we can still allow the reset.
+        setHasSession(true);
+        setIsReady(true);
+      } else if (event === "INITIAL_SESSION" && !session) {
+        // No session at all — invalid or expired link
+        setHasSession(false);
+        setIsReady(true);
+      }
+    });
+
+    // Safety timeout: if no auth event fires within 5 seconds, show error state
+    const timeout = setTimeout(() => {
+      setIsReady(prev => {
+        if (!prev) return true; // only set if not already ready
+        return prev;
+      });
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
-      toast.error("Missing password reset token");
-      return;
-    }
     if (!passwords.password) {
       toast.error("Please enter a new password");
       return;
@@ -42,17 +74,31 @@ export default function ResetPassword() {
 
     setIsLoading(true);
     const { error } = await supabase.auth.updateUser({
-      password: passwords.password
+      password: passwords.password,
     });
     setIsLoading(false);
 
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Password reset successfully! Log in with your new credentials.");
-      setLocation("/login");
+      setResetSuccess(true);
+      toast.success("Password reset successfully!");
+      // Sign out so they can log in fresh with the new password
+      await supabase.auth.signOut();
     }
   };
+
+  // Loading state while we wait for Supabase to process the hash fragment
+  if (!isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-accent mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">Verifying your reset link...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -70,7 +116,26 @@ export default function ResetPassword() {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-          {!token ? (
+          {resetSuccess ? (
+            <div className="text-center py-4">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Password Updated!
+              </h1>
+              <p className="text-muted-foreground mb-6 text-sm">
+                Your password has been reset successfully. You can now sign in
+                with your new password.
+              </p>
+              <Button
+                onClick={() => setLocation("/login")}
+                className="w-full bg-accent"
+              >
+                Go to Sign In
+              </Button>
+            </div>
+          ) : !hasSession ? (
             <div className="text-center py-4">
               <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <KeyRound className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -79,8 +144,8 @@ export default function ResetPassword() {
                 Invalid Reset Link
               </h1>
               <p className="text-muted-foreground mb-6 text-sm">
-                This password reset link is invalid, incomplete, or has expired.
-                Please request a new link.
+                This password reset link is invalid, expired, or has already
+                been used. Please request a new one.
               </p>
               <Button
                 onClick={() => setLocation("/forgot-password")}

@@ -23,7 +23,8 @@ export function useAuth() {
       if (
         event === "INITIAL_SESSION" ||
         event === "SIGNED_IN" ||
-        event === "TOKEN_REFRESHED"
+        event === "TOKEN_REFRESHED" ||
+        event === "PASSWORD_RECOVERY"
       ) {
         // Invalidate so that the next call re-runs with the fresh Bearer token
         // that main.tsx will inject from supabase.auth.getSession().
