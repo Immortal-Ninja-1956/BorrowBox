@@ -623,6 +623,7 @@ export default function CreatePost() {
             <div className="flex justify-between items-center pt-4 border-t border-border/40 gap-4">
               {currentStep > 1 ? (
                 <Button
+                  key="back-btn"
                   type="button"
                   variant="outline"
                   onClick={handleBack}
@@ -634,6 +635,7 @@ export default function CreatePost() {
                 </Button>
               ) : (
                 <Button
+                  key="cancel-btn"
                   type="button"
                   variant="outline"
                   onClick={() => setLocation("/marketplace")}
@@ -645,6 +647,7 @@ export default function CreatePost() {
 
               {currentStep < 3 ? (
                 <Button
+                  key="next-btn"
                   type="button"
                   onClick={handleNext}
                   className="bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl px-6 h-11 font-semibold ml-auto"
@@ -654,7 +657,9 @@ export default function CreatePost() {
                 </Button>
               ) : (
                 <Button
-                  type="submit"
+                  key="submit-btn"
+                  type="button"
+                  onClick={handleSubmit}
                   disabled={isSubmitting || !!hasReachedUnverifiedLimit}
                   className="bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl px-6 h-11 font-semibold ml-auto"
                 >
