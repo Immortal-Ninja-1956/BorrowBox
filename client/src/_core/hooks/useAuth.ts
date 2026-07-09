@@ -67,6 +67,39 @@ export function useAuth() {
     utils.auth.me.setData(undefined, null);
   }, [utils, clearSession]);
 
+  // Strict 10-minute inactivity auto-logout
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      if (sessionReady) {
+        timeoutId = setTimeout(() => {
+          logout();
+          // Import toast from sonner if not imported globally, but here we can just rely on state change
+          window.location.href = "/login?expired=true";
+        }, 10 * 60 * 1000); // 10 minutes
+      }
+    };
+
+    if (sessionReady) {
+      resetTimer();
+      // Listen for user activity
+      window.addEventListener("mousemove", resetTimer);
+      window.addEventListener("keydown", resetTimer);
+      window.addEventListener("click", resetTimer);
+      window.addEventListener("scroll", resetTimer);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keydown", resetTimer);
+      window.removeEventListener("click", resetTimer);
+      window.removeEventListener("scroll", resetTimer);
+    };
+  }, [sessionReady, logout]);
+
   const refresh = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
