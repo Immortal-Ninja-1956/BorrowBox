@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import {
   ArrowLeft,
   Upload,
@@ -150,9 +151,14 @@ export default function CreatePost() {
     }, 100);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const fd = new FormData();
       fd.append("image", imageFile);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const res = await fetch("/api/upload", { 
+        method: "POST", 
+        body: fd,
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {}
+      });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Upload failed");

@@ -33,19 +33,15 @@ export async function uploadFile(
   if (!isCloudinaryConfigured()) {
     throw new Error("Cloudinary credentials not configured.");
   }
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "borrowbox",
-        public_id: path.parse(filename).name,
-      },
-      (error, result) => {
-        if (error) return reject(error);
-        if (!result)
-          return reject(new Error("Cloudinary upload returned no result"));
-        resolve(result.secure_url);
-      }
-    );
-    Readable.from(buffer).pipe(stream);
+  
+  // Convert buffer to base64 data URI to prevent stream hanging issues
+  const b64 = buffer.toString("base64");
+  const dataURI = `data:image/jpeg;base64,${b64}`;
+
+  const result = await cloudinary.uploader.upload(dataURI, {
+    folder: "borrowbox",
+    public_id: path.parse(filename).name,
   });
+
+  return result.secure_url;
 }
