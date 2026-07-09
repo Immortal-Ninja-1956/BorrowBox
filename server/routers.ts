@@ -192,12 +192,35 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const user = await getUserById(input.userId);
         if (!user) return null;
+        
         const trustScore = await getUserTrustScore(input.userId);
+        
+        const items = await getPagedItems({ limit: 50, offset: 0, sellerId: input.userId });
+        const activeListings = items.filter(i => i.status === "OPEN");
+
+        const deals = await getDealsBySellerId(input.userId);
+        const completedDealsCount = deals.filter(d => d.status === "CONFIRMED" || d.status === "DELIVERED").length;
+
+        const reviews = await getUserReviews(input.userId);
+        
+        const enrichedReviews = await Promise.all(reviews.map(async r => {
+           const reviewer = await getUserById(r.reviewerId);
+           return {
+             ...r,
+             reviewerName: reviewer?.name || "Unknown User"
+           };
+        }));
+
         return {
           id: user.id,
           name: user.name,
+          joinedAt: user.createdAt,
+          isEmailVerified: user.isEmailVerified,
+          whatsappVerified: user.whatsappVerified,
           trustScore,
-          whatsapp: null as string | null,
+          completedDealsCount,
+          activeListings,
+          reviews: enrichedReviews
         };
       }),
 

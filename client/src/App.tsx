@@ -15,6 +15,7 @@ import CreatePost from "./pages/CreatePost";
 import EditPost from "./pages/EditPost";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import PublicProfile from "./pages/PublicProfile";
 import BuyerConfirmation from "./pages/BuyerConfirmation";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/edit-post/:id" component={EditPost} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/profile" component={Profile} />
+      <Route path="/user/:id" component={PublicProfile} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/confirm/:dealId" component={BuyerConfirmation} />
       <Route path="/404" component={NotFound} />

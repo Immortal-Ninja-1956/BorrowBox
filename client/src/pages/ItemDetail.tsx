@@ -307,13 +307,17 @@ export default function ItemDetail() {
 
             {/* Seller Profile & Trust Score */}
             {sellerProfile && (
-              <div className="bg-muted/30 border border-border rounded-lg p-6 mb-8 flex items-center justify-between flex-wrap gap-4">
+              <div 
+                onClick={() => setLocation(`/user/${item.sellerId}`)}
+                className="bg-muted/30 border border-border hover:border-primary/50 hover:bg-muted/50 rounded-lg p-6 mb-8 flex items-center justify-between flex-wrap gap-4 cursor-pointer transition-all duration-200 group"
+              >
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-sm text-muted-foreground mb-1 group-hover:text-primary transition-colors">
                     Listed by
                   </p>
-                  <p className="font-semibold text-foreground text-lg">
+                  <p className="font-semibold text-foreground text-lg flex items-center gap-2">
                     {sellerProfile.name}
+                    <ArrowLeft className="w-4 h-4 rotate-135 opacity-0 group-hover:opacity-100 transition-all text-primary" style={{ transform: 'rotate(135deg)' }} />
                   </p>
                 </div>
                 {sellerProfile.trustScore && (
