@@ -229,6 +229,11 @@ export default function CreatePost() {
 
     const imageUrl = await uploadImage();
 
+    // If the user selected an image but upload failed, don't create the item
+    if (imageFile && !imageUrl) {
+      return;
+    }
+
     createItemMutation.mutate({
       title: formData.title,
       description: formData.description,
