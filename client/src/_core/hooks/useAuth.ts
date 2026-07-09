@@ -80,10 +80,10 @@ export function useAuth() {
   const state = useMemo(() => {
     // Still loading if:
     // 1. We haven't checked Supabase for an existing session yet, OR
-    // 2. We know there IS a session but auth.me hasn't returned yet
+    // 2. We know there IS a session but auth.me hasn't returned its first fetch yet
     const isLoading =
       !initialCheckDone ||
-      (sessionReady && (meQuery.isLoading || meQuery.isFetching));
+      (sessionReady && meQuery.isLoading);
 
     return {
       user: meQuery.data ?? null,
@@ -97,7 +97,6 @@ export function useAuth() {
     meQuery.data,
     meQuery.error,
     meQuery.isLoading,
-    meQuery.isFetching,
   ]);
 
   return {
