@@ -8,9 +8,10 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { uploadRouter } from "../upload";
-import { authLimiter, pinVerifyLimiter } from "./limiter";
+import { authLimiter, pinVerifyLimiter, otpLimiter } from "./limiter";
 import helmet from "helmet";
 import cors from "cors";
+import { expireOldDeals } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -41,7 +42,7 @@ async function startServer() {
         "http://localhost:3000",
         process.env.FRONTEND_URL,
       ].filter(Boolean) as string[],
-      credentials: false,
+      credentials: true,
     })
   );
 
@@ -62,8 +63,8 @@ async function startServer() {
     })
   );
 
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ limit: "1mb", extended: true }));
 
   // Serve uploaded images
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
@@ -76,6 +77,7 @@ async function startServer() {
   app.use("/api/trpc/auth.login", authLimiter);
   app.use("/api/trpc/auth.forgotPassword", authLimiter);
   app.use("/api/trpc/deals.confirmWithPin", pinVerifyLimiter);
+  app.use("/api/trpc/user.sendWhatsAppOtp", otpLimiter);
 
   app.use(
     "/api/trpc",
@@ -97,6 +99,11 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    
+    // Start background jobs
+    setInterval(() => {
+      expireOldDeals().catch(err => console.error("[Background Job] Error expiring deals:", err));
+    }, 15 * 60 * 1000); // Run every 15 minutes
   });
 }
 

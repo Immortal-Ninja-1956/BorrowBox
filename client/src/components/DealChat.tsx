@@ -15,18 +15,25 @@ const QUICK_REPLIES = [
 export function DealChat({
   dealId,
   otherPartyName,
+  dealStatus,
 }: {
   dealId: number;
   otherPartyName: string;
+  dealStatus?: string;
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Poll for new messages every 3 seconds
+  const isTerminal = dealStatus === "PAID" || dealStatus === "CANCELLED";
+
+  // Poll for new messages every 10 seconds, disable if terminal
   const { data: messages, isLoading } = trpc.messages.getByDealId.useQuery(
     { dealId },
-    { refetchInterval: 3000 }
+    { 
+      refetchInterval: isTerminal ? false : 10000,
+      refetchIntervalInBackground: false
+    }
   );
 
   const sendMessageMutation = trpc.messages.send.useMutation({

@@ -40,3 +40,24 @@ export const pinVerifyLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   },
 });
+
+export const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  limit: 3, // 3 attempts per 10 minutes per IP
+  keyGenerator: (req) => `${req.ip}-otp`,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: {
+      message: "Too many OTP requests. Please try again after 10 minutes.",
+      code: -32005,
+      data: {
+        code: "TOO_MANY_REQUESTS",
+        httpStatus: 429,
+      },
+    },
+  },
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});

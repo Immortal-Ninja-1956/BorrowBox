@@ -375,6 +375,7 @@ export default function ItemDetail() {
                         <DealChat
                           dealId={existingDeal.id}
                           otherPartyName={`Seller #${item.sellerId}`}
+                          dealStatus={existingDeal.status}
                         />
                       </DialogContent>
                     </Dialog>

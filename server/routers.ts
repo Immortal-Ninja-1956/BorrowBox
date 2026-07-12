@@ -11,6 +11,7 @@ import {
   createUser,
   getUserByEmail,
   getUserById,
+  getUsersByIds,
   updateUserProfile,
   updateUserWhatsAppOtp,
   verifyUserWhatsApp,
@@ -58,6 +59,8 @@ import {
   isDuplicateUtr,
   setDealDisputed,
   completeDealAtomically,
+  confirmDeliveryAtomically,
+  advanceDealStatusAtomically,
 } from "./db";
 import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 // Custom auth logic removed, moved to Supabase
@@ -136,8 +139,15 @@ export const appRouter = router({
     updateProfile: protectedProcedure
       .input(
         z.object({
-          upiId: z.string().optional(),
-          upiName: z.string().optional(),
+          upiId: z
+            .string()
+            .max(64, "UPI ID must be 64 characters or fewer")
+            .regex(
+              /^[a-zA-Z0-9._-]+@[a-zA-Z0-9]+$/,
+              "Invalid UPI ID format (e.g. name@upi)"
+            )
+            .optional(),
+          upiName: z.string().max(80).optional(),
           whatsapp: z
             .string()
             .optional()
@@ -192,7 +202,6 @@ export const appRouter = router({
         return {
           id: user.id,
           name: user.name,
-          whatsapp: user.whatsapp,
           trustScore,
         };
       }),
@@ -213,12 +222,13 @@ export const appRouter = router({
 
         const reviews = await getUserReviews(input.userId);
         
-        const enrichedReviews = await Promise.all(reviews.map(async r => {
-           const reviewer = await getUserById(r.reviewerId);
-           return {
-             ...r,
-             reviewerName: reviewer?.name || "Unknown User"
-           };
+        const reviewerIds = Array.from(new Set(reviews.map(r => r.reviewerId)));
+        const reviewers = await getUsersByIds(reviewerIds);
+        const reviewerMap = new Map(reviewers.map(u => [u.id, u.name]));
+        
+        const enrichedReviews = reviews.map(r => ({
+          ...r,
+          reviewerName: reviewerMap.get(r.reviewerId) || "Unknown User"
         }));
 
         return {
@@ -302,8 +312,8 @@ export const appRouter = router({
     create: protectedProcedure
       .input(
         z.object({
-          title: z.string().min(1),
-          description: z.string().optional(),
+          title: z.string().min(1).max(255, "Title must be 255 characters or fewer"),
+          description: z.string().max(4000, "Description is too long").optional(),
           amount: z
             .string()
             .min(1)
@@ -319,6 +329,16 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.whatsappVerified) {
+          const existing = await getItemsBySellerId(ctx.user.id);
+          if (existing.length >= 1) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Verify your WhatsApp to post more listings.",
+            });
+          }
+        }
+
         const itemId = await createItem({
           sellerId: ctx.user.id,
           title: input.title,
@@ -382,8 +402,8 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.number(),
-          title: z.string().optional(),
-          description: z.string().optional(),
+          title: z.string().max(255, "Title must be 255 characters or fewer").optional(),
+          description: z.string().max(4000, "Description is too long").optional(),
           amount: z
             .string()
             .optional()
@@ -459,7 +479,6 @@ export const appRouter = router({
       .input(
         z.object({
           itemId: z.number(),
-          buyerId: z.number().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -479,7 +498,7 @@ export const appRouter = router({
           });
         }
 
-        const buyerId = input.buyerId ?? ctx.user.id;
+        const buyerId = ctx.user.id;
         const otherDeals = await getDealsByItemId(input.itemId);
         const hasExistingDeal = otherDeals.some(
           d => d.buyerId === buyerId && d.status !== "CANCELLED"
@@ -568,29 +587,16 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
-        if (input.status === "Shipped" || input.status === "DELIVERED") {
-          // Check if there is already an active/completed deal for this item
-          const otherDeals = await getDealsByItemId(deal.itemId);
-          const hasActiveDeal = otherDeals.some(
-            d =>
-              d.id !== deal.id &&
-              ["Shipped", "DELIVERED", "CONFIRMED", "PAID"].includes(d.status)
-          );
-          if (hasActiveDeal) {
+        try {
+          await advanceDealStatusAtomically(input.dealId, deal.itemId, input.status);
+        } catch (e: any) {
+          if (e.message === "ANOTHER_ACTIVE_DEAL") {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message:
-                "Another active deal is already in progress for this item.",
+              message: "Another active deal is already in progress for this item.",
             });
           }
-        }
-
-        await updateDealStatus(input.dealId, input.status);
-
-        // When deal is finalized ("Shipped") or beyond, update the item status and cancel other deals
-        if (input.status === "Shipped" || input.status === "DELIVERED") {
-          await updateItemStatus(deal.itemId, input.status);
-          await cancelOtherDeals(deal.itemId, deal.id);
+          throw e;
         }
 
         // Notify buyer
@@ -619,19 +625,17 @@ export const appRouter = router({
             code: "BAD_REQUEST",
             message: "Deal must be DELIVERED before confirming",
           });
-        await confirmDealByBuyer(input.dealId);
-        // Also update deal status to CONFIRMED
-        await updateDealStatus(input.dealId, "CONFIRMED");
         const seller = await getUserById(deal.sellerId);
+        let qrCode: string | undefined = undefined;
         if (seller?.upiId && seller?.upiName) {
-          const qrCode = generateUpiQrCode(
+          qrCode = generateUpiQrCode(
             seller.upiId,
             seller.upiName,
             deal.amount.toString(),
             generateDealTag(input.dealId)
           );
-          await updateDealUpiQrCode(input.dealId, qrCode);
         }
+        await confirmDeliveryAtomically(input.dealId, qrCode);
         return { success: true };
       }),
 
@@ -649,10 +653,8 @@ export const appRouter = router({
             code: "BAD_REQUEST",
             message: "Must confirm delivery before marking as paid",
           });
-        // Mark deal as PAID
-        await updateDealStatus(input.dealId, "PAID");
-        // Mark item as SOLD (final state)
-        await updateItemStatus(deal.itemId, "SOLD");
+        // Mark deal as PAID and item as SOLD atomically
+        await completeDealAtomically(input.dealId, deal.itemId);
         return { success: true };
       }),
 
@@ -665,10 +667,11 @@ export const appRouter = router({
         if (ctx.user.id !== deal.buyerId && ctx.user.id !== deal.sellerId) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
         }
-        if (deal.status === "PAID" || deal.status === "CANCELLED") {
+        const TERMINAL_OR_FROZEN = ["PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"];
+        if (TERMINAL_OR_FROZEN.includes(deal.status)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Cannot cancel a completed or already cancelled deal",
+            message: "Cannot cancel a completed, cancelled, or disputed deal",
           });
         }
 
@@ -941,7 +944,16 @@ export const appRouter = router({
 
     getByDeal: protectedProcedure
       .input(z.object({ dealId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        const deal = await getDealById(input.dealId);
+        if (!deal)
+          throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (deal.buyerId !== ctx.user.id && deal.sellerId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Not a participant in this deal",
+          });
+        }
         return await getReviewsByDealId(input.dealId);
       }),
 
@@ -1038,7 +1050,7 @@ function generateUpiQrCode(
   amount: string,
   note: string
 ): string {
-  return `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${amount}&tn=${encodeURIComponent(note)}`;
+  return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${encodeURIComponent(amount)}&tn=${encodeURIComponent(note)}`;
 }
 
 export type AppRouter = typeof appRouter;

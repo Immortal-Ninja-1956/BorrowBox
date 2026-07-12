@@ -1,4 +1,4 @@
-import { eq, desc, and, or, sql, like, asc, lt, ne } from "drizzle-orm";
+import { eq, desc, and, or, sql, like, asc, lt, ne, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { users, items, deals, reviews, messages, item_reports, revoked_tokens } from "../drizzle/schema";
@@ -65,6 +65,16 @@ export async function getUserById(userId: number) {
     .where(eq(users.id, userId))
     .limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUsersByIds(userIds: number[]) {
+  if (userIds.length === 0) return [];
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select()
+    .from(users)
+    .where(inArray(users.id, userIds));
 }
 
 export async function updateUserProfile(
@@ -520,7 +530,6 @@ export async function completeDealAtomically(dealId: number, itemId: number) {
 }
 
 export async function getDealById(dealId: number) {
-  await expireOldDeals();
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db
@@ -542,7 +551,6 @@ export async function getDealsByItemId(itemId: number) {
 }
 
 export async function getDealsBySellerId(sellerId: number) {
-  await expireOldDeals();
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const results = await db
@@ -560,7 +568,6 @@ export async function getDealsBySellerId(sellerId: number) {
 }
 
 export async function getDealsByBuyerId(buyerId: number) {
-  await expireOldDeals();
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const results = await db
@@ -602,6 +609,49 @@ export async function updateDealUpiQrCode(dealId: number, qrCode: string) {
     .update(deals)
     .set({ upiQrCode: qrCode })
     .where(eq(deals.id, dealId));
+}
+
+export async function confirmDeliveryAtomically(dealId: number, qrCode: string | undefined) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const data: any = {
+    buyerConfirmed: 1,
+    status: "CONFIRMED" as any,
+  };
+  if (qrCode !== undefined) {
+    data.upiQrCode = qrCode;
+  }
+  return await db
+    .update(deals)
+    .set(data)
+    .where(eq(deals.id, dealId));
+}
+
+export async function advanceDealStatusAtomically(dealId: number, itemId: number, newStatus: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx) => {
+    if (newStatus === "Shipped" || newStatus === "DELIVERED") {
+      const otherDeals = await tx.select().from(deals).where(eq(deals.itemId, itemId));
+      const hasActiveDeal = otherDeals.some(
+        d =>
+          d.id !== dealId &&
+          ["Shipped", "DELIVERED", "CONFIRMED", "PAID"].includes(d.status)
+      );
+      if (hasActiveDeal) {
+        throw new Error("ANOTHER_ACTIVE_DEAL");
+      }
+    }
+
+    await tx.update(deals).set({ status: newStatus as any }).where(eq(deals.id, dealId));
+
+    if (newStatus === "Shipped" || newStatus === "DELIVERED") {
+      await tx.update(items).set({ status: newStatus as any }).where(eq(items.id, itemId));
+      await tx.update(deals)
+        .set({ status: "CANCELLED" as any })
+        .where(and(eq(deals.itemId, itemId), ne(deals.id, dealId)));
+    }
+  });
 }
 
 export async function updateUserResetToken(

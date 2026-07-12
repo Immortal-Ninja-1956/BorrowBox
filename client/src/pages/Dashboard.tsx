@@ -720,6 +720,7 @@ function DealCard({
             <DealChat
               dealId={deal.id}
               otherPartyName={`Buyer #${deal.buyerId || "Unknown"}`}
+              dealStatus={deal.status}
             />
           </DialogContent>
         </Dialog>
@@ -1030,6 +1031,7 @@ function PurchasedDealCard({
             <DealChat
               dealId={deal.id}
               otherPartyName={`Seller #${deal.sellerId}`}
+              dealStatus={deal.status}
             />
           </DialogContent>
         </Dialog>
