@@ -466,15 +466,17 @@ export default function Dashboard() {
               {!deals ||
               deals.filter(d => d.status !== "CANCELLED").length === 0 ? (
                 <div className="glass-card rounded-2xl p-10 text-center max-w-lg mx-auto">
-                  <p className="text-muted-foreground mb-6 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     No active deals on your listed items yet.
                   </p>
-                  <Button 
-                    onClick={() => setLocation("/create-post")}
-                    className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold rounded-xl"
-                  >
-                    Post Your First Item
-                  </Button>
+                  {(!sellerItems || sellerItems.length === 0) && (
+                    <Button 
+                      onClick={() => setLocation("/create-post")}
+                      className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold rounded-xl mt-6"
+                    >
+                      Post Your First Item
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-6">
