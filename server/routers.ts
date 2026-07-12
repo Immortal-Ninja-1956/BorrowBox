@@ -202,6 +202,8 @@ export const appRouter = router({
         return {
           id: user.id,
           name: user.name,
+          whatsapp: user.whatsapp,
+          whatsappVerified: user.whatsappVerified,
           trustScore,
         };
       }),

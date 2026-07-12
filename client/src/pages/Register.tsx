@@ -80,7 +80,13 @@ export default function Register() {
       if (data.session) {
         await refresh();
         toast.success("Account created!");
-        setLocation("/marketplace");
+        const redirectTo = sessionStorage.getItem("redirect_after_login");
+        if (redirectTo) {
+          sessionStorage.removeItem("redirect_after_login");
+          setLocation(redirectTo);
+        } else {
+          setLocation("/marketplace");
+        }
       } else {
         toast.success("Check your email for a verification link!");
         setLocation(`/verify-email?email=${encodeURIComponent(form.email)}`);
@@ -209,10 +215,19 @@ export default function Register() {
             onClick={async () => {
               try {
                 setIsLoading(true);
+                const savedRedirect = sessionStorage.getItem("redirect_after_login");
+                const redirectTarget = savedRedirect 
+                  ? `${window.location.origin}${savedRedirect}` 
+                  : `${window.location.origin}/marketplace`;
+
+                if (savedRedirect) {
+                  sessionStorage.removeItem("redirect_after_login");
+                }
+
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: "google",
                   options: {
-                    redirectTo: `${window.location.origin}/marketplace`,
+                    redirectTo: redirectTarget,
                     queryParams: {
                       hd: "vitstudent.ac.in",
                     },

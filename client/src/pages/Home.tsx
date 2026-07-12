@@ -174,7 +174,7 @@ export default function Home() {
                 {
                   n: 3,
                   title: "Meet & Confirm Handover",
-                  desc: "Meet on campus to inspect the item. The seller marks the status as shipped, and delivery updates instantly.",
+                  desc: "Meet on campus. The seller marks the handover as arranged, keeping both parties in sync.",
                 },
                 {
                   n: 4,

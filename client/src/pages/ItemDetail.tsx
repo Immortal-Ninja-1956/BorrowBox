@@ -29,6 +29,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { DealChat } from "@/components/DealChat";
 import { useState } from "react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -70,11 +80,12 @@ function getCategoryMeta(category?: string) {
 
 export default function ItemDetail() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { id } = useParams<{ id: string }>();
   const itemId = parseInt(id || "0");
 
   const [copied, setCopied] = useState(false);
+  const [showWhatsAppConfirm, setShowWhatsAppConfirm] = useState(false);
 
   const {
     data: item,
@@ -163,7 +174,8 @@ export default function ItemDetail() {
   }
 
   const handleWhatsAppContact = () => {
-    if (!sellerProfile?.whatsapp) {
+    const profile = sellerProfile as { whatsapp?: string | null };
+    if (!profile?.whatsapp) {
       toast.error(
         "Seller hasn't added a WhatsApp number yet. Try contacting them another way."
       );
@@ -171,7 +183,7 @@ export default function ItemDetail() {
     }
     const message = `Hi, I saw your listing for "${item.title}" priced at ₹${item.amount} on BorrowBox. Is it still available?\nLink: ${window.location.href}`;
     const encodedMessage = encodeURIComponent(message);
-    const number = sellerProfile.whatsapp
+    const number = profile.whatsapp
       .replace(/\s+/g, "")
       .replace(/^\+/, "");
     window.open(`https://wa.me/${number}?text=${encodedMessage}`, "_blank");
@@ -265,8 +277,8 @@ export default function ItemDetail() {
                 <span
                   className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
                     item.status === "OPEN"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
+                      ? "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400"
+                      : "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400"
                   }`}
                 >
                   {item.status === "OPEN" ? "Available" : "Sold"}
@@ -354,7 +366,7 @@ export default function ItemDetail() {
                       View Active Deal
                     </Button>
                     <Button
-                      onClick={handleWhatsAppContact}
+                      onClick={() => setShowWhatsAppConfirm(true)}
                       variant="outline"
                       className="flex-1 border-green-600 text-green-600 hover:bg-green-50"
                     >
@@ -392,7 +404,7 @@ export default function ItemDetail() {
                         : "I'm Interested"}
                     </Button>
                     <Button
-                      onClick={handleWhatsAppContact}
+                      onClick={() => setShowWhatsAppConfirm(true)}
                       variant="outline"
                       className="flex-1 border-green-600 text-green-600 hover:bg-green-50"
                     >
@@ -430,7 +442,10 @@ export default function ItemDetail() {
                 <p className="text-yellow-900 mb-4">
                   Sign in to contact the seller and make a purchase.
                 </p>
-                <Button onClick={() => setLocation("/")} className="w-full">
+                <Button onClick={() => {
+                  sessionStorage.setItem("redirect_after_login", location);
+                  setLocation("/login");
+                }} className="w-full">
                   Sign In
                 </Button>
               </div>
@@ -456,10 +471,21 @@ export default function ItemDetail() {
                               ? "bg-blue-100 text-blue-800"
                               : deal.status === "CONFIRMED"
                                 ? "bg-purple-100 text-purple-800"
-                                : "bg-yellow-100 text-yellow-800"
+                                : deal.status === "PAID"
+                                  ? "bg-green-100 text-green-800"
+                                  : deal.status === "CANCELLED"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
                         }`}
                       >
-                        {deal.status}
+                        {deal.status === "OPEN" ? "Open" :
+                         deal.status === "Shipped" ? "Meetup Arranged" :
+                         deal.status === "DELIVERED" ? "Waiting for Buyer" :
+                         deal.status === "CONFIRMED" ? "Awaiting Payment" :
+                         deal.status === "PAID" ? "Delivered & Paid" :
+                         deal.status === "CANCELLED" ? "Cancelled" :
+                         deal.status === "DISPUTED" ? "Disputed" :
+                         deal.status === "NEEDS_ATTENTION" ? "Needs Attention" : deal.status}
                       </span>
                     </div>
                   </div>
@@ -469,6 +495,31 @@ export default function ItemDetail() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={showWhatsAppConfirm} onOpenChange={setShowWhatsAppConfirm}>
+        <AlertDialogContent className="rounded-2xl border-border/40 glass-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-bold text-xl text-foreground">Opening WhatsApp</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed mt-2">
+              You are leaving BorrowBox to chat with the seller on WhatsApp. 
+              <br/><br/>
+              After your chat, make sure to <strong>return to BorrowBox</strong> to complete the deal securely!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogCancel className="rounded-xl border-border">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowWhatsAppConfirm(false);
+                handleWhatsAppContact();
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white rounded-xl"
+            >
+              Continue to WhatsApp
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

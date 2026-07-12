@@ -66,7 +66,13 @@ export default function Login() {
         // in useAuth will retry via invalidation
       }
       toast.success("Logged in!");
-      setLocation("/marketplace");
+      const redirectTo = sessionStorage.getItem("redirect_after_login");
+      if (redirectTo) {
+        sessionStorage.removeItem("redirect_after_login");
+        setLocation(redirectTo);
+      } else {
+        setLocation("/marketplace");
+      }
     }
   };
 
@@ -166,10 +172,19 @@ export default function Login() {
             onClick={async () => {
               try {
                 setIsLoading(true);
+                const savedRedirect = sessionStorage.getItem("redirect_after_login");
+                const redirectTarget = savedRedirect 
+                  ? `${window.location.origin}${savedRedirect}` 
+                  : `${window.location.origin}/marketplace`;
+
+                if (savedRedirect) {
+                  sessionStorage.removeItem("redirect_after_login");
+                }
+
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: "google",
                   options: {
-                    redirectTo: `${window.location.origin}/marketplace`,
+                    redirectTo: redirectTarget,
                     queryParams: {
                       hd: "vitstudent.ac.in",
                     },

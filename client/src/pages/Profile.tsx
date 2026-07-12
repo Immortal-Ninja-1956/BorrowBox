@@ -308,6 +308,9 @@ export default function Profile() {
                   onChange={handleChange}
                   placeholder="98765 43210"
                   className="w-full rounded-l-none"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="tel"
                 />
               </div>
               <div className="flex items-center justify-between mt-1">

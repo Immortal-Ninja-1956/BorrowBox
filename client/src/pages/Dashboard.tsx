@@ -27,6 +27,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DealChat } from "@/components/DealChat";
 import { Input } from "@/components/ui/input";
 import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import {
   AlertDialog,
   AlertDialogTrigger,
   AlertDialogContent,
@@ -166,14 +171,28 @@ export default function Dashboard() {
   const statusFlow = ["OPEN", "Shipped", "DELIVERED"];
   const statusLabels: Record<string, string> = {
     OPEN: "Open",
-    Shipped: "Finalized",
-    DELIVERED: "Delivered",
-    CONFIRMED: "Confirmed",
+    Shipped: "Meetup Arranged",
+    DELIVERED: "Waiting for Buyer",
+    CONFIRMED: "Awaiting Payment",
     PAID: "Delivered & Paid",
     CANCELLED: "Cancelled",
     DISPUTED: "Disputed",
     NEEDS_ATTENTION: "Needs Attention",
   };
+  const URGENT_STATES = ["DISPUTED", "NEEDS_ATTENTION", "DELIVERED", "CONFIRMED"];
+  const sortDeals = (dealList: any[]) => {
+    return [...dealList].sort((a, b) => {
+      const aUrgent = URGENT_STATES.includes(a.status) ? 1 : 0;
+      const bUrgent = URGENT_STATES.includes(b.status) ? 1 : 0;
+      if (aUrgent !== bUrgent) return bUrgent - aUrgent;
+      if (a.status === "PAID" && b.status !== "PAID") return 1;
+      if (b.status === "PAID" && a.status !== "PAID") return -1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  };
+
+  const urgentCount = (deals ? deals.filter(d => URGENT_STATES.includes(d.status)).length : 0) + 
+                      (buyerDeals ? buyerDeals.filter(d => URGENT_STATES.includes(d.status)).length : 0);
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -212,6 +231,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Urgent Action Banner */}
+      {urgentCount > 0 && (
+        <div className="bg-yellow-500 text-yellow-950 px-4 py-3 text-center font-bold relative z-20 shadow-md">
+          {urgentCount} deal(s) need your immediate attention. Please check your active sales and purchases below.
+        </div>
+      )}
 
       {/* Stats Bar */}
       <div className="bg-muted/20 border-b border-border/40 py-8 relative z-10">
@@ -452,8 +478,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {deals
-                    .filter(d => d.status !== "CANCELLED")
+                  {sortDeals(deals.filter(d => d.status !== "CANCELLED" && d.status !== "PAID"))
                     .map(deal => (
                       <DealCard
                         key={deal.id}
@@ -475,6 +500,39 @@ export default function Dashboard() {
                         }
                       />
                     ))}
+
+                  {deals.filter(d => d.status === "PAID").length > 0 && (
+                    <details className="group border border-border/40 rounded-xl overflow-hidden bg-card/20 mt-8">
+                      <summary className="px-6 py-4 font-bold cursor-pointer flex items-center justify-between text-muted-foreground hover:bg-card/40 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                        Completed Sales
+                        <span className="text-xs font-semibold bg-muted px-2 py-0.5 rounded-full">{deals.filter(d => d.status === "PAID").length}</span>
+                      </summary>
+                      <div className="p-4 space-y-4 border-t border-border/40">
+                        {sortDeals(deals.filter(d => d.status === "PAID"))
+                          .map(deal => (
+                            <DealCard
+                              key={deal.id}
+                              deal={deal}
+                              statusFlow={statusFlow}
+                              statusLabels={statusLabels}
+                              onStatusUpdate={status => {
+                                updateStatusMutation.mutate({
+                                  dealId: deal.id,
+                                  status: status as any,
+                                });
+                              }}
+                              onCancel={() =>
+                                cancelDealMutation.mutate({ dealId: deal.id })
+                              }
+                              isUpdating={
+                                updateStatusMutation.isPending ||
+                                cancelDealMutation.isPending
+                              }
+                            />
+                          ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               )}
             </div>
@@ -501,7 +559,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {buyerDeals.map(deal => (
+                  {sortDeals(buyerDeals.filter(d => d.status !== "CANCELLED" && d.status !== "PAID")).map(deal => (
                     <PurchasedDealCard
                       key={deal.id}
                       deal={deal}
@@ -511,6 +569,27 @@ export default function Dashboard() {
                       isCancelling={cancelDealMutation.isPending}
                     />
                   ))}
+
+                  {buyerDeals.filter(d => d.status === "PAID").length > 0 && (
+                    <details className="group border border-border/40 rounded-xl overflow-hidden bg-card/20 mt-8">
+                      <summary className="px-6 py-4 font-bold cursor-pointer flex items-center justify-between text-muted-foreground hover:bg-card/40 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                        Completed Purchases
+                        <span className="text-xs font-semibold bg-muted px-2 py-0.5 rounded-full">{buyerDeals.filter(d => d.status === "PAID").length}</span>
+                      </summary>
+                      <div className="p-4 space-y-4 border-t border-border/40">
+                        {sortDeals(buyerDeals.filter(d => d.status === "PAID")).map(deal => (
+                          <PurchasedDealCard
+                            key={deal.id}
+                            deal={deal}
+                            onCancel={() =>
+                              cancelDealMutation.mutate({ dealId: deal.id })
+                            }
+                            isCancelling={cancelDealMutation.isPending}
+                          />
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               )}
             </div>
@@ -703,6 +782,19 @@ function DealCard({
         >
           {statusLabels[deal.status] || deal.status}
         </span>
+        {(() => {
+          const statusNextSteps: Record<string, {text: string, color: string}> = {
+            OPEN: {text: "Next step: Arrange a meetup.", color: "text-green-600 dark:text-green-400"},
+            Shipped: {text: "Next step: Meet buyer on campus.", color: "text-amber-600 dark:text-amber-400"},
+            DELIVERED: {text: "Next step: Wait for buyer confirmation.", color: "text-blue-600 dark:text-blue-400"},
+            CONFIRMED: {text: "Next step: Enter buyer's PIN.", color: "text-purple-600 dark:text-purple-400"},
+          };
+          return statusNextSteps[deal.status] ? (
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${statusNextSteps[deal.status].color}`}>
+              {statusNextSteps[deal.status].text}
+            </span>
+          ) : null;
+        })()}
       </div>
 
       <div className="mb-6 flex gap-3 flex-wrap">
@@ -859,50 +951,42 @@ function DealCard({
                 </p>
              </div>
           ) : (
-            <div className="flex gap-3">
-              <Input
-                type="text"
-                placeholder="6-Digit PIN"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                maxLength={6}
-                className="max-w-[200px] text-center tracking-[0.5em] font-mono font-bold text-lg"
-              />
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <InputOTP 
+                maxLength={6} 
+                value={pin} 
+                onChange={setPin}
+                inputMode="numeric"
+                pattern="[0-9]*"
+              >
+                <InputOTPGroup className="bg-background">
+                  <InputOTPSlot index={0} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
+                  <InputOTPSlot index={1} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
+                  <InputOTPSlot index={2} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
+                  <InputOTPSlot index={3} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
+                  <InputOTPSlot index={4} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
+                  <InputOTPSlot index={5} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
+                </InputOTPGroup>
+              </InputOTP>
               <Button
                 onClick={() => confirmWithPinMutation.mutate({ dealId: deal.id, pin })}
                 disabled={pin.length !== 6 || confirmWithPinMutation.isPending}
-                className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-8"
+                className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-8 w-full sm:w-auto h-14 sm:h-16 rounded-xl"
               >
                 {confirmWithPinMutation.isPending ? "Verifying..." : "Verify & Complete"}
               </Button>
             </div>
           )}
           
-          {!isLocked && (deal.pinAttempts > 0) && (
-            <p className="text-xs text-red-500 mt-2 font-semibold">
-              Warning: {deal.pinAttempts} failed attempt(s). Locks after 5.
+          {!isLocked && (
+            <p className={`text-xs mt-3 font-semibold ${deal.pinAttempts > 0 ? "text-red-500" : "text-muted-foreground"}`}>
+              {5 - (deal.pinAttempts || 0)} attempt(s) remaining. Locks after 5 failed attempts.
             </p>
           )}
         </div>
       )}
 
-      {/* UPI QR Code */}
-      {deal.buyerConfirmed && deal.upiQrCode && deal.status !== "PAID" && (
-        <div className="bg-green-500/10 border border-green-500/25 rounded-xl p-5">
-          <p className="text-green-600 dark:text-green-400 font-bold text-sm mb-3">
-            Payment Ready - UPI QR Code:
-          </p>
-          <div className="bg-white p-4 rounded-2xl inline-block border border-green-500/20 shadow-md">
-            <QRCode
-              value={deal.upiQrCode}
-              size={200}
-              level="H"
-              includeMargin={true}
-            />
-          </div>
-          <p className="text-xs text-green-700 dark:text-green-500 font-bold mt-3">Scan and pay: ₹{deal.amount}</p>
-        </div>
-      )}
+
     </div>
   );
 }
@@ -932,9 +1016,9 @@ function PurchasedDealCard({
 
   const statusLabels: Record<string, string> = {
     OPEN: "Open",
-    Shipped: "Finalized",
-    DELIVERED: "Delivered",
-    CONFIRMED: "Confirmed",
+    Shipped: "Meetup Arranged",
+    DELIVERED: "Action Required: Confirm Handover",
+    CONFIRMED: "Payment Ready",
     PAID: "Paid",
     CANCELLED: "Cancelled",
     DISPUTED: "Disputed",
@@ -970,6 +1054,19 @@ function PurchasedDealCard({
             >
               {statusLabels[deal.status] || deal.status}
             </span>
+            {(() => {
+              const buyerNextSteps: Record<string, {text: string, color: string}> = {
+                OPEN: {text: "Next step: Message seller to meet.", color: "text-green-600 dark:text-green-400"},
+                Shipped: {text: "Next step: Meet seller on campus.", color: "text-amber-600 dark:text-amber-400"},
+                DELIVERED: {text: "Next step: Confirm handover.", color: "text-blue-600 dark:text-blue-400"},
+                CONFIRMED: {text: "Next step: Pay & show PIN.", color: "text-purple-600 dark:text-purple-400"},
+              };
+              return buyerNextSteps[deal.status] ? (
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${buyerNextSteps[deal.status].color}`}>
+                  {buyerNextSteps[deal.status].text}
+                </span>
+              ) : null;
+            })()}
             {isConfirmed && (
               <span className="bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 px-3 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider">
                 ✓ Confirmed

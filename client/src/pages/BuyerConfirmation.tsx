@@ -39,7 +39,18 @@ export default function BuyerConfirmation() {
     data: deal,
     isLoading,
     refetch: refetchDeal,
-  } = trpc.deals.getById.useQuery({ id: dealIdNum });
+  } = trpc.deals.getById.useQuery(
+    { id: dealIdNum },
+    {
+      refetchInterval: (query) => {
+        const currentDeal = query.state?.data;
+        if (currentDeal && ["PAID", "CANCELLED", "CONFIRMED"].includes(currentDeal.status)) {
+          return false;
+        }
+        return 8000;
+      }
+    }
+  );
   const { data: qrData, refetch: refetchQr } = trpc.deals.getUpiQrCode.useQuery(
     { dealId: dealIdNum },
     { enabled: !!deal?.buyerConfirmed }
@@ -243,8 +254,18 @@ export default function BuyerConfirmation() {
                 {isPaid
                   ? "Delivered & Paid"
                   : deal.status === "CONFIRMED"
-                    ? "Confirmed"
-                    : deal.status}
+                    ? "Payment Ready"
+                    : deal.status === "DELIVERED"
+                      ? "Action Required: Confirm Handover"
+                      : deal.status === "Shipped"
+                        ? "Meetup Arranged"
+                        : deal.status === "CANCELLED"
+                          ? "Cancelled"
+                          : deal.status === "DISPUTED"
+                            ? "Disputed"
+                            : deal.status === "NEEDS_ATTENTION"
+                              ? "Needs Attention"
+                              : "Open"}
               </span>
             </div>
           </div>
@@ -280,6 +301,8 @@ export default function BuyerConfirmation() {
                     value={utr}
                     onChange={(e) => setUtr(e.target.value)}
                     maxLength={12}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                   />
                   <Button 
                     onClick={() => submitUtrMutation.mutate({ dealId: dealIdNum, utr })}
@@ -308,8 +331,9 @@ export default function BuyerConfirmation() {
         ) : !isDelivered && !isConfirmed ? (
           /* === STATE: Waiting for seller to mark as DELIVERED === */
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
-            <h3 className="text-lg font-bold text-yellow-900 mb-4">
+            <h3 className="text-lg font-bold text-yellow-900 mb-4 flex items-center gap-2">
               Waiting for Seller
+              <Loader2 className="w-5 h-5 animate-spin text-yellow-600" />
             </h3>
             <p className="text-yellow-800">
               The seller has not marked this item as DELIVERED yet. Once they
@@ -359,24 +383,34 @@ export default function BuyerConfirmation() {
                 </div>
 
                 {/* QR Code Display */}
-                <div className="bg-white p-8 rounded-lg border border-border flex flex-col items-center">
-                  <p className="text-sm text-muted-foreground mb-4">
+                <div 
+                  className="bg-white p-8 rounded-lg border border-border flex flex-col items-center"
+                  onClick={() => (window.screen.orientation as any)?.lock?.('portrait').catch(() => {})}
+                >
+                  <p className="text-sm text-muted-foreground mb-4 font-semibold">
                     Scan this QR code to pay:
                   </p>
                   {qrData?.qrCode ? (
-                    <div className="bg-white p-4 rounded-lg border-2 border-accent">
-                      <QRCode
-                        value={qrData.qrCode}
-                        size={256}
-                        level="H"
-                        includeMargin={true}
-                      />
+                    <div className="flex flex-col items-center w-full">
+                      <div className="bg-white p-4 rounded-xl border-2 border-accent shadow-md inline-block w-full max-w-[320px] mb-6">
+                        <QRCode
+                          value={qrData.qrCode}
+                          size={100}
+                          style={{ width: "100%", height: "auto", minWidth: "200px" }}
+                          level="H"
+                          includeMargin={true}
+                        />
+                      </div>
+                      <Button asChild className="w-full max-w-[320px] bg-green-600 hover:bg-green-700 text-white font-bold h-12 text-base rounded-xl">
+                        <a href={qrData.qrCode}>Open in UPI App</a>
+                      </Button>
                     </div>
                   ) : (
-                    <div className="w-64 h-64 bg-muted rounded-lg flex items-center justify-center">
-                      <p className="text-center text-muted-foreground">
-                        Generating QR code...
-                      </p>
+                    <div className="w-full max-w-[320px] aspect-square bg-muted rounded-xl border-2 border-border flex items-center justify-center">
+                      <div className="text-center text-muted-foreground flex flex-col items-center gap-3">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary/50" />
+                        <p className="font-medium text-sm">Generating secure QR code...</p>
+                      </div>
                     </div>
                   )}
                 </div>

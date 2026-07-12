@@ -384,6 +384,7 @@ export default function CreatePost() {
                     onChange={handleChange}
                     placeholder="e.g., 450"
                     className="h-11 bg-card/40 border-border/50 focus:border-primary/50 rounded-xl"
+                    inputMode="decimal"
                   />
                 </div>
 
