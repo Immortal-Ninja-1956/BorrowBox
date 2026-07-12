@@ -12,7 +12,7 @@ import {
 export const roleEnum = pgEnum("role", ["user", "admin"]);
 export const conditionEnum = pgEnum("condition", ["New", "Like New", "Good", "Fair", "Poor"]);
 export const statusEnum = pgEnum("status", ["OPEN", "Contacted", "Shipped", "DELIVERED", "SOLD"]);
-export const dealStatusEnum = pgEnum("deal_status", ["OPEN", "Contacted", "Shipped", "DELIVERED", "CONFIRMED", "PAID", "CANCELLED"]);
+export const dealStatusEnum = pgEnum("deal_status", ["OPEN", "Contacted", "Shipped", "DELIVERED", "CONFIRMED", "PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"]);
 export const reviewRoleEnum = pgEnum("review_role", ["buyer", "seller"]);
 export const reportStatusEnum = pgEnum("report_status", ["OPEN", "RESOLVED", "DISMISSED"]);
 
@@ -75,6 +75,14 @@ export const deals = pgTable("deals", {
   buyerConfirmed: integer("buyerConfirmed").default(0).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   upiQrCode: text("upiQrCode"),
+  pinHash: varchar("pinHash", { length: 255 }),
+  pinEncrypted: varchar("pinEncrypted", { length: 512 }),
+  pinAttempts: integer("pinAttempts").default(0).notNull(),
+  pinLockedAt: timestamp("pinLockedAt"),
+  pinViewedAt: timestamp("pinViewedAt"),
+  utr: varchar("utr", { length: 12 }).unique(),
+  utrSubmittedAt: timestamp("utrSubmittedAt"),
+  disputedAt: timestamp("disputedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
 });

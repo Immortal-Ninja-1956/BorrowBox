@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DealChat } from "@/components/DealChat";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -170,6 +171,8 @@ export default function Dashboard() {
     CONFIRMED: "Confirmed",
     PAID: "Delivered & Paid",
     CANCELLED: "Cancelled",
+    DISPUTED: "Disputed",
+    NEEDS_ATTENTION: "Needs Attention",
   };
 
   return (
@@ -643,6 +646,33 @@ function DealCard({
   isUpdating: boolean;
 }) {
   const currentStatusIndex = statusFlow.indexOf(deal.status);
+  const [pin, setPin] = useState("");
+  
+  const trpcContext = trpc.useContext();
+  
+  const confirmWithPinMutation = trpc.deals.confirmWithPin.useMutation({
+    onSuccess: () => {
+      toast.success("Deal completed successfully!");
+      trpcContext.deals.getBySeller.invalidate();
+    },
+    onError: err => {
+      toast.error(err.message);
+    }
+  });
+
+  const raiseDisputeMutation = trpc.deals.raiseDispute.useMutation({
+    onSuccess: () => {
+      toast.success("Dispute raised. The deal is now frozen.");
+      trpcContext.deals.getBySeller.invalidate();
+    },
+    onError: err => {
+      toast.error(err.message);
+    }
+  });
+
+  const isLocked = deal.pinLockedAt !== null;
+  const isDisputed = deal.status === "DISPUTED";
+  const needsAttention = deal.status === "NEEDS_ATTENTION";
 
   return (
     <div className="glass-card rounded-2xl p-6 border-border/40 shadow-xs">
@@ -666,7 +696,9 @@ function DealCard({
                   ? "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400"
                   : deal.status === "CANCELLED"
                     ? "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
-                    : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                    : isDisputed || needsAttention
+                      ? "bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400"
+                      : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
           }`}
         >
           {statusLabels[deal.status] || deal.status}
@@ -723,6 +755,37 @@ function DealCard({
             </AlertDialogContent>
           </AlertDialog>
         )}
+
+        {deal.status !== "PAID" && deal.status !== "CANCELLED" && (
+           <AlertDialog>
+           <AlertDialogTrigger asChild>
+             <Button
+               variant="outline"
+               disabled={raiseDisputeMutation.isPending}
+               className="rounded-xl border-orange-500/30 text-orange-600 hover:bg-orange-500/10 px-5 h-10 font-semibold"
+             >
+               Raise a Problem
+             </Button>
+           </AlertDialogTrigger>
+           <AlertDialogContent className="rounded-2xl border-border/40 glass-card">
+             <AlertDialogHeader>
+               <AlertDialogTitle className="font-bold text-xl text-foreground">Raise a Dispute</AlertDialogTitle>
+               <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed mt-2">
+                 Are you sure you want to dispute this deal? This will freeze the deal and invalidate any active PINs.
+               </AlertDialogDescription>
+             </AlertDialogHeader>
+             <AlertDialogFooter className="mt-4 gap-2">
+               <AlertDialogCancel className="rounded-xl border-border">Go Back</AlertDialogCancel>
+               <AlertDialogAction
+                 onClick={() => raiseDisputeMutation.mutate({ dealId: deal.id })}
+                 className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl"
+               >
+                 Yes, Dispute
+               </AlertDialogAction>
+             </AlertDialogFooter>
+           </AlertDialogContent>
+         </AlertDialog>
+        )}
       </div>
 
       {/* Status Flow */}
@@ -748,6 +811,15 @@ function DealCard({
         </div>
       )}
 
+      {/* Badges for Disputed / Needs Attention */}
+      {(isDisputed || needsAttention) && (
+        <div className={`border rounded-xl p-4.5 mb-6 ${isDisputed ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
+          <p className={`font-bold text-sm ${isDisputed ? 'text-red-800' : 'text-orange-800'}`}>
+            {isDisputed ? "⚠️ This deal is disputed. Please coordinate with the buyer." : "⚠️ This deal needs your attention."}
+          </p>
+        </div>
+      )}
+
       {/* Deal completion statuses */}
       {deal.status === "PAID" && (
         <div className="bg-green-500/10 border border-green-500/25 rounded-xl p-4.5 mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -766,14 +838,50 @@ function DealCard({
         </div>
       )}
 
-      {/* Buyer Confirmation Status */}
-      {deal.status === "DELIVERED" && (
-        <div className="bg-blue-500/10 border border-blue-500/25 rounded-xl p-4.5 mb-6">
-          <p className="text-blue-600 dark:text-blue-400 font-bold text-sm">
-            {deal.buyerConfirmed
-              ? "✓ Buyer confirmed delivery. Your UPI QR code is visible to them!"
-              : "Waiting for buyer to confirm delivery..."}
+
+      {/* Seller PIN Input UI (Visible after delivery when buyer confirms/pays) */}
+      {(deal.status === "DELIVERED" || deal.status === "CONFIRMED") && (
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 mt-4">
+          <h4 className="font-bold text-primary mb-2 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5" />
+            Complete the Deal (Secure Handshake)
+          </h4>
+          <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+            <strong>1.</strong> Check YOUR OWN banking app for a credit of <strong>₹{deal.amount}</strong> with the note <strong>BBX-{deal.id}</strong>. Never trust a screenshot. <br/>
+            <strong>2.</strong> Once you've verified the payment, ask the buyer for their 6-digit PIN and enter it below to atomically complete the deal.
           </p>
+          
+          {isLocked ? (
+             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <p className="text-red-800 text-sm font-semibold">
+                  PIN entry is locked due to too many failed attempts. Please use the "Raise a Problem" button above to dispute and reset the PIN.
+                </p>
+             </div>
+          ) : (
+            <div className="flex gap-3">
+              <Input
+                type="text"
+                placeholder="6-Digit PIN"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                maxLength={6}
+                className="max-w-[200px] text-center tracking-[0.5em] font-mono font-bold text-lg"
+              />
+              <Button
+                onClick={() => confirmWithPinMutation.mutate({ dealId: deal.id, pin })}
+                disabled={pin.length !== 6 || confirmWithPinMutation.isPending}
+                className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-8"
+              >
+                {confirmWithPinMutation.isPending ? "Verifying..." : "Verify & Complete"}
+              </Button>
+            </div>
+          )}
+          
+          {!isLocked && (deal.pinAttempts > 0) && (
+            <p className="text-xs text-red-500 mt-2 font-semibold">
+              Warning: {deal.pinAttempts} failed attempt(s). Locks after 5.
+            </p>
+          )}
         </div>
       )}
 
@@ -828,6 +936,8 @@ function PurchasedDealCard({
     CONFIRMED: "Confirmed",
     PAID: "Paid",
     CANCELLED: "Cancelled",
+    DISPUTED: "Disputed",
+    NEEDS_ATTENTION: "Needs Attention",
   };
 
   const isDelivered = deal.status === "DELIVERED";
@@ -854,7 +964,7 @@ function PurchasedDealCard({
             </h3>
             <span
               className={`px-3 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
-                statusColors[deal.status] || "bg-muted text-muted-foreground"
+                statusColors[deal.status] || (deal.status === "DISPUTED" ? "bg-red-50 text-red-600 border-red-200" : "bg-muted text-muted-foreground")
               }`}
             >
               {statusLabels[deal.status] || deal.status}

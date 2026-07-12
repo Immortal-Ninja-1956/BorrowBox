@@ -298,11 +298,76 @@ export async function deleteItem(itemId: number) {
 export async function expireOldDeals() {
   const db = await getDb();
   if (!db) return;
+
+  const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  // 1. OPEN deals idle for 72h — cancel if NOT frozen, else NEEDS_ATTENTION
+  //    Freeze condition: pinViewedAt set, pinAttempts > 0, utr present, or DISPUTED
+  //    (DISPUTED status is excluded from OPEN query anyway, but guard for safety)
+
+  // Cancel unfrozen OPEN deals older than 72h
   await db
     .update(deals)
     .set({ status: "CANCELLED" as any })
-    .where(and(eq(deals.status, "OPEN"), lt(deals.createdAt, sevenDaysAgo)));
+    .where(
+      and(
+        eq(deals.status, "OPEN"),
+        lt(deals.createdAt, seventyTwoHoursAgo),
+        sql`${deals.pinViewedAt} IS NULL`,
+        eq(deals.pinAttempts, 0),
+        sql`${deals.utr} IS NULL`
+      )
+    );
+
+  // Move frozen OPEN deals older than 72h to NEEDS_ATTENTION
+  await db
+    .update(deals)
+    .set({ status: "NEEDS_ATTENTION" as any })
+    .where(
+      and(
+        eq(deals.status, "OPEN"),
+        lt(deals.createdAt, seventyTwoHoursAgo),
+        or(
+          sql`${deals.pinViewedAt} IS NOT NULL`,
+          sql`${deals.pinAttempts} > 0`,
+          sql`${deals.utr} IS NOT NULL`
+        )
+      )
+    );
+
+  // 2. Contacted/Shipped deals idle for 7 days
+  for (const status of ["Contacted", "Shipped"] as const) {
+    // Cancel unfrozen
+    await db
+      .update(deals)
+      .set({ status: "CANCELLED" as any })
+      .where(
+        and(
+          eq(deals.status, status),
+          lt(deals.updatedAt, sevenDaysAgo),
+          sql`${deals.pinViewedAt} IS NULL`,
+          eq(deals.pinAttempts, 0),
+          sql`${deals.utr} IS NULL`
+        )
+      );
+
+    // Move frozen to NEEDS_ATTENTION
+    await db
+      .update(deals)
+      .set({ status: "NEEDS_ATTENTION" as any })
+      .where(
+        and(
+          eq(deals.status, status),
+          lt(deals.updatedAt, sevenDaysAgo),
+          or(
+            sql`${deals.pinViewedAt} IS NOT NULL`,
+            sql`${deals.pinAttempts} > 0`,
+            sql`${deals.utr} IS NOT NULL`
+          )
+        )
+      );
+  }
 }
 
 export async function cancelOtherDeals(itemId: number, activeDealId: number) {
@@ -325,6 +390,8 @@ export async function createDeal(data: {
   sellerId: number;
   buyerId?: number;
   amount: string;
+  pinHash?: string;
+  pinEncrypted?: string;
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -334,8 +401,122 @@ export async function createDeal(data: {
     buyerId: data.buyerId,
     amount: data.amount as any,
     status: "OPEN",
+    pinHash: data.pinHash,
+    pinEncrypted: data.pinEncrypted,
   }).returning({ insertId: deals.id });
   return result[0].insertId;
+}
+
+export async function updateDealPinData(
+  dealId: number,
+  data: {
+    pinHash: string;
+    pinEncrypted: string;
+    pinAttempts?: number;
+    pinLockedAt?: Date | null;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(deals)
+    .set({
+      pinHash: data.pinHash,
+      pinEncrypted: data.pinEncrypted,
+      pinAttempts: data.pinAttempts ?? 0,
+      pinLockedAt: data.pinLockedAt ?? null,
+    })
+    .where(eq(deals.id, dealId));
+}
+
+export async function setDealPinViewed(dealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(deals)
+    .set({ pinViewedAt: new Date() })
+    .where(eq(deals.id, dealId));
+}
+
+export async function incrementPinAttempts(dealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(deals)
+    .set({ pinAttempts: sql`${deals.pinAttempts} + 1` })
+    .where(eq(deals.id, dealId));
+}
+
+export async function lockDealPin(dealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(deals)
+    .set({ pinLockedAt: new Date() })
+    .where(eq(deals.id, dealId));
+}
+
+export async function setDealUtr(dealId: number, utr: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(deals)
+    .set({ utr, utrSubmittedAt: new Date() })
+    .where(eq(deals.id, dealId));
+}
+
+export async function isDuplicateUtr(utr: string, excludeDealId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db
+    .select()
+    .from(deals)
+    .where(and(eq(deals.utr, utr), ne(deals.id, excludeDealId)))
+    .limit(1);
+  return result.length > 0;
+}
+
+export async function setDealDisputed(dealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(deals)
+    .set({
+      status: "DISPUTED" as any,
+      disputedAt: new Date(),
+    })
+    .where(eq(deals.id, dealId));
+}
+
+export async function getDealRawById(dealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db
+    .select()
+    .from(deals)
+    .where(eq(deals.id, dealId))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Atomically complete a deal: set deal → PAID and item → SOLD in a single transaction.
+ * Uses raw SQL to ensure all-or-nothing semantics.
+ */
+export async function completeDealAtomically(dealId: number, itemId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Use Drizzle's transaction support
+  await db.transaction(async (tx) => {
+    await tx
+      .update(deals)
+      .set({ status: "PAID" as any })
+      .where(eq(deals.id, dealId));
+    await tx
+      .update(items)
+      .set({ status: "SOLD" as any })
+      .where(eq(items.id, itemId));
+  });
 }
 
 export async function getDealById(dealId: number) {

@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { uploadRouter } from "../upload";
-import { authLimiter } from "./limiter";
+import { authLimiter, pinVerifyLimiter } from "./limiter";
 import helmet from "helmet";
 import cors from "cors";
 
@@ -75,6 +75,7 @@ async function startServer() {
   app.set("trust proxy", 1);
   app.use("/api/trpc/auth.login", authLimiter);
   app.use("/api/trpc/auth.forgotPassword", authLimiter);
+  app.use("/api/trpc/deals.confirmWithPin", pinVerifyLimiter);
 
   app.use(
     "/api/trpc",

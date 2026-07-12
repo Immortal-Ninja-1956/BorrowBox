@@ -49,7 +49,17 @@ import {
   getAllItemReportsAdmin,
   updateItemReportStatus,
   revokeToken,
+  getDealRawById,
+  updateDealPinData,
+  setDealPinViewed,
+  incrementPinAttempts,
+  lockDealPin,
+  setDealUtr,
+  isDuplicateUtr,
+  setDealDisputed,
+  completeDealAtomically,
 } from "./db";
+import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 // Custom auth logic removed, moved to Supabase
 import { TRPCError } from "@trpc/server";
 
@@ -481,11 +491,16 @@ export const appRouter = router({
           });
         }
 
+        // Generate PIN for deal completion handshake
+        const pinData = await generatePin();
+
         const dealId = await createDeal({
           itemId: input.itemId,
           sellerId: item.sellerId,
           buyerId,
           amount: item.amount.toString(),
+          pinHash: pinData.hash,
+          pinEncrypted: pinData.encrypted,
         });
         return { success: true, dealId };
       }),
@@ -613,7 +628,7 @@ export const appRouter = router({
             seller.upiId,
             seller.upiName,
             deal.amount.toString(),
-            `Item ${deal.itemId}`
+            generateDealTag(input.dealId)
           );
           await updateDealUpiQrCode(input.dealId, qrCode);
         }
@@ -696,6 +711,167 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
         }
         return { qrCode: deal.upiQrCode };
+      }),
+
+    // ─── PIN-based deal completion procedures ─────────────────────────────
+
+    getMyDealPin: protectedProcedure
+      .input(z.object({ dealId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const deal = await getDealRawById(input.dealId);
+        if (!deal)
+          throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.buyerId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the buyer can view the deal PIN",
+          });
+        }
+        if (["CANCELLED", "PAID"].includes(deal.status)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "PIN is not available for completed or cancelled deals",
+          });
+        }
+        if (!deal.pinEncrypted) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "PIN data is missing for this deal",
+          });
+        }
+        const pin = decryptPin(deal.pinEncrypted);
+        const viewedBefore = !!deal.pinViewedAt;
+        if (!deal.pinViewedAt) {
+          await setDealPinViewed(input.dealId);
+        }
+        return { pin, viewedBefore };
+      }),
+
+    confirmWithPin: protectedProcedure
+      .input(
+        z.object({
+          dealId: z.number(),
+          pin: z.string().regex(/^\d{6}$/, "PIN must be exactly 6 digits"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const deal = await getDealRawById(input.dealId);
+        if (!deal)
+          throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.sellerId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the seller can confirm with PIN",
+          });
+        }
+        if (deal.status === "PAID" || deal.status === "CANCELLED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This deal is already completed or cancelled",
+          });
+        }
+        if (deal.pinLockedAt) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "PIN entry is locked due to too many failed attempts. Please raise a dispute to unlock.",
+          });
+        }
+        if (!deal.pinHash) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "PIN hash is missing for this deal",
+          });
+        }
+        const isValid = await verifyPin(input.pin, deal.pinHash);
+        if (!isValid) {
+          const newAttempts = deal.pinAttempts + 1;
+          await incrementPinAttempts(input.dealId);
+          if (newAttempts >= 5) {
+            await lockDealPin(input.dealId);
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "PIN is now locked after 5 failed attempts. Raise a dispute to reset.",
+            });
+          }
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Incorrect PIN. ${5 - newAttempts} attempt(s) remaining.`,
+          });
+        }
+        // Success — atomically complete the deal
+        await completeDealAtomically(input.dealId, deal.itemId);
+        return { success: true };
+      }),
+
+    submitUtr: protectedProcedure
+      .input(
+        z.object({
+          dealId: z.number(),
+          utr: z.string().regex(/^\d{12}$/, "UTR must be exactly 12 digits"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const deal = await getDealRawById(input.dealId);
+        if (!deal)
+          throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.buyerId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the buyer can submit a UTR",
+          });
+        }
+        if (!(["PAID", "DISPUTED"] as string[]).includes(deal.status)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "UTR can only be submitted for completed or disputed deals",
+          });
+        }
+        if (deal.utr) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "A UTR has already been submitted for this deal",
+          });
+        }
+        const duplicate = await isDuplicateUtr(input.utr, input.dealId);
+        if (duplicate) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This UTR has already been used on another deal",
+          });
+        }
+        await setDealUtr(input.dealId, input.utr);
+        return { success: true };
+      }),
+
+    raiseDispute: protectedProcedure
+      .input(z.object({ dealId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const deal = await getDealRawById(input.dealId);
+        if (!deal)
+          throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.buyerId && ctx.user.id !== deal.sellerId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only participants can raise a dispute",
+          });
+        }
+        if (["PAID", "CANCELLED"].includes(deal.status)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Cannot dispute a completed or cancelled deal",
+          });
+        }
+        // Set status to DISPUTED
+        await setDealDisputed(input.dealId);
+        // Regenerate PIN (invalidates old one, resets attempts)
+        const newPin = await generatePin();
+        await updateDealPinData(input.dealId, {
+          pinHash: newPin.hash,
+          pinEncrypted: newPin.encrypted,
+          pinAttempts: 0,
+          pinLockedAt: null,
+        });
+        return { success: true };
       }),
   }),
 
