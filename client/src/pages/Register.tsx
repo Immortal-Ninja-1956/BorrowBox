@@ -2,10 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { ShoppingBag, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { ShoppingBag, Eye, EyeOff, GraduationCap } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -18,6 +26,20 @@ export default function Register() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+
+  useEffect(() => {
+    // Only show warning once per session to avoid annoying the user
+    const hasSeen = sessionStorage.getItem("seen-vit-warning");
+    if (!hasSeen) {
+      setShowWarning(true);
+    }
+  }, []);
+
+  const handleCloseWarning = () => {
+    sessionStorage.setItem("seen-vit-warning", "true");
+    setShowWarning(false);
+  };
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -191,6 +213,9 @@ export default function Register() {
                   provider: "google",
                   options: {
                     redirectTo: `${window.location.origin}/marketplace`,
+                    queryParams: {
+                      hd: "vitstudent.ac.in",
+                    },
                   },
                 });
                 if (error) throw error;
@@ -233,6 +258,35 @@ export default function Register() {
           </p>
         </div>
       </div>
+
+      <Dialog open={showWarning} onOpenChange={setShowWarning}>
+        <DialogContent className="max-w-md border border-border bg-card/95 backdrop-blur-md p-6 rounded-xl shadow-2xl">
+          <DialogHeader className="flex flex-col items-center text-center gap-2">
+            <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mb-2">
+              <GraduationCap className="w-6 h-6 text-amber-500" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-foreground">
+              VIT Chennai Students Only
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm leading-relaxed mt-2">
+              This service is <strong>ONLY</strong> available to the students of VIT Chennai. 
+              To access the marketplace, please make sure to sign up or sign in using your official college email ID ending with <strong>@vitstudent.ac.in</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 p-3 bg-muted/40 rounded-lg border border-border/50 text-xs text-muted-foreground flex gap-2 items-start text-left">
+            <span className="text-amber-500 font-bold shrink-0">Note:</span>
+            <span>Personal Google accounts or non-college emails will not be registered or allowed to access the platform.</span>
+          </div>
+          <DialogFooter className="mt-6 w-full flex justify-center sm:justify-center">
+            <Button
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-lg py-2.5"
+              onClick={handleCloseWarning}
+            >
+              I understand, proceed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

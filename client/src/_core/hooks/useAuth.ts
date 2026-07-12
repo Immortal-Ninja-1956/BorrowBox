@@ -1,6 +1,9 @@
 import { trpc } from "@/lib/trpc";
 import { useCallback, useMemo, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+
+const ALLOWED_DOMAIN = "@vitstudent.ac.in";
 
 export function useAuth() {
   const utils = trpc.useUtils();
@@ -22,6 +25,12 @@ export function useAuth() {
     // On mount, check if Supabase already has a persisted session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
+        // Reject persisted sessions from non-VIT emails
+        const email = session.user?.email?.toLowerCase() ?? "";
+        if (!email.endsWith(ALLOWED_DOMAIN)) {
+          supabase.auth.signOut();
+          return;
+        }
         setSessionReady(true);
       }
       setInitialCheckDone(true);
@@ -37,6 +46,14 @@ export function useAuth() {
         event === "PASSWORD_RECOVERY"
       ) {
         if (session) {
+          // Domain gate: reject non-VIT emails immediately after OAuth redirect
+          const email = session.user?.email?.toLowerCase() ?? "";
+          if (!email.endsWith(ALLOWED_DOMAIN)) {
+            toast.error(`Only ${ALLOWED_DOMAIN} college emails are allowed.`);
+            await supabase.auth.signOut();
+            window.location.href = "/login";
+            return;
+          }
           setSessionReady(true);
           // Small delay to ensure session is written to sessionStorage
           // before the tRPC fetch wrapper reads it via getSession()

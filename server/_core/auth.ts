@@ -88,7 +88,14 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
         });
       }
 
-      // Removed Server-side domain restriction as per user request
+      // 3. Enforce email domain restriction — only @vitstudent.ac.in allowed
+      if (!isAllowedEmail(authUser.email)) {
+        console.warn(`[Auth] Rejected non-VIT email: ${authUser.email}`);
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Only ${ALLOWED_EMAIL_DOMAIN} college emails are allowed on this platform.`,
+        });
+      }
 
       // 4. Look up local DB user record (case-insensitive)
       const userEmail = authUser.email.toLowerCase();

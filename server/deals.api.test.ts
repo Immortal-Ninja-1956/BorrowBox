@@ -52,13 +52,14 @@ function handleGetByItem(ctx: { user?: { id: number } }, item: MockItem | null, 
   if (!ctx.user) {
     throw new Error("UNAUTHORIZED");
   }
+  const user = ctx.user;
   if (!item) {
     throw new Error("NOT_FOUND");
   }
-  if (ctx.user.id === item.sellerId) {
+  if (user.id === item.sellerId) {
     return deals;
   }
-  return deals.filter(d => d.buyerId === ctx.user.id);
+  return deals.filter(d => d.buyerId === user.id);
 }
 
 describe("Deals API Security & Access Controls", () => {
