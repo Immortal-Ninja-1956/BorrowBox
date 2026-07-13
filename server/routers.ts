@@ -86,7 +86,7 @@ const BANNED_KEYWORDS = [
   "knife"
 ];
 
-function containsBannedKeywords(text: string | undefined): boolean {
+function containsBannedKeywords(text: string | null | undefined): boolean {
   if (!text) return false;
   const lowerText = text.toLowerCase();
   return BANNED_KEYWORDS.some(keyword => {
