@@ -15,9 +15,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
+  
+  usePageMetadata("Sign In", "Sign in to your BorrowBox account to buy, sell, rent, or borrow items on campus.");
+
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showWarning, setShowWarning] = useState(false);

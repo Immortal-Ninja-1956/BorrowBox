@@ -26,10 +26,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function Profile() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
+
+  usePageMetadata("My Profile", "View and update your BorrowBox profile details, UPI settings, and student reviews.");
   const [formData, setFormData] = useState({
     upiId: "",
     upiName: "",

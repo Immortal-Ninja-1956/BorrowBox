@@ -73,6 +73,8 @@ const categoryMetadata: Record<string, { icon: any; gradient: string }> = {
   },
 };
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 function getCategoryMeta(category?: string) {
   const normalized = category || "Other";
   return categoryMetadata[normalized] || categoryMetadata["Other"];
@@ -92,6 +94,11 @@ export default function ItemDetail() {
     isLoading,
     refetch: refetchItem,
   } = trpc.items.getById.useQuery({ id: itemId });
+
+  usePageMetadata(
+    item ? item.title : "Item Detail",
+    item ? `${item.title} - Condition: ${item.condition}. ${item.description || ""}`.substring(0, 155) + "..." : undefined
+  );
   const { data: deals, refetch: refetchDeals } = trpc.deals.getByItem.useQuery({
     itemId,
   });
@@ -466,16 +473,16 @@ export default function ItemDetail() {
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
                           deal.status === "OPEN"
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400"
                             : deal.status === "DELIVERED"
-                              ? "bg-blue-100 text-blue-800"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400"
                               : deal.status === "CONFIRMED"
-                                ? "bg-purple-100 text-purple-800"
+                                ? "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-400"
                                 : deal.status === "PAID"
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400"
                                   : deal.status === "CANCELLED"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-yellow-100 text-yellow-800"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400"
+                                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400"
                         }`}
                       >
                         {deal.status === "OPEN" ? "Open" :

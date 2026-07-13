@@ -40,6 +40,8 @@ const conditionMetadata = [
   { name: "Poor", desc: "Heavily used, might need minor fixes" },
 ];
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function EditPost() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -51,6 +53,11 @@ export default function EditPost() {
     isLoading: itemLoading,
     error,
   } = trpc.items.getById.useQuery({ id: itemId });
+
+  usePageMetadata(
+    item ? `Edit "${item.title}"` : "Edit Listing",
+    "Modify the details, price, condition, or image for your active campus listing."
+  );
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({

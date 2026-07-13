@@ -40,9 +40,14 @@ const conditionMetadata = [
   { name: "Poor", desc: "Heavily used, might need minor fixes" },
 ];
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function CreatePost() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+  
+  usePageMetadata("Post an Item", "Create a new listing to buy, sell, rent, or share items with other students on campus.");
+
   const { data: serverProfile } = trpc.user.getProfile.useQuery(undefined, {
     enabled: isAuthenticated,
   });

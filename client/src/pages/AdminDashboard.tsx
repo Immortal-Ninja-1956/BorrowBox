@@ -22,7 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function AdminDashboard() {
+  usePageMetadata("Admin Dashboard", "BorrowBox administration panel.");
   const { user, loading: userLoading } = useAuth();
 
   const { data: stats, isLoading: statsLoading } = trpc.admin.getStats.useQuery(

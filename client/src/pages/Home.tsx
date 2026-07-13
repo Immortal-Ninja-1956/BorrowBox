@@ -11,6 +11,7 @@ import {
   Moon,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
 
 import { useEffect } from "react";
 
@@ -18,6 +19,8 @@ export default function Home() {
   const { isAuthenticated, user, loading } = useAuth();
   const [location, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
+
+  usePageMetadata("Home", "BorrowBox is a peer-to-peer campus marketplace for students to buy, sell, rent, or share items with in-person meetups and secure UPI payments.");
 
   useEffect(() => {
     if (isAuthenticated && location === "/") {

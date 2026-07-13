@@ -78,6 +78,8 @@ const categoryMetadata: Record<string, { icon: any; gradient: string }> = {
   },
 };
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 function getCategoryMeta(category?: string) {
   const normalized = category || "Other";
   return categoryMetadata[normalized] || categoryMetadata["Other"];
@@ -86,6 +88,8 @@ function getCategoryMeta(category?: string) {
 export default function Dashboard() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+
+  usePageMetadata("My Dashboard", "Manage your listed items, active trade deals, and purchase confirmations on BorrowBox.");
 
   const {
     data: deals,
@@ -293,7 +297,8 @@ export default function Dashboard() {
                 Completed Deals
               </p>
               <h4 className="text-2xl font-black text-foreground mt-0.5">
-                {deals?.filter(d => d.status === "PAID").length || 0}
+                {(deals?.filter(d => d.status === "PAID").length || 0) + 
+                 (buyerDeals?.filter(d => d.status === "PAID").length || 0)}
               </h4>
             </div>
           </div>

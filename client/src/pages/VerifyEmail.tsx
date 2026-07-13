@@ -6,11 +6,15 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function VerifyEmail() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
   const [status, setStatus] = useState<"loading" | "verified" | "pending">("loading");
   const [email, setEmail] = useState("");
+
+  usePageMetadata("Verify Email", "Verify your campus email address to finalize your BorrowBox account registration.");
   const [resending, setResending] = useState(false);
 
   useEffect(() => {

@@ -136,6 +136,7 @@ export function DealChat({
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder="Type a message..."
+            aria-label="Message input"
             className="min-h-[44px] max-h-[120px] resize-y bg-card border-border/50 rounded-xl text-sm"
             onKeyDown={e => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -147,12 +148,16 @@ export function DealChat({
           <Button
             onClick={handleSend}
             disabled={!text.trim() || sendMessageMutation.isPending}
-            className="h-[44px] w-[44px] shrink-0 rounded-full p-0 flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/15"
+            aria-label="Send message"
+            className="h-[44px] w-[44px] sm:w-auto sm:px-4 shrink-0 rounded-full sm:rounded-xl p-0 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/15"
           >
             {sendMessageMutation.isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <Send className="w-4 h-4" />
+              <>
+                <Send className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Send</span>
+              </>
             )}
           </Button>
         </div>

@@ -6,10 +6,14 @@ import { ShoppingBag, ArrowLeft, CheckCircle, Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function ForgotPassword() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  usePageMetadata("Forgot Password", "Request a password reset link for your BorrowBox account.");
 
   const [isLoading, setIsLoading] = useState(false);
 

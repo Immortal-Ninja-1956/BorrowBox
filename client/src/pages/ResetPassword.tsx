@@ -6,9 +6,13 @@ import { ShoppingBag, ArrowLeft, KeyRound, Eye, EyeOff, CheckCircle, Loader2 } f
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const [passwords, setPasswords] = useState({ password: "", confirm: "" });
+
+  usePageMetadata("Reset Password", "Create a new password for your BorrowBox account.");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

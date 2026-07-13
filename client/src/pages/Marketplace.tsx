@@ -19,10 +19,13 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
 
 export default function Marketplace() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+  
+  usePageMetadata("Marketplace", "Explore active item listings for buying, renting, or sharing on campus.");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");

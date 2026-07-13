@@ -86,6 +86,8 @@ function ItemCard({ item }: { item: any }) {
   );
 }
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function PublicProfile() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -94,6 +96,11 @@ export default function PublicProfile() {
   const { data: profile, isLoading, error } = trpc.user.getPublicProfileById.useQuery(
     { userId },
     { enabled: !!userId }
+  );
+
+  usePageMetadata(
+    profile ? `${profile.name}'s Profile` : "Seller Profile",
+    profile ? `View public seller profile of ${profile.name} on BorrowBox. See trust score, verification status, and active listings.` : undefined
   );
 
   if (isLoading) {

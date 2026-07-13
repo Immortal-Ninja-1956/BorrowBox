@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 
+import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+
 export default function BuyerConfirmation() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -50,6 +52,11 @@ export default function BuyerConfirmation() {
         return 8000;
       }
     }
+  );
+
+  usePageMetadata(
+    deal ? `Deal #${deal.id} - ${deal.item?.title || "Confirmation"}` : "Delivery Confirmation",
+    "Confirm item delivery, access the secure UPI QR code, and complete your purchase handshake."
   );
   const { data: qrData, refetch: refetchQr } = trpc.deals.getUpiQrCode.useQuery(
     { dealId: dealIdNum },
@@ -328,7 +335,7 @@ export default function BuyerConfirmation() {
               Back to Dashboard
             </Button>
           </div>
-        ) : !isDelivered && !isConfirmed ? (
+        ) : !isDelivered && !isConfirmed && deal.status !== "CONFIRMED" ? (
           /* === STATE: Waiting for seller to mark as DELIVERED === */
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
             <h3 className="text-lg font-bold text-yellow-900 mb-4 flex items-center gap-2">
@@ -340,11 +347,11 @@ export default function BuyerConfirmation() {
               do, you'll be able to confirm delivery and proceed with payment.
             </p>
           </div>
-        ) : isConfirmed || isDisputed || needsAttention ? (
-          /* === STATE: Confirmed delivery, show QR + Reveal PIN === */
+        ) : isConfirmed || deal.status === "CONFIRMED" || isDisputed || needsAttention ? (
+          /* === STATE: Confirmed delivery/Payment ready, show QR + Reveal PIN === */
           <div className="space-y-8">
-            {/* Confirmed Banner */}
-            {!isDisputed && !needsAttention && (
+            {/* Confirmed Banner — only show if the buyer has explicitly tapped the confirm button (buyerConfirmed === 1) */}
+            {isConfirmed && !isDisputed && !needsAttention && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <CheckCircle2 className="w-8 h-8 text-green-600" />
