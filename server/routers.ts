@@ -531,6 +531,14 @@ export const appRouter = router({
         const item = await getItemById(input.itemId);
         if (!item)
           throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
+        
+        if (containsBannedKeywords(item.title) || containsBannedKeywords(item.description)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This item contains restricted keywords (e.g. Maggi, noodles, kettle, etc.) and cannot be transacted.",
+          });
+        }
+
         if (ctx.user.id === item.sellerId) {
           throw new TRPCError({
             code: "FORBIDDEN",

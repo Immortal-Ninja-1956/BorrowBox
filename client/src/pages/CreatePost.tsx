@@ -42,6 +42,34 @@ const conditionMetadata = [
 
 import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
 
+const BANNED_KEYWORDS = [
+  "maggi",
+  "noodle",
+  "noodles",
+  "kettle",
+  "harmful",
+  "substance",
+  "substances",
+  "weapon",
+  "drug",
+  "drugs",
+  "cigarette",
+  "alcohol",
+  "liquor",
+  "vape",
+  "gun",
+  "knife"
+];
+
+function containsBannedKeywords(text: string | undefined): boolean {
+  if (!text) return false;
+  const lowerText = text.toLowerCase();
+  return BANNED_KEYWORDS.some(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\b`, "i");
+    return regex.test(lowerText);
+  });
+}
+
 export default function CreatePost() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -189,6 +217,10 @@ export default function CreatePost() {
         toast.error("Please enter an item title");
         return false;
       }
+      if (containsBannedKeywords(formData.title)) {
+        toast.error("Your title contains restricted keywords (e.g. Maggi, noodles, kettle) which are not allowed.");
+        return false;
+      }
       if (!formData.amount.trim()) {
         toast.error("Please enter a price");
         return false;
@@ -202,6 +234,10 @@ export default function CreatePost() {
     if (step === 2) {
       if (!formData.description.trim()) {
         toast.error("Please enter a description for your item");
+        return false;
+      }
+      if (containsBannedKeywords(formData.description)) {
+        toast.error("Your description contains restricted keywords (e.g. Maggi, noodles, kettle) which are not allowed.");
         return false;
       }
     }
