@@ -19,8 +19,9 @@ import {
   Package,
   CheckCircle2,
   MessageCircle,
+  Star,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -91,6 +92,8 @@ export default function Dashboard() {
 
   usePageMetadata("My Dashboard", "Manage your listed items, active trade deals, and purchase confirmations on BorrowBox.");
 
+  const [openReviewDealId, setOpenReviewDealId] = useState<number | null>(null);
+
   const {
     data: deals,
     isLoading,
@@ -108,6 +111,56 @@ export default function Dashboard() {
       { sellerId: user?.id || 0 },
       { enabled: isAuthenticated && !!user?.id }
     );
+
+  // Proactive review nudge for PAID deals
+  useEffect(() => {
+    if (!buyerDeals && !deals) return;
+
+    // Find any PAID deal where the user is buyer or seller that hasn't been nudged yet
+    const paidBuyerDeal = buyerDeals?.find(d => d.status === "PAID");
+    const paidSellerDeal = deals?.find(d => d.status === "PAID");
+
+    const dealToNudge = paidBuyerDeal || paidSellerDeal;
+    if (dealToNudge) {
+      const storageKey = `nudged-review-${dealToNudge.id}`;
+      if (!sessionStorage.getItem(storageKey)) {
+        sessionStorage.setItem(storageKey, "true");
+        toast.custom((t) => (
+          <div className="bg-card border border-border/85 rounded-2xl p-5 shadow-xl max-w-sm flex flex-col gap-3.5 border-amber-500/20">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                <Star className="w-5 h-5 fill-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-foreground">Deal Complete! 🎉</h4>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  You completed the deal for "{dealToNudge.item?.title || `Item #${dealToNudge.itemId}`}". Leave a review to help build campus trust!
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border/40 pt-3">
+              <Button
+                variant="ghost"
+                onClick={() => toast.dismiss(t)}
+                className="text-xs font-semibold rounded-lg h-8 px-3"
+              >
+                Dismiss
+              </Button>
+              <Button
+                onClick={() => {
+                  toast.dismiss(t);
+                  setOpenReviewDealId(dealToNudge.id);
+                }}
+                className="bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-semibold rounded-lg h-8 px-4"
+              >
+                Write Review
+              </Button>
+            </div>
+          </div>
+        ), { duration: 8000 });
+      }
+    }
+  }, [buyerDeals, deals]);
 
   const itemsListed = sellerItems?.length || 0;
   const activeDeals =
@@ -505,6 +558,8 @@ export default function Dashboard() {
                           updateStatusMutation.isPending ||
                           cancelDealMutation.isPending
                         }
+                        triggerReviewOpen={openReviewDealId === deal.id}
+                        onTriggerReviewOpenHandled={() => setOpenReviewDealId(null)}
                       />
                     ))}
 
@@ -535,6 +590,8 @@ export default function Dashboard() {
                                 updateStatusMutation.isPending ||
                                 cancelDealMutation.isPending
                               }
+                              triggerReviewOpen={openReviewDealId === deal.id}
+                              onTriggerReviewOpenHandled={() => setOpenReviewDealId(null)}
                             />
                           ))}
                       </div>
@@ -574,6 +631,8 @@ export default function Dashboard() {
                         cancelDealMutation.mutate({ dealId: deal.id })
                       }
                       isCancelling={cancelDealMutation.isPending}
+                      triggerReviewOpen={openReviewDealId === deal.id}
+                      onTriggerReviewOpenHandled={() => setOpenReviewDealId(null)}
                     />
                   ))}
 
@@ -592,6 +651,8 @@ export default function Dashboard() {
                               cancelDealMutation.mutate({ dealId: deal.id })
                             }
                             isCancelling={cancelDealMutation.isPending}
+                            triggerReviewOpen={openReviewDealId === deal.id}
+                            onTriggerReviewOpenHandled={() => setOpenReviewDealId(null)}
                           />
                         ))}
                       </div>
@@ -633,13 +694,24 @@ export default function Dashboard() {
 function ReviewModal({
   deal,
   isBuyer = false,
+  triggerOpen = false,
+  onTriggerOpenHandled,
 }: {
   deal: any;
   isBuyer?: boolean;
+  triggerOpen?: boolean;
+  onTriggerOpenHandled?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (triggerOpen) {
+      setIsOpen(true);
+      if (onTriggerOpenHandled) onTriggerOpenHandled();
+    }
+  }, [triggerOpen, onTriggerOpenHandled]);
 
   const { data: reviews, refetch } = trpc.reviews.getByDeal.useQuery(
     { dealId: deal.id },
@@ -723,6 +795,8 @@ function DealCard({
   onStatusUpdate,
   onCancel,
   isUpdating,
+  triggerReviewOpen = false,
+  onTriggerReviewOpenHandled,
 }: {
   deal: any;
   statusFlow: string[];
@@ -730,6 +804,8 @@ function DealCard({
   onStatusUpdate: (status: string) => void;
   onCancel: () => void;
   isUpdating: boolean;
+  triggerReviewOpen?: boolean;
+  onTriggerReviewOpenHandled?: () => void;
 }) {
   const currentStatusIndex = statusFlow.indexOf(deal.status);
   const [pin, setPin] = useState("");
@@ -926,7 +1002,11 @@ function DealCard({
           <p className="text-green-600 dark:text-green-400 font-bold text-sm">
             ✅ Deal Complete — Delivered & Paid!
           </p>
-          <ReviewModal deal={deal} />
+          <ReviewModal
+            deal={deal}
+            triggerOpen={triggerReviewOpen}
+            onTriggerOpenHandled={onTriggerReviewOpenHandled}
+          />
         </div>
       )}
 
@@ -1002,10 +1082,14 @@ function PurchasedDealCard({
   deal,
   onCancel,
   isCancelling,
+  triggerReviewOpen = false,
+  onTriggerReviewOpenHandled,
 }: {
   deal: any;
   onCancel: () => void;
   isCancelling: boolean;
+  triggerReviewOpen?: boolean;
+  onTriggerReviewOpenHandled?: () => void;
 }) {
   const [, setLocation] = useLocation();
 
@@ -1102,7 +1186,14 @@ function PurchasedDealCard({
       </div>
 
       <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-        {deal.status === "PAID" && <ReviewModal deal={deal} isBuyer={true} />}
+        {deal.status === "PAID" && (
+          <ReviewModal
+            deal={deal}
+            isBuyer={true}
+            triggerOpen={triggerReviewOpen}
+            onTriggerOpenHandled={onTriggerReviewOpenHandled}
+          />
+        )}
         {isDelivered && !isConfirmed ? (
           <Button
             onClick={() => setLocation(`/confirm/${deal.id}`)}

@@ -355,13 +355,13 @@ export default function EditPost() {
               <ArrowLeft className="w-4 h-4 text-foreground" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Edit Listing</h1>
-              <p className="text-xs text-muted-foreground">Modify details for "{item.title}"</p>
+              <h1 className="text-lg sm:text-xl font-bold text-foreground">Edit Listing</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">Modify details for "{item.title}"</p>
             </div>
           </div>
 
           {/* Steps indicators */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {[1, 2, 3].map(step => (
               <div key={step} className="flex items-center">
                 <div
@@ -377,7 +377,7 @@ export default function EditPost() {
                 </div>
                 {step < 3 && (
                   <div
-                    className={`w-10 h-0.5 mx-1 transition-colors ${
+                    className={`w-6 sm:w-10 h-0.5 mx-0.5 sm:mx-1 transition-colors ${
                       currentStep > step ? "bg-green-500" : "bg-muted"
                     }`}
                   />
@@ -389,17 +389,6 @@ export default function EditPost() {
       </div>
 
       <div className="container max-w-2xl py-12 relative z-10">
-        {/* Step indicator (mobile only) */}
-        <div className="md:hidden flex items-center justify-between mb-8 px-2">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            Step {currentStep} of 3
-          </span>
-          <span className="text-sm font-semibold text-foreground">
-            {currentStep === 1 && "Basic Details"}
-            {currentStep === 2 && "Specifications"}
-            {currentStep === 3 && "Media & Review"}
-          </span>
-        </div>
 
         {/* Wizard Form */}
         <div className="glass-card rounded-2xl border border-border/40 p-6 md:p-8 shadow-xl">
