@@ -63,6 +63,7 @@ import {
   advanceDealStatusAtomically,
 } from "./db";
 import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
+import { checkImageSafety } from "./vision";
 // Custom auth logic removed, moved to Supabase
 import { TRPCError } from "@trpc/server";
 
@@ -368,6 +369,16 @@ export const appRouter = router({
           });
         }
 
+        if (input.imageUrl) {
+          const safety = await checkImageSafety(input.imageUrl);
+          if (!safety.safe) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: safety.reason || "The uploaded image was flagged as unsafe or contains a restricted item.",
+            });
+          }
+        }
+
         if (!ctx.user.whatsappVerified) {
           const existing = await getItemsBySellerId(ctx.user.id);
           if (existing.length >= 1) {
@@ -464,6 +475,16 @@ export const appRouter = router({
             code: "BAD_REQUEST",
             message: "Your listing contains restricted items/keywords (e.g. Maggi, noodles, kettle, etc.) which are not allowed.",
           });
+        }
+
+        if (input.imageUrl) {
+          const safety = await checkImageSafety(input.imageUrl);
+          if (!safety.safe) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: safety.reason || "The uploaded image was flagged as unsafe or contains a restricted item.",
+            });
+          }
         }
 
         const item = await getItemById(input.id);
