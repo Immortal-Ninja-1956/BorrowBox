@@ -66,6 +66,36 @@ import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 // Custom auth logic removed, moved to Supabase
 import { TRPCError } from "@trpc/server";
 
+// ─── Prohibited Items Filter ────────────────────────────────────────────────
+const BANNED_KEYWORDS = [
+  "maggi",
+  "noodle",
+  "noodles",
+  "kettle",
+  "harmful",
+  "substance",
+  "substances",
+  "weapon",
+  "drug",
+  "drugs",
+  "cigarette",
+  "alcohol",
+  "liquor",
+  "vape",
+  "gun",
+  "knife"
+];
+
+function containsBannedKeywords(text: string | undefined): boolean {
+  if (!text) return false;
+  const lowerText = text.toLowerCase();
+  return BANNED_KEYWORDS.some(keyword => {
+    // Use word boundaries so "noodle" doesn't match "snoodled" 
+    const regex = new RegExp(`\\b${keyword}\\b`, "i");
+    return regex.test(lowerText);
+  });
+}
+
 export const appRouter = router({
   system: systemRouter,
 
@@ -331,6 +361,13 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        if (containsBannedKeywords(input.title) || containsBannedKeywords(input.description)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Your listing contains restricted items/keywords (e.g. Maggi, noodles, kettle, etc.) which are not allowed.",
+          });
+        }
+
         if (!ctx.user.whatsappVerified) {
           const existing = await getItemsBySellerId(ctx.user.id);
           if (existing.length >= 1) {
@@ -422,6 +459,13 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        if (containsBannedKeywords(input.title) || containsBannedKeywords(input.description)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Your listing contains restricted items/keywords (e.g. Maggi, noodles, kettle, etc.) which are not allowed.",
+          });
+        }
+
         const item = await getItemById(input.id);
         if (!item || item.sellerId !== ctx.user.id)
           throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
