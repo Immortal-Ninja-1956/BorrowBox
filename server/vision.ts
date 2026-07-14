@@ -62,21 +62,30 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
       imageInput = localPath;
     }
 
-    // Run safe search, label detection, and image properties analysis in parallel
-    const [safeSearchRes, labelRes, propertiesRes] = await Promise.all([
+    // Run safe search, label detection, image properties, and text detection (OCR) in parallel
+    const [safeSearchRes, labelRes, propertiesRes, textRes] = await Promise.all([
       client.safeSearchDetection(imageInput),
       client.labelDetection(imageInput),
       client.imageProperties(imageInput),
+      client.textDetection(imageInput), // NEW: OCR to catch text written on images
     ]);
 
-    // 1. Evaluate SafeSearch
+    // 1. Evaluate SafeSearch (Explicit, Violence, etc.)
     const safeSearch = safeSearchRes[0]?.safeSearchAnnotation;
     if (safeSearch) {
       const adult = safeSearch.adult || "UNKNOWN";
       const violence = safeSearch.violence || "UNKNOWN";
       const racy = safeSearch.racy || "UNKNOWN";
+      const medical = safeSearch.medical || "UNKNOWN";
 
-      if (SAFETY_LEVELS.includes(adult) || SAFETY_LEVELS.includes(violence)) {
+      // Make it stricter: block POSSIBLE as well for explicit content
+      if (
+        SAFETY_LEVELS.includes(adult) || 
+        SAFETY_LEVELS.includes(violence) || 
+        SAFETY_LEVELS.includes(racy) ||
+        adult === "POSSIBLE" || 
+        violence === "POSSIBLE"
+      ) {
         return { safe: false, reason: "Image contains inappropriate or explicit content." };
       }
     }
@@ -86,19 +95,14 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
     if (properties && properties.dominantColors && properties.dominantColors.colors) {
       const colors = properties.dominantColors.colors;
       if (colors.length > 0) {
-        // Check for solid color (empty tile or flat image)
         const primaryColor = colors[0];
+        // Empty tile / solid color block
         if (primaryColor.pixelFraction && primaryColor.pixelFraction > 0.85) {
-          return {
-            safe: false,
-            reason: "This image looks like a solid color or empty tile. Please upload a clear photo of the item.",
-          };
+          return { safe: false, reason: "This image looks like a solid color or empty tile. Please upload a clear photo." };
         }
 
-        // Check for extreme brightness/darkness (weighted average luminance)
         let totalScore = 0;
         let weightedLuminance = 0;
-
         for (const col of colors) {
           const colorObj = col.color;
           const score = col.score || 0;
@@ -106,123 +110,69 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
             const r = colorObj.red || 0;
             const g = colorObj.green || 0;
             const b = colorObj.blue || 0;
-            // Standard relative luminance formula
             const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
             weightedLuminance += luminance * score;
             totalScore += score;
           }
         }
-
         if (totalScore > 0) {
           const avgLuminance = weightedLuminance / totalScore;
-          if (avgLuminance < 15) {
-            return {
-              safe: false,
-              reason: "This image is too dark. Please upload a brighter, clearer photo.",
-            };
-          }
-          if (avgLuminance > 240) {
-            return {
-              safe: false,
-              reason: "This image is too bright or overexposed. Please upload a clearer photo.",
-            };
-          }
+          if (avgLuminance < 15) return { safe: false, reason: "Image is too dark." };
+          if (avgLuminance > 240) return { safe: false, reason: "Image is overexposed or too bright." };
         }
       }
     }
 
-    // 3. Evaluate Labels
+    // 3. Optical Character Recognition (OCR) Check
+    // If an engineering student writes "cigs" or "vape" on the image to bypass labels!
+    const textAnnotations = textRes[0]?.textAnnotations;
+    if (textAnnotations && textAnnotations.length > 0) {
+      const extractedText = textAnnotations[0].description?.toLowerCase() || "";
+      const textBannedWords = ["maggi", "noodle", "kettle", "drug", "cigar", "vape", "gun", "knife", "weapon", "smoke", "weed"];
+      const containsBannedText = textBannedWords.some(w => extractedText.includes(w));
+      if (containsBannedText) {
+        console.log(`[Vision API] Blocked due to OCR text: ${extractedText.replace(/\n/g, " ")}`);
+        return { safe: false, reason: "The image contains restricted text." };
+      }
+    }
+
+    // 4. Evaluate Labels
     const labels = labelRes[0]?.labelAnnotations || [];
-    // Banned keywords for visual detection (matching labels)
     const BANNED_KEYWORDS = [
-      "maggi",
-      "noodle",
-      "noodles",
-      "kettle",
-      "harmful",
-      "substance",
-      "substances",
-      "weapon",
-      "drug",
-      "drugs",
-      "cigarette",
-      "cigarettes",
-      "tobacco",
-      "alcohol",
-      "liquor",
-      "vape",
-      "gun",
-      "knife",
-      // Human & Face restrictions
-      "human",
-      "person",
-      "people",
-      "face",
-      "faces",
-      "selfie",
-      "portrait",
-      "avatar",
+      // Prohibited Items
+      "maggi", "noodle", "noodles", "kettle", "harmful", "substance", "substances",
+      "weapon", "drug", "drugs", "cigarette", "cigarettes", "tobacco", "alcohol",
+      "liquor", "vape", "gun", "knife",
+      
+      // Human & Face restrictions (expanded)
+      "human", "person", "people", "face", "faces", "selfie", "portrait", "avatar",
+      "skin", "smile", "head", "nose", "chin", "forehead", "cheek", // Catches partial faces like Travis Scott
+      
       // Animal restrictions
-      "animal",
-      "animals",
-      "dog",
-      "dogs",
-      "cat",
-      "cats",
-      "pet",
-      "pets",
+      "animal", "animals", "dog", "dogs", "cat", "cats", "pet", "pets",
+      
       // Waste/Offensive restrictions
-      "poop",
-      "poops",
-      "feces",
-      "manure",
-      "dung",
-      "shit",
-      "trash",
-      "garbage",
-      "waste",
-      "junk",
-      "rubbish",
-      // Random/Unwanted categories (Vehicles, Buildings, lighting)
-      "car",
-      "cars",
-      "bike",
-      "bikes",
-      "bicycle",
-      "bicycles",
-      "motorcycle",
-      "motorcycles",
-      "scooter",
-      "scooters",
-      "vehicle",
-      "vehicles",
-      "building",
-      "buildings",
-      "house",
-      "houses",
-      "architecture",
-      "tubelight",
-      "fluorescent lamp",
-      "light bulb",
-      "neon sign",
+      "poop", "poops", "feces", "manure", "dung", "shit", "trash", "garbage", "waste", "junk", "rubbish",
+      
+      // Random/Unwanted categories
+      "car", "cars", "bike", "bikes", "bicycle", "bicycles", "motorcycle", "motorcycles",
+      "scooter", "scooters", "vehicle", "vehicles", "building", "buildings", "house", "houses",
+      "architecture", "tubelight", "fluorescent lamp", "light bulb", "neon sign",
+      
+      // Fake/Digital Images (Force them to upload real photos)
+      "illustration", "clip art", "drawing", "cartoon", "animation", "anime", "sketch",
+      "vector graphics", "screenshot", "meme", "collage", "poster",
+      
       // Image Quality Checks
-      "blur",
-      "blurry",
-      "lens flare",
-      "bokeh",
-      "out of focus",
-      "glare",
-      "light source",
-      "overexposure",
-      "underexposure"
+      "blur", "blurry", "lens flare", "bokeh", "out of focus", "glare", "light source"
     ];
 
     for (const label of labels) {
       const labelDesc = label.description?.toLowerCase() || "";
       const score = label.score || 0;
 
-      // Only reject if it's a high confidence match (e.g. > 65% match)
-      if (score > 0.65) {
+      // Threshold at 0.60 to balance accuracy and catching hidden items
+      if (score > 0.60) {
         const isBanned = BANNED_KEYWORDS.some(keyword => {
           const regex = new RegExp(`\\b${keyword}\\b`, "i");
           return regex.test(labelDesc);
@@ -230,18 +180,24 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
 
         if (isBanned) {
           console.log(`[Vision API] Blocked image due to label: "${label.description}" (score: ${score})`);
-          return {
-            safe: false,
-            reason: `This image appears to contain a restricted item: ${label.description}.`,
-          };
+          return { safe: false, reason: `This image appears to contain a restricted item: ${label.description}.` };
         }
       }
     }
 
     return { safe: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("[Vision API] Error during safety analysis:", error);
-    // Fail-safe: if the API fails, we allow listing so we don't block users if there's a quota issue
+    
+    // SMART FAIL-SAFE:
+    // If the error is an authentication or quota error, we allow it (fail-safe) so the app doesn't crash.
+    // BUT if the error is an Invalid Argument (e.g. they uploaded a corrupt/trick image), we BLOCK it!
+    const errMsg = error?.message?.toLowerCase() || "";
+    if (errMsg.includes("invalid argument") || errMsg.includes("bad request") || errMsg.includes("corrupt")) {
+      return { safe: false, reason: "The uploaded image is corrupt or invalid." };
+    }
+    
+    // Otherwise, it's a Google Server issue, so allow it.
     return { safe: true };
   }
 }
