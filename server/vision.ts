@@ -62,10 +62,11 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
       imageInput = localPath;
     }
 
-    // Run safe search and label detection in parallel
-    const [safeSearchRes, labelRes] = await Promise.all([
+    // Run safe search, label detection, and image properties analysis in parallel
+    const [safeSearchRes, labelRes, propertiesRes] = await Promise.all([
       client.safeSearchDetection(imageInput),
       client.labelDetection(imageInput),
+      client.imageProperties(imageInput),
     ]);
 
     // 1. Evaluate SafeSearch
@@ -80,7 +81,57 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
       }
     }
 
-    // 2. Evaluate Labels
+    // 2. Evaluate Image Properties (Solid colors, extreme darkness/brightness)
+    const properties = propertiesRes[0]?.imagePropertiesAnnotation;
+    if (properties && properties.dominantColors && properties.dominantColors.colors) {
+      const colors = properties.dominantColors.colors;
+      if (colors.length > 0) {
+        // Check for solid color (empty tile or flat image)
+        const primaryColor = colors[0];
+        if (primaryColor.pixelFraction && primaryColor.pixelFraction > 0.85) {
+          return {
+            safe: false,
+            reason: "This image looks like a solid color or empty tile. Please upload a clear photo of the item.",
+          };
+        }
+
+        // Check for extreme brightness/darkness (weighted average luminance)
+        let totalScore = 0;
+        let weightedLuminance = 0;
+
+        for (const col of colors) {
+          const colorObj = col.color;
+          const score = col.score || 0;
+          if (colorObj) {
+            const r = colorObj.red || 0;
+            const g = colorObj.green || 0;
+            const b = colorObj.blue || 0;
+            // Standard relative luminance formula
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            weightedLuminance += luminance * score;
+            totalScore += score;
+          }
+        }
+
+        if (totalScore > 0) {
+          const avgLuminance = weightedLuminance / totalScore;
+          if (avgLuminance < 15) {
+            return {
+              safe: false,
+              reason: "This image is too dark. Please upload a brighter, clearer photo.",
+            };
+          }
+          if (avgLuminance > 240) {
+            return {
+              safe: false,
+              reason: "This image is too bright or overexposed. Please upload a clearer photo.",
+            };
+          }
+        }
+      }
+    }
+
+    // 3. Evaluate Labels
     const labels = labelRes[0]?.labelAnnotations || [];
     // Banned keywords for visual detection (matching labels)
     const BANNED_KEYWORDS = [
@@ -101,7 +152,69 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
       "liquor",
       "vape",
       "gun",
-      "knife"
+      "knife",
+      // Human & Face restrictions
+      "human",
+      "person",
+      "people",
+      "face",
+      "faces",
+      "selfie",
+      "portrait",
+      "avatar",
+      // Animal restrictions
+      "animal",
+      "animals",
+      "dog",
+      "dogs",
+      "cat",
+      "cats",
+      "pet",
+      "pets",
+      // Waste/Offensive restrictions
+      "poop",
+      "poops",
+      "feces",
+      "manure",
+      "dung",
+      "shit",
+      "trash",
+      "garbage",
+      "waste",
+      "junk",
+      "rubbish",
+      // Random/Unwanted categories (Vehicles, Buildings, lighting)
+      "car",
+      "cars",
+      "bike",
+      "bikes",
+      "bicycle",
+      "bicycles",
+      "motorcycle",
+      "motorcycles",
+      "scooter",
+      "scooters",
+      "vehicle",
+      "vehicles",
+      "building",
+      "buildings",
+      "house",
+      "houses",
+      "architecture",
+      "tubelight",
+      "fluorescent lamp",
+      "light bulb",
+      "neon sign",
+      // Image Quality Checks
+      "blur",
+      "blurry",
+      "lens flare",
+      "bokeh",
+      "out of focus",
+      "glare",
+      "light source",
+      "overexposure",
+      "underexposure"
     ];
 
     for (const label of labels) {
