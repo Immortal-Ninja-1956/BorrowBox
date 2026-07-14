@@ -161,7 +161,8 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
       
       // Fake/Digital Images (Force them to upload real photos)
       "illustration", "clip art", "drawing", "cartoon", "animation", "anime", "sketch",
-      "vector graphics", "screenshot", "meme", "collage", "poster",
+      "vector graphics", "screenshot", "meme", "collage", "poster", "graphics", 
+      "fictional character", "mascot", "logo", "font", "design", "stuffed toy", "toy",
       
       // Image Quality Checks
       "blur", "blurry", "lens flare", "bokeh", "out of focus", "glare", "light source"
@@ -189,15 +190,8 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
   } catch (error: any) {
     console.error("[Vision API] Error during safety analysis:", error);
     
-    // SMART FAIL-SAFE:
-    // If the error is an authentication or quota error, we allow it (fail-safe) so the app doesn't crash.
-    // BUT if the error is an Invalid Argument (e.g. they uploaded a corrupt/trick image), we BLOCK it!
-    const errMsg = error?.message?.toLowerCase() || "";
-    if (errMsg.includes("invalid argument") || errMsg.includes("bad request") || errMsg.includes("corrupt")) {
-      return { safe: false, reason: "The uploaded image is corrupt or invalid." };
-    }
-    
-    // Otherwise, it's a Google Server issue, so allow it.
-    return { safe: true };
+    // We are temporarily returning the exact error message so we can debug what is going wrong on the server!
+    const errMsg = error?.message || "Unknown Google Cloud Vision error.";
+    return { safe: false, reason: `SYSTEM ERROR (Please read this): ${errMsg}` };
   }
 }
