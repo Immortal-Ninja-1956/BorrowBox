@@ -47,11 +47,17 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
   }
 
   try {
-    let imageInput: any;
+    let imageBuffer: Buffer;
 
-    // Check if it's a local file or a remote URL
+    // Fetch the image as a Buffer to guarantee Google Vision can read it.
+    // Passing URLs directly often fails if Google's bots are blocked by CDNs.
     if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-      imageInput = { source: { imageUri: imageUrl } };
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to download remote image: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      imageBuffer = Buffer.from(arrayBuffer);
     } else {
       // Local path on disk (e.g. /uploads/filename.jpg)
       const localPath = path.join(process.cwd(), imageUrl.startsWith("/") ? imageUrl.slice(1) : imageUrl);
@@ -59,15 +65,15 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
         console.warn(`[Vision API] Local image file not found at ${localPath}`);
         return { safe: true };
       }
-      imageInput = localPath;
+      imageBuffer = await fs.promises.readFile(localPath);
     }
 
     // Run safe search, label detection, image properties, and text detection (OCR) in parallel
     const [safeSearchRes, labelRes, propertiesRes, textRes] = await Promise.all([
-      client.safeSearchDetection(imageInput),
-      client.labelDetection(imageInput),
-      client.imageProperties(imageInput),
-      client.textDetection(imageInput), // NEW: OCR to catch text written on images
+      client.safeSearchDetection(imageBuffer),
+      client.labelDetection(imageBuffer),
+      client.imageProperties(imageBuffer),
+      client.textDetection(imageBuffer), // NEW: OCR to catch text written on images
     ]);
 
     // 1. Evaluate SafeSearch (Explicit, Violence, etc.)
@@ -190,8 +196,14 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
   } catch (error: any) {
     console.error("[Vision API] Error during safety analysis:", error);
     
-    // We are temporarily returning the exact error message so we can debug what is going wrong on the server!
-    const errMsg = error?.message || "Unknown Google Cloud Vision error.";
-    return { safe: false, reason: `SYSTEM ERROR (Please read this): ${errMsg}` };
+    const errMsg = error?.message?.toLowerCase() || "";
+    
+    // If it's a quota/auth error, fail-safe (allow it) so the site doesn't break
+    if (errMsg.includes("quota") || errMsg.includes("authentication") || errMsg.includes("permission_denied")) {
+      return { safe: true };
+    }
+
+    // Clean, user-friendly error message
+    return { safe: false, reason: "Image verification failed: The uploaded file is corrupt or unreadable. Please try another photo." };
   }
 }
