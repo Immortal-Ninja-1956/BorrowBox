@@ -16,10 +16,10 @@ if (hasCredentials) {
   try {
     client = new vision.ImageAnnotatorClient({
       credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+        client_email: process.env.GOOGLE_CLIENT_EMAIL?.replace(/^["']|["']$/g, ""),
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/^["']|["']$/g, "")?.replace(/\\n/g, "\n"),
       },
-      projectId: process.env.GOOGLE_PROJECT_ID,
+      projectId: process.env.GOOGLE_PROJECT_ID?.replace(/^["']|["']$/g, ""),
     });
     console.log("[Vision API] Initialized successfully.");
   } catch (error) {

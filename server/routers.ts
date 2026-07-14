@@ -538,6 +538,34 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+
+    testVision: protectedProcedure
+      .query(async () => {
+        const hasProj = !!process.env.GOOGLE_PROJECT_ID;
+        const hasEmail = !!process.env.GOOGLE_CLIENT_EMAIL;
+        const hasKey = !!process.env.GOOGLE_PRIVATE_KEY;
+        
+        let clientStatus = "Not initialized";
+        let errorMsg = null;
+        
+        try {
+          const testRes = await checkImageSafety("https://images.unsplash.com/photo-1541963463532-d68292c34b19");
+          clientStatus = `Checked test image, result: ${JSON.stringify(testRes)}`;
+        } catch (err: any) {
+          clientStatus = "Failed to run checkImageSafety function";
+          errorMsg = err.message || String(err);
+        }
+        
+        return {
+          env: {
+            GOOGLE_PROJECT_ID: hasProj ? "Present" : "Missing",
+            GOOGLE_CLIENT_EMAIL: hasEmail ? "Present" : "Missing",
+            GOOGLE_PRIVATE_KEY: hasKey ? `Present (length: ${process.env.GOOGLE_PRIVATE_KEY?.length})` : "Missing"
+          },
+          clientStatus,
+          errorMsg
+        };
+      }),
   }),
 
   // Deals management
