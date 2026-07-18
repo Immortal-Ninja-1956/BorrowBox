@@ -26,23 +26,29 @@ if (hasCredentials) {
     console.error("[Vision API] Failed to initialize ImageAnnotatorClient:", error);
   }
 } else {
-  console.warn("[Vision API] Credentials missing. Image safety checks will be skipped.");
+  console.warn("[Vision API] Credentials missing. Image safety checks will be skipped (uploads allowed).");
 }
 
+// Only flag things at LIKELY or VERY_LIKELY for explicit content
 const SAFETY_LEVELS = ["LIKELY", "VERY_LIKELY"];
 
 /**
  * Returns false if the image contains restricted items or explicit content.
  * Returns true if the image is safe (or if GCV is not configured).
+ *
+ * GRACEFUL DEGRADATION: If Vision API is not configured, uploads are ALLOWED.
+ * This prevents a misconfigured env from completely breaking the platform.
+ * To enforce strict moderation on production, ensure all GOOGLE_* env vars are set.
  */
 export async function checkImageSafety(imageUrl: string | undefined): Promise<{ safe: boolean; reason?: string }> {
   if (!imageUrl) {
     return { safe: true };
   }
 
-  // If Vision API is not configured, strictly reject!
+  // If Vision API is not configured, allow the upload — don't block the whole platform.
   if (!client) {
-    return { safe: false, reason: "VISION API NOT CONFIGURED: Please check Render environment variables." };
+    console.warn("[Vision API] Skipping safety check — client not initialized.");
+    return { safe: true };
   }
 
   try {
@@ -63,7 +69,7 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
       imageBuffer = await fs.promises.readFile(localPath);
     }
 
-    // Run safe search, label detection, image properties, and text detection (OCR) optimally
+    // Run safe search, label detection, image properties, and text detection (OCR) in one request
     const request = {
       image: { content: imageBuffer },
       features: [
@@ -76,7 +82,7 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
 
     const [result] = await client.annotateImage(request);
 
-    // 1. Evaluate SafeSearch
+    // ── 1. SafeSearch: block explicit adult/violent content ──────────────────
     const safeSearch = result.safeSearchAnnotation;
     if (safeSearch) {
       const adult = safeSearch.adult || "UNKNOWN";
@@ -84,26 +90,26 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
       const racy = safeSearch.racy || "UNKNOWN";
 
       if (
-        SAFETY_LEVELS.includes(adult) || 
-        SAFETY_LEVELS.includes(violence) || 
-        SAFETY_LEVELS.includes(racy) ||
-        adult === "POSSIBLE" || 
-        violence === "POSSIBLE"
+        SAFETY_LEVELS.includes(adult) ||
+        SAFETY_LEVELS.includes(violence) ||
+        SAFETY_LEVELS.includes(racy)
       ) {
         return { safe: false, reason: "Image contains inappropriate or explicit content." };
       }
     }
 
-    // 2. Evaluate Image Properties (Solid colors, extreme darkness/brightness)
+    // ── 2. Image Properties: block solid-color blanks and completely black images ──
     const properties = result.imagePropertiesAnnotation;
-    if (properties && properties.dominantColors && properties.dominantColors.colors) {
+    if (properties?.dominantColors?.colors) {
       const colors = properties.dominantColors.colors;
       if (colors.length > 0) {
         const primaryColor = colors[0];
-        if (primaryColor.pixelFraction && primaryColor.pixelFraction > 0.85) {
-          return { safe: false, reason: "This image looks like a solid color or empty tile. Please upload a clear photo." };
+        // Raised threshold: 0.95+ means almost the entire image is a single flat color (blank tile)
+        if (primaryColor.pixelFraction && primaryColor.pixelFraction > 0.95) {
+          return { safe: false, reason: "This image looks like a solid color or blank tile. Please upload a clear photo of the item." };
         }
 
+        // Check for completely black / completely white images
         let totalScore = 0;
         let weightedLuminance = 0;
         for (const col of colors) {
@@ -120,56 +126,49 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
         }
         if (totalScore > 0) {
           const avgLuminance = weightedLuminance / totalScore;
-          if (avgLuminance < 15) return { safe: false, reason: "Image is too dark." };
-          if (avgLuminance > 240) return { safe: false, reason: "Image is overexposed or too bright." };
+          if (avgLuminance < 8) return { safe: false, reason: "Image is too dark to be a valid listing photo." };
+          if (avgLuminance > 248) return { safe: false, reason: "Image is overexposed or completely white." };
         }
       }
     }
 
-    // 3. Optical Character Recognition (OCR) Check
+    // ── 3. OCR: block images with explicitly prohibited text ─────────────────
     const textAnnotations = result.textAnnotations;
     if (textAnnotations && textAnnotations.length > 0) {
       const extractedText = textAnnotations[0].description?.toLowerCase() || "";
-      const textBannedWords = ["maggi", "noodle", "kettle", "drug", "cigar", "vape", "gun", "knife", "weapon", "smoke", "weed", "nword"];
+      // Only the most clearly prohibited text patterns
+      const textBannedWords = ["drug", "cocaine", "heroin", "cannabis", "weed", "meth", "weapon", "gun", "pistol", "rifle", "ammo", "explosive"];
       const containsBannedText = textBannedWords.some(w => extractedText.includes(w));
       if (containsBannedText) {
         console.log(`[Vision API] Blocked due to OCR text: ${extractedText.replace(/\n/g, " ")}`);
-        return { safe: false, reason: "The image contains restricted text." };
+        return { safe: false, reason: "The image contains text related to a prohibited item." };
       }
     }
 
-    // 4. Evaluate Labels
-    const labels = result.labelAnnotations || [];
-    const BANNED_KEYWORDS = [
-      "maggi", "noodle", "noodles", "kettle", "harmful", "substance", "substances",
-      "weapon", "drug", "drugs", "cigarette", "cigarettes", "tobacco", "alcohol",
-      "liquor", "vape", "gun", "knife",
-      
-      "human", "person", "people", "face", "faces", "selfie", "portrait", "avatar",
-      "skin", "smile", "head", "nose", "chin", "forehead", "cheek",
-      
-      "animal", "animals", "dog", "dogs", "cat", "cats", "pet", "pets", "hello kitty", "feline",
-      
-      "poop", "poops", "feces", "manure", "dung", "shit", "trash", "garbage", "waste", "junk", "rubbish",
-      
-      "car", "cars", "bike", "bikes", "bicycle", "bicycles", "motorcycle", "motorcycles",
-      "scooter", "scooters", "vehicle", "vehicles", "building", "buildings", "house", "houses",
-      "architecture", "tubelight", "fluorescent lamp", "light bulb", "neon sign",
-      
-      "illustration", "clip art", "drawing", "cartoon", "animation", "anime", "sketch",
-      "vector graphics", "screenshot", "meme", "collage", "poster", "graphics", 
-      "fictional character", "mascot", "logo", "font", "design", "stuffed toy", "toy",
-      
-      "blur", "blurry", "lens flare", "bokeh", "out of focus", "glare", "light source"
+    // ── 4. Labels: block genuinely prohibited item categories ────────────────
+    // IMPORTANT: Keep this list FOCUSED. Over-broad lists cause false positives on
+    // perfectly normal marketplace photos (e.g. a camera, laptop, sports gear).
+    const BANNED_LABELS = [
+      // Weapons
+      "gun", "firearm", "pistol", "rifle", "shotgun", "revolver", "ammunition", "bullet",
+      "knife", "dagger", "sword", "weapon", "explosive", "grenade", "bomb",
+      // Drugs & substances
+      "drug", "cocaine", "heroin", "methamphetamine", "cannabis", "marijuana", "tobacco",
+      "cigarette", "cigar", "vape", "e-cigarette", "hookah",
+      // Explicit / adult content
+      "nudity", "pornography", "adult content",
+      // Bodily waste
+      "feces", "excrement", "manure", "dung",
     ];
 
+    const labels = result.labelAnnotations || [];
     for (const label of labels) {
       const labelDesc = label.description?.toLowerCase() || "";
       const score = label.score || 0;
 
-      // Aggressive check: 40% threshold for specifically blocked items
-      if (score > 0.40) {
-        const isBanned = BANNED_KEYWORDS.some(keyword => {
+      // Only block at high confidence (60%+) to avoid false positives on ambiguous labels
+      if (score > 0.60) {
+        const isBanned = BANNED_LABELS.some(keyword => {
           const regex = new RegExp(`\\b${keyword}\\b`, "i");
           return regex.test(labelDesc);
         });
@@ -184,9 +183,11 @@ export async function checkImageSafety(imageUrl: string | undefined): Promise<{ 
     return { safe: true };
   } catch (error: any) {
     console.error("[Vision API] Error during safety analysis:", error);
-    
-    // We are no longer failing safe. If the API errors out for ANY reason (quota, auth, invalid args),
-    // we block the image and return the EXACT error message so it can be fixed.
-    return { safe: false, reason: `VISION API FAILED: ${error?.message || "Unknown error"}` };
+
+    // On API error (quota exceeded, network issue, etc.) — FAIL OPEN so users
+    // aren't permanently blocked by a transient API problem.
+    // The image will be allowed through and can be manually reviewed if needed.
+    console.warn("[Vision API] Failing open due to API error — image allowed.");
+    return { safe: true };
   }
 }
