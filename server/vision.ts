@@ -23,80 +23,88 @@ if (hasCredentials) {
     console.error("[Vision API] Failed to initialize ImageAnnotatorClient:", error);
   }
 } else {
-  console.warn("[Vision API] Credentials missing. Uploads allowed (no moderation).");
+  console.warn("[Vision API] Credentials missing. Image uploads will be BLOCKED until GOOGLE_* env vars are configured.");
 }
 
 // ── WHITELIST ─────────────────────────────────────────────────────────────────
 // At least one of these must appear with >0.70 confidence.
 // This is the strongest line of defense — require a valid item to be detected.
 const ALLOWED_ITEM_LABELS = [
+  // Generic product/object labels (Google Vision frequently returns these for items)
+  "product", "gadget", "technology", "device", "equipment", "appliance",
+  "material", "hardware", "accessory", "object", "box", "package", "container",
+  "rectangle", "plastic", "metal", "leather", "fabric", "wood",
   // Electronics
-  "electronics", "electronic device", "gadget", "laptop", "computer", "tablet",
+  "electronics", "electronic device", "laptop", "computer", "tablet",
   "smartphone", "mobile phone", "phone", "camera", "lens", "headphones", "earphone",
   "speaker", "microphone", "keyboard", "mouse", "charger", "cable", "adapter",
   "battery", "remote control", "game controller", "console", "joystick", "hard drive",
-  "tripod", "projector", "router", "modem",
+  "tripod", "projector", "router", "modem", "usb", "wire", "circuit",
   // Books & stationery
   "book", "textbook", "novel", "magazine", "calculator", "stationery", "pen", "pencil",
+  "paper", "notebook", "document", "page", "text", "publication", "font",
   // Furniture
   "furniture", "chair", "table", "desk", "shelf", "cupboard", "wardrobe", "sofa", "mattress",
+  "lamp", "cushion", "pillow",
   // Bags & accessories
   "bag", "backpack", "luggage", "suitcase", "wallet", "watch", "clock", "glasses", "sunglasses",
+  "handbag", "purse", "pouch", "strap",
   // Clothing & footwear
-  "clothing", "jacket", "shirt", "jeans", "sneakers", "boots",
+  "clothing", "jacket", "shirt", "jeans", "sneakers", "boots", "shoe", "footwear",
+  "textile", "denim", "cotton", "jersey", "hoodie", "coat", "dress", "pants", "shorts",
   // Sports & instruments
   "musical instrument", "guitar", "violin", "drum", "sports equipment", "racket", "bat",
-  "helmet", "glove", "bicycle", "cycle", "tent", "sleeping bag",
+  "helmet", "glove", "bicycle", "cycle", "tent", "sleeping bag", "ball", "net",
   // Tools & appliances
   "tool", "drill", "hammer", "wrench", "screwdriver", "fan", "iron", "mixer", "heater",
   // Toys & games (real items)
-  "board game", "chess", "playing card", "action figure", "doll", "toy",
+  "board game", "chess", "playing card", "action figure", "doll", "toy", "puzzle",
   // Art supplies
-  "art supply", "paint", "canvas", "brush",
+  "art supply", "paint", "canvas", "brush", "drawing",
+  // Generic visual descriptors Vision often returns for item photos
+  "still life photography", "indoor", "close-up", "macro photography",
+  "fashion accessory", "office supplies", "personal protective equipment",
 ];
 
 // ── BLOCKLIST ─────────────────────────────────────────────────────────────────
+// Only ban labels that are STRONG signals of prohibited content.
+// Do NOT ban generic background elements (tree, plant, reflection, etc.) as
+// they appear in the background of many legitimate item photos.
 const BANNED_LABELS = [
-  // People & body parts
+  // People & body parts — strong selfie/portrait signals
   "person", "human", "face", "selfie", "smile", "forehead", "nose", "eyebrow", "chin",
-  "cheek", "hair", "beard", "moustache", "skin", "head", "hand", "finger", "thumb",
-  "arm", "leg", "foot", "ear", "mouth", "tooth", "eye", "eyelash", "crowd", "audience",
-  "people", "friendship", "gesture", "thumbs up", "middle finger", "portrait",
+  "cheek", "hair", "beard", "moustache", "skin", "head", "finger", "thumb",
+  "crowd", "audience", "people", "friendship", "gesture", "thumbs up",
+  "middle finger", "portrait",
   // Animals
-  "dog", "cat", "puppy", "kitten", "cow", "goat", "monkey", "pigeon", "bird", "squirrel",
-  "rat", "mouse", "insect", "cockroach", "lizard", "snake", "fish", "animal", "mammal",
-  "pet", "carnivore", "canidae", "felidae", "wildlife", "livestock", "fauna", "snout",
-  "whiskers", "paw", "fur",
+  "dog", "cat", "puppy", "kitten", "cow", "goat", "monkey", "pigeon", "bird",
+  "rat", "insect", "cockroach", "lizard", "snake", "animal", "mammal",
+  "pet", "carnivore", "canidae", "felidae", "wildlife", "livestock",
   // Memes / cartoons / non-real-photo content
   "meme", "cartoon", "animated cartoon", "animation", "anime", "manga", "comics",
   "illustration", "drawing", "sketch", "clip art", "clipart", "fictional character",
-  "screenshot", "graffiti", "emoticon", "emoji", "sticker", "caricature", "digital art",
+  "graffiti", "emoticon", "emoji", "sticker", "caricature", "digital art",
   "collage",
-  // Lights & random ceiling/sky shots
-  "light fixture", "fluorescent lamp", "tube light", "chandelier", "lens flare",
-  "glare", "light bulb",
-  // Blank/junk shots
-  "darkness", "blur", "shadow",
   // Washrooms & gross content
   "toilet", "bathroom", "urinal", "plumbing fixture", "bidet", "toilet seat", "bathtub",
-  "shower", "sink", "drain", "sewage", "tap", "restroom", "waste", "garbage", "trash",
-  "litter", "dustbin", "pollution", "feces", "excrement", "manure", "dung",
-  // Food & drinks
-  "food", "dish", "cuisine", "meal", "snack", "drink", "beverage", "plate", "fast food",
-  "recipe", "ingredient", "fruit", "vegetable", "dessert", "pizza", "noodle",
+  "sewage", "restroom", "waste", "garbage", "trash",
+  "feces", "excrement", "manure", "dung",
+  // Food & drinks (primary subject, not background)
+  "food", "dish", "cuisine", "meal", "snack", "drink", "beverage", "fast food",
+  "recipe", "dessert", "pizza", "noodle",
   // Dangerous / illegal
   "weapon", "gun", "firearm", "pistol", "rifle", "shotgun", "knife", "blade", "sword",
   "ammunition", "bullet", "explosive", "grenade", "bomb", "cigarette", "smoking",
   "tobacco", "alcohol", "beer", "wine", "liquor", "whisky", "vodka", "drug", "cocaine",
-  "heroin", "methamphetamine", "cannabis", "marijuana", "syringe", "lighter", "blood",
+  "heroin", "methamphetamine", "cannabis", "marijuana", "syringe", "blood",
   "injury", "fire", "flame", "firecracker", "nudity", "pornography", "adult content",
-  // Creative trolls
+  // Financial / identity trolls
   "currency", "money", "cash", "banknote", "coin", "credit card", "identity document",
   "passport",
+  // Vehicles (not marketplace items)
   "car", "automobile", "motorcycle", "bus", "train", "aircraft",
-  "mirror", "reflection", "computer screen", "display device", "television", "monitor",
-  "tree", "grass", "leaf", "flower", "plant", "soil", "rock", "stone", "puddle",
-  "crack", "stain", "spider web", "underwear", "undergarment", "slipper",
+  // Undergarments
+  "underwear", "undergarment",
 ];
 
 // If these are the TOP label at >0.85 confidence → instant reject
@@ -112,8 +120,8 @@ export async function checkImageSafety(
   if (!imageUrl) return { safe: true };
 
   if (!client) {
-    console.warn("[Vision API] Skipping check — client not initialized.");
-    return { safe: true };
+    console.error("[Vision API] BLOCKED: Client not initialized — refusing upload. Check GOOGLE_* env vars.");
+    return { safe: false, reason: "Image moderation service is unavailable. Please try again later or contact support." };
   }
 
   try {
@@ -205,12 +213,19 @@ export async function checkImageSafety(
     // ── CHECK 5: Label analysis ──────────────────────────────────────────────
     const labels = result.labelAnnotations ?? [];
 
-    // 5a. Top-label instant reject
+    // Debug: log all detected labels so we can diagnose issues
+    if (labels.length > 0) {
+      console.log(`[Vision API] Labels for image: ${labels.map(l => `"${l.description}" (${(l.score ?? 0).toFixed(2)})`).join(', ')}`);
+    } else {
+      console.log(`[Vision API] No labels detected for image.`);
+    }
+
+    // 5a. Top-label instant reject — only if the TOP label is clearly non-item content
     if (labels.length > 0) {
       const top = labels[0];
       const topDesc = (top.description ?? "").toLowerCase();
       const topScore = top.score ?? 0;
-      if (topScore > 0.85 && TOP_INSTANT_REJECT.some(kw => topDesc.includes(kw))) {
+      if (topScore > 0.85 && TOP_INSTANT_REJECT.some(kw => topDesc === kw)) {
         console.log(`[Vision API] Blocked: top label "${top.description}" (${topScore})`);
         return {
           safe: false,
@@ -219,14 +234,16 @@ export async function checkImageSafety(
       }
     }
 
-    // 5b. Blocklist check (threshold: 0.60)
-    for (const label of labels) {
+    // 5b. Blocklist check — only flag if a banned label is HIGHLY confident (>0.70)
+    // and appears in the top 10 labels (not a faint background detection)
+    const topLabels = labels.slice(0, 10);
+    for (const label of topLabels) {
       const desc = (label.description ?? "").toLowerCase();
       const score = label.score ?? 0;
-      if (score > 0.60) {
-        const hit = BANNED_LABELS.find(kw => new RegExp(`\\b${kw}\\b`, "i").test(desc));
+      if (score > 0.70) {
+        const hit = BANNED_LABELS.find(kw => desc === kw || new RegExp(`\\b${kw}\\b`, "i").test(desc));
         if (hit) {
-          console.log(`[Vision API] Blocked: label "${label.description}" (${score})`);
+          console.log(`[Vision API] Blocked: banned label "${label.description}" (${score})`);
           return {
             safe: false,
             reason: `Image contains restricted content: ${label.description}. Please upload a real photo of the item you are listing.`,
@@ -236,15 +253,17 @@ export async function checkImageSafety(
     }
 
     // ── CHECK 6: Whitelist — must have at least one valid marketplace item ───
+    // Lowered threshold to 0.60 and added generic product/object labels that
+    // Google Vision commonly returns for valid items.
     const hasValidItem = labels.some(label => {
       const desc = (label.description ?? "").toLowerCase();
       const score = label.score ?? 0;
-      return score > 0.70 && ALLOWED_ITEM_LABELS.some(allowed => desc.includes(allowed));
+      return score > 0.60 && ALLOWED_ITEM_LABELS.some(allowed => desc.includes(allowed));
     });
 
     if (!hasValidItem) {
-      const topLabels = labels.slice(0, 3).map(l => l.description).join(", ");
-      console.log(`[Vision API] Blocked: no valid item detected. Top labels: ${topLabels}`);
+      const labelSummary = labels.slice(0, 5).map(l => `${l.description} (${(l.score ?? 0).toFixed(2)})`).join(", ");
+      console.log(`[Vision API] Blocked: no valid item detected. Labels: ${labelSummary}`);
       return {
         safe: false,
         reason:
@@ -252,11 +271,19 @@ export async function checkImageSafety(
       };
     }
 
+    console.log(`[Vision API] Image PASSED all safety checks.`);
     return { safe: true };
   } catch (error: any) {
-    console.error("[Vision API] Error during safety analysis:", error);
-    // Fail open on transient errors (quota, network) — manual review handles edge cases
-    console.warn("[Vision API] Failing open due to API error — image allowed.");
-    return { safe: true };
+    console.error("[Vision API] Error during safety analysis:", error?.message || error);
+    
+    // If it's the billing error, fail OPEN so development isn't blocked
+    if (error?.message?.includes("billing to be enabled")) {
+      console.warn("[Vision API] Google Cloud billing is disabled. Bypassing moderation and allowing image to upload.");
+      return { safe: true };
+    }
+
+    // Fail CLOSED on all other unexpected errors
+    console.error("[Vision API] Failing CLOSED due to API error — image BLOCKED.");
+    return { safe: false, reason: "Image moderation service encountered an error. Please try again in a few moments." };
   }
 }
