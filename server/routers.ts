@@ -323,7 +323,7 @@ export const appRouter = router({
         if (
           !user.whatsappOtp ||
           !user.whatsappOtpExpiresAt ||
-          user.whatsappOtp !== input.otp
+          user.whatsappOtp !== crypto.createHash("sha256").update(input.otp).digest("hex")
         ) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid OTP" });
         }

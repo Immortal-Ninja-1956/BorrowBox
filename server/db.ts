@@ -8,6 +8,8 @@ import type {
   InsertMessage,
   InsertItemReport,
 } from "../drizzle/schema";
+import crypto from "crypto";
+
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -104,9 +106,11 @@ export async function updateUserWhatsAppOtp(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // Store a SHA-256 hash — the raw OTP never touches the database
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
   return await db
     .update(users)
-    .set({ whatsappOtp: otp, whatsappOtpExpiresAt: expiresAt })
+    .set({ whatsappOtp: otpHash, whatsappOtpExpiresAt: expiresAt })
     .where(eq(users.id, userId));
 }
 

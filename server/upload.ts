@@ -5,6 +5,7 @@ import fs from "fs";
 import { nanoid } from "nanoid";
 import { uploadFile, isCloudinaryConfigured } from "./storage";
 import { authenticateRequest } from "./_core/auth";
+import { uploadLimiter } from "./_core/limiter";
 
 // Ensure uploads directory exists (fallback for local development)
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -97,6 +98,7 @@ export const uploadRouter = Router();
 // Endpoint authentication middleware + file handler
 uploadRouter.post(
   "/api/upload",
+  uploadLimiter,
   async (req, res, next) => {
     try {
       const user = await authenticateRequest(req);

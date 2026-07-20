@@ -61,3 +61,32 @@ export const otpLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   },
 });
+
+// Extract user ID from a Bearer JWT without verifying — only used as a rate-limit key.
+// A full cryptographic verification happens inside the upload handler itself.
+function extractUserIdFromBearer(req: any): string {
+  try {
+    const auth = req.headers?.authorization as string | undefined;
+    if (auth?.startsWith("Bearer ")) {
+      const payload = JSON.parse(
+        Buffer.from(auth.split(".")[1], "base64").toString("utf-8")
+      );
+      if (payload?.sub) return `upload-user-${payload.sub}`;
+    }
+  } catch {
+    // fall through to IP
+  }
+  return `upload-ip-${req.ip}`;
+}
+
+export const uploadLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  limit: 10, // 10 uploads per 10 minutes per user
+  keyGenerator: extractUserIdFromBearer,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many uploads. Please wait 10 minutes before uploading again." },
+  handler: (req, res, _next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});
