@@ -47,17 +47,30 @@ async function startServer() {
   );
 
   // Set up security headers and CSP
+  // In production: strict CSP with no unsafe-inline/unsafe-eval (Vite builds pure external JS)
+  // In dev: relaxed CSP because Vite HMR injects inline scripts and uses eval for source maps
+  const isProd = process.env.NODE_ENV === "production";
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "blob:", "res.cloudinary.com"],
-          connectSrc: ["'self'", "*.supabase.co", "https://api.resend.com"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          imgSrc: ["'self'", "data:", "blob:", "res.cloudinary.com", "images.unsplash.com"],
+          connectSrc: [
+            "'self'",
+            "*.supabase.co",
+            "https://api.resend.com",
+            "https://fonts.googleapis.com",
+            "https://fonts.gstatic.com",
+          ],
+          scriptSrc: isProd
+            ? ["'self'"]
+            : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
-          frameSrc: ["'self'"],
+          frameSrc: ["'none'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
         },
       },
     })
