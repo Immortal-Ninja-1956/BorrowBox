@@ -665,19 +665,28 @@ export async function updateUserResetToken(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  
+  let tokenHash = null;
+  if (token) {
+    tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  }
+
   return await db
     .update(users)
-    .set({ resetToken: token, resetTokenExpiresAt: expiresAt })
+    .set({ resetToken: tokenHash, resetTokenExpiresAt: expiresAt })
     .where(eq(users.email, email));
 }
 
 export async function getUserByResetToken(token: string) {
   const db = await getDb();
   if (!db) return undefined;
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
   const result = await db
     .select()
     .from(users)
-    .where(eq(users.resetToken, token))
+    .where(eq(users.resetToken, tokenHash))
     .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }

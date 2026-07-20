@@ -64,28 +64,64 @@ export const otpLimiter = rateLimit({
 
 // Extract user ID from a Bearer JWT without verifying — only used as a rate-limit key.
 // A full cryptographic verification happens inside the upload handler itself.
-function extractUserIdFromBearer(req: any): string {
+function extractUserIdFromBearer(req: any, prefix: string): string {
   try {
     const auth = req.headers?.authorization as string | undefined;
     if (auth?.startsWith("Bearer ")) {
       const payload = JSON.parse(
         Buffer.from(auth.split(".")[1], "base64").toString("utf-8")
       );
-      if (payload?.sub) return `upload-user-${payload.sub}`;
+      if (payload?.sub) return `${prefix}-user-${payload.sub}`;
     }
   } catch {
     // fall through to IP
   }
-  return `upload-ip-${req.ip}`;
+  return `${prefix}-ip-${req.ip}`;
 }
 
 export const uploadLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
   limit: 10, // 10 uploads per 10 minutes per user
-  keyGenerator: extractUserIdFromBearer,
+  keyGenerator: (req) => extractUserIdFromBearer(req, "upload"),
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Too many uploads. Please wait 10 minutes before uploading again." },
+  handler: (req, res, _next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});
+
+export const createItemLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 5, // 5 new listings or edits per hour per user
+  keyGenerator: (req) => extractUserIdFromBearer(req, "create-item"),
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: {
+      message: "Too many listings created or updated. Please wait an hour.",
+      code: -32005,
+      data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+    },
+  },
+  handler: (req, res, _next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});
+
+export const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 10, // 10 reports per hour per user
+  keyGenerator: (req) => extractUserIdFromBearer(req, "report"),
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: {
+      message: "Too many reports submitted. Please wait an hour.",
+      code: -32005,
+      data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+    },
+  },
   handler: (req, res, _next, options) => {
     res.status(options.statusCode).json(options.message);
   },

@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { uploadRouter } from "../upload";
-import { authLimiter, pinVerifyLimiter, otpLimiter } from "./limiter";
+import { authLimiter, pinVerifyLimiter, otpLimiter, createItemLimiter, reportLimiter } from "./limiter";
 import helmet from "helmet";
 import cors from "cors";
 import { expireOldDeals } from "../db";
@@ -33,6 +33,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  if (process.env.NODE_ENV === "production" && !process.env.FRONTEND_URL) {
+    throw new Error("CRITICAL: FRONTEND_URL environment variable must be set in production to secure CORS origin.");
+  }
 
   // Configure CORS policy
   app.use(
@@ -91,6 +95,11 @@ async function startServer() {
   app.use("/api/trpc/auth.forgotPassword", authLimiter);
   app.use("/api/trpc/deals.confirmWithPin", pinVerifyLimiter);
   app.use("/api/trpc/user.sendWhatsAppOtp", otpLimiter);
+
+  // Rate limiting for marketplace actions
+  app.use("/api/trpc/items.create", createItemLimiter);
+  app.use("/api/trpc/items.update", createItemLimiter);
+  app.use("/api/trpc/items.report", reportLimiter);
 
   app.use(
     "/api/trpc",
