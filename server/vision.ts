@@ -61,6 +61,8 @@ const ALLOWED_ITEM_LABELS = [
   "board game", "chess", "playing card", "action figure", "doll", "toy", "puzzle",
   // Art supplies
   "art supply", "paint", "canvas", "brush", "drawing",
+  // Food Containers / Kitchenware
+  "lunch box", "bottle", "flask", "tiffin", "tupperware", "container", "box", "thermos",
   // Generic visual descriptors Vision often returns for item photos
   "still life photography", "indoor", "close-up", "macro photography",
   "fashion accessory", "office supplies", "personal protective equipment",
@@ -89,9 +91,6 @@ const BANNED_LABELS = [
   "toilet", "bathroom", "urinal", "plumbing fixture", "bidet", "toilet seat", "bathtub",
   "sewage", "restroom", "waste", "garbage", "trash",
   "feces", "excrement", "manure", "dung",
-  // Food & drinks (primary subject, not background)
-  "food", "dish", "cuisine", "meal", "snack", "drink", "beverage", "fast food",
-  "recipe", "dessert", "pizza", "noodle",
   // Dangerous / illegal
   "weapon", "gun", "firearm", "pistol", "rifle", "shotgun", "knife", "blade", "sword",
   "ammunition", "bullet", "explosive", "grenade", "bomb", "cigarette", "smoking",
@@ -109,7 +108,7 @@ const BANNED_LABELS = [
 
 // If these are the TOP label at >0.85 confidence → instant reject
 const TOP_INSTANT_REJECT = [
-  "person", "human", "face", "animal", "food", "sky", "wall", "floor",
+  "person", "human", "face", "animal", "sky", "wall", "floor",
   "building", "light", "nature", "plant", "water",
 ];
 
