@@ -6,6 +6,11 @@ import {
   router,
 } from "./_core/trpc";
 import { z } from "zod";
+
+// Global PIN failure tracking (sliding window per user)
+const userGlobalPinFailures = new Map<number, { count: number; resetAt: number }>();
+const GLOBAL_PIN_FAILURE_LIMIT = 15; // Max 15 failed PIN attempts globally
+const GLOBAL_PIN_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 import crypto from "crypto";
 import {
   createUser,
@@ -19,7 +24,6 @@ import {
   createItem,
   getItemById,
   getItemsBySellerId,
-  getAllItems,
   getPagedItems,
   updateItem,
   updateItemStatus,
@@ -35,7 +39,6 @@ import {
   updateUserResetToken,
   cancelOtherDeals,
   getUserByResetToken,
-  updateUserPassword,
   createReview,
   getReviewsByDealId,
   getUserTrustScore,
@@ -61,41 +64,16 @@ import {
   completeDealAtomically,
   confirmDeliveryAtomically,
   advanceDealStatusAtomically,
+  logAdminAction,
+  getAdminActions,
 } from "./db";
 import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 import { checkImageSafety } from "./vision";
+import { checkTextModeration } from "./moderation";
 // Custom auth logic removed, moved to Supabase
 import { TRPCError } from "@trpc/server";
 
-// ─── Prohibited Items Filter ────────────────────────────────────────────────
-const BANNED_KEYWORDS = [
-  "maggi",
-  "noodle",
-  "noodles",
-  "kettle",
-  "harmful",
-  "substance",
-  "substances",
-  "weapon",
-  "drug",
-  "drugs",
-  "cigarette",
-  "alcohol",
-  "liquor",
-  "vape",
-  "gun",
-  "knife"
-];
 
-function containsBannedKeywords(text: string | null | undefined): boolean {
-  if (!text) return false;
-  const lowerText = text.toLowerCase();
-  return BANNED_KEYWORDS.some(keyword => {
-    // Use word boundaries so "noodle" doesn't match "snoodled" 
-    const regex = new RegExp(`\\b${keyword}\\b`, "i");
-    return regex.test(lowerText);
-  });
-}
 
 export const appRouter = router({
   system: systemRouter,
@@ -103,7 +81,7 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(opts => {
       if (!opts.ctx.user) return null;
-      const { passwordHash, ...safe } = opts.ctx.user;
+      const safe = opts.ctx.user;
       return safe;
     }),
     syncSession: publicProcedure
@@ -220,7 +198,7 @@ export const appRouter = router({
     getProfile: protectedProcedure.query(async ({ ctx }) => {
       const user = await getUserById(ctx.user.id);
       if (!user) return null;
-      const { passwordHash, ...safe } = user;
+      const safe = user;
       return safe;
     }),
 
@@ -362,10 +340,11 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        if (containsBannedKeywords(input.title) || containsBannedKeywords(input.description)) {
+        const textCheck = checkTextModeration(input.title, input.description);
+        if (!textCheck.safe) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Your listing contains restricted items/keywords (e.g. Maggi, noodles, kettle, etc.) which are not allowed.",
+            message: textCheck.reason || "Your listing contains restricted items/keywords which are not allowed.",
           });
         }
 
@@ -470,10 +449,18 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        if (containsBannedKeywords(input.title) || containsBannedKeywords(input.description)) {
+        const item = await getItemById(input.id);
+        if (!item || item.sellerId !== ctx.user.id)
+          throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
+
+        const finalTitle = input.title !== undefined ? input.title : item.title;
+        const finalDescription = input.description !== undefined ? input.description : item.description;
+
+        const textCheck = checkTextModeration(finalTitle, finalDescription);
+        if (!textCheck.safe) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Your listing contains restricted items/keywords (e.g. Maggi, noodles, kettle, etc.) which are not allowed.",
+            message: textCheck.reason || "Your listing contains restricted items/keywords which are not allowed.",
           });
         }
 
@@ -487,9 +474,6 @@ export const appRouter = router({
           }
         }
 
-        const item = await getItemById(input.id);
-        if (!item || item.sellerId !== ctx.user.id)
-          throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
         if (item.status !== "OPEN") {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -581,10 +565,11 @@ export const appRouter = router({
         if (!item)
           throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
         
-        if (containsBannedKeywords(item.title) || containsBannedKeywords(item.description)) {
+        const textCheck = checkTextModeration(item.title, item.description);
+        if (!textCheck.safe) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "This item contains restricted keywords (e.g. Maggi, noodles, kettle, etc.) and cannot be transacted.",
+            message: textCheck.reason || "This item contains restricted keywords and cannot be transacted.",
           });
         }
 
@@ -888,8 +873,36 @@ export const appRouter = router({
             message: "PIN hash is missing for this deal",
           });
         }
+
+        // Global sliding window PIN limit check
+        const globalRecord = userGlobalPinFailures.get(ctx.user.id);
+        if (globalRecord && Date.now() < globalRecord.resetAt && globalRecord.count >= GLOBAL_PIN_FAILURE_LIMIT) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "Global PIN limit exceeded. Your account is temporarily locked from confirming deals.",
+          });
+        }
+
         const isValid = await verifyPin(input.pin, deal.pinHash);
         if (!isValid) {
+          // Record global failure
+          let currentGlobalRecord = userGlobalPinFailures.get(ctx.user.id);
+          if (!currentGlobalRecord || Date.now() > currentGlobalRecord.resetAt) {
+            currentGlobalRecord = { count: 0, resetAt: Date.now() + GLOBAL_PIN_WINDOW_MS };
+          }
+          currentGlobalRecord.count += 1;
+          userGlobalPinFailures.set(ctx.user.id, currentGlobalRecord);
+
+          // If they just hit the global limit, alert admins
+          if (currentGlobalRecord.count === GLOBAL_PIN_FAILURE_LIMIT) {
+            await createItemReport({
+              itemId: deal.itemId,
+              reporterId: ctx.user.id,
+              reason: "Security Alert: Brute Force",
+              description: `User ${ctx.user.id} has exceeded the global PIN attempt limit (15 failed attempts across deals) and is locked for 1 hour.`,
+            }).catch(e => console.error("Failed to create admin alert for PIN brute force:", e));
+          }
+
           const newAttempts = deal.pinAttempts + 1;
           await incrementPinAttempts(input.dealId);
           if (newAttempts >= 5) {
@@ -904,7 +917,9 @@ export const appRouter = router({
             message: `Incorrect PIN. ${5 - newAttempts} attempt(s) remaining.`,
           });
         }
-        // Success — atomically complete the deal
+
+        // Success — clear global failures and atomically complete the deal
+        userGlobalPinFailures.delete(ctx.user.id);
         await completeDealAtomically(input.dealId, deal.itemId);
         return { success: true };
       }),
@@ -1115,20 +1130,38 @@ export const appRouter = router({
     }),
     banUser: adminProcedure
       .input(z.object({ userId: z.number(), isBanned: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         await updateUserBanStatus(input.userId, input.isBanned);
+        await logAdminAction({
+          adminId: ctx.user.id,
+          action: input.isBanned ? "BAN_USER" : "UNBAN_USER",
+          targetId: input.userId,
+          details: input.isBanned ? `Banned user ID ${input.userId}` : `Unbanned user ID ${input.userId}`,
+        });
         return { success: true };
       }),
     deleteItem: adminProcedure
       .input(z.object({ itemId: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         await deleteItem(input.itemId);
+        await logAdminAction({
+          adminId: ctx.user.id,
+          action: "DELETE_ITEM",
+          targetId: input.itemId,
+          details: `Deleted item ID ${input.itemId}`,
+        });
         return { success: true };
       }),
     deleteDeal: adminProcedure
       .input(z.object({ dealId: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         await updateDealStatus(input.dealId, "CANCELLED");
+        await logAdminAction({
+          adminId: ctx.user.id,
+          action: "CANCEL_DEAL",
+          targetId: input.dealId,
+          details: `Cancelled deal ID ${input.dealId}`,
+        });
         return { success: true };
       }),
     getReports: adminProcedure.query(async () => {
@@ -1141,10 +1174,19 @@ export const appRouter = router({
           status: z.enum(["OPEN", "RESOLVED", "DISMISSED"]),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         await updateItemReportStatus(input.reportId, input.status);
+        await logAdminAction({
+          adminId: ctx.user.id,
+          action: "UPDATE_REPORT_STATUS",
+          targetId: input.reportId,
+          details: `Updated report status to ${input.status}`,
+        });
         return { success: true };
       }),
+    getAuditLogs: adminProcedure.query(async () => {
+      return await getAdminActions();
+    }),
   }),
 });
 function generateUpiQrCode(

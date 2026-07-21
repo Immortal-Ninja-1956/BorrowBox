@@ -35,14 +35,17 @@ sequenceDiagram
 
 ## 3. Database Schema Overview
 
-The relational database is built around four primary entities:
+The relational database is built around primary entities:
 
 1.  **Users (`users`)**: Stores authentication credentials, profile information, contact numbers, and UPI payment IDs.
 2.  **Items (`items`)**: Represents the products being sold/borrowed. Contains titles, prices, descriptions, and a foreign key linking to the `sellerId`.
 3.  **Deals (`deals`)**: The transactional bridge between a Buyer and a Seller for a specific Item. Tracks the physical and financial state of a transaction (`status`: OPEN, CONFIRMED, DELIVERED, PAID, CANCELLED).
 4.  **Reviews (`reviews`)**: Created after a deal is marked as `PAID`. Links to the reviewer, the reviewee, the specific deal, and contains a 1-5 star rating.
+5.  **Admin Actions (`admin_actions`)**: Stores audit trail records (`adminId`, `action`, `targetId`, `timestamp`, `details`) for all administrative actions (bans, unbans, listing deletions, deal cancellations, report status updates).
+6.  **Revoked Tokens (`revoked_tokens`)**: Stores SHA-256 hashes of revoked JWT tokens to enforce instant session revocation upon logout.
 
 ---
+
 
 ## 4. Key Workflows & Processes
 
@@ -71,3 +74,13 @@ This is the core business logic of BorrowBox, designed to prevent fraud:
 5.  **Payment Generation:** Once `DELIVERED`, the frontend automatically generates a dynamic UPI QR Code using the Seller's registered UPI ID and the exact item amount.
 6.  **Finalization:** The Buyer scans the QR code, completes the payment, and the Seller clicks "Confirm Payment Received", moving the deal to `PAID`.
 7.  **Reputation:** Both users are immediately prompted to leave a Star Rating for each other, which recalculates their global "Trust Score".
+
+### 4.4. Content & Listing Moderation Flow
+
+1.  **Image Safety Verification:** Images uploaded during listing creation or updates are analyzed via Google Cloud Vision API for inappropriate content or contraband objects.
+2.  **Text Moderation Engine:** Listing titles and descriptions are processed through `server/moderation.ts`.
+    - **Leetspeak Decoding:** Translates obfuscated characters (`w33d`, `m@ggi`, `k3ttl3`, `v@pe`).
+    - **Repetition & Symbol Normalization:** Collapses character runs (`weeeeed` -> `weed`) and strips non-alphanumeric separators (`w-e-e-d` -> `weed`).
+    - **Fuzzy Matching:** Uses Levenshtein edit distance to detect typosquatting and minor spelling variations.
+3.  **Mandatory Re-scanning on Update:** `items.update` merges updated text fields with stored item data and re-evaluates both text moderation and image safety on every edit attempt.
+

@@ -214,7 +214,7 @@ export async function checkImageSafety(
 
     // Debug: log all detected labels so we can diagnose issues
     if (labels.length > 0) {
-      console.log(`[Vision API] Labels for image: ${labels.map(l => `"${l.description}" (${(l.score ?? 0).toFixed(2)})`).join(', ')}`);
+      console.log(`[Vision API] Labels for image: ${labels.map((l: any) => `"${l.description}" (${(l.score ?? 0).toFixed(2)})`).join(', ')}`);
     } else {
       console.log(`[Vision API] No labels detected for image.`);
     }
@@ -254,14 +254,14 @@ export async function checkImageSafety(
     // ── CHECK 6: Whitelist — must have at least one valid marketplace item ───
     // Lowered threshold to 0.60 and added generic product/object labels that
     // Google Vision commonly returns for valid items.
-    const hasValidItem = labels.some(label => {
+    const hasValidItem = labels.some((label: any) => {
       const desc = (label.description ?? "").toLowerCase();
       const score = label.score ?? 0;
       return score > 0.60 && ALLOWED_ITEM_LABELS.some(allowed => desc.includes(allowed));
     });
 
     if (!hasValidItem) {
-      const labelSummary = labels.slice(0, 5).map(l => `${l.description} (${(l.score ?? 0).toFixed(2)})`).join(", ");
+      const labelSummary = labels.slice(0, 5).map((l: any) => `${l.description} (${(l.score ?? 0).toFixed(2)})`).join(", ");
       console.log(`[Vision API] Blocked: no valid item detected. Labels: ${labelSummary}`);
       return {
         safe: false,

@@ -1,12 +1,13 @@
 import { eq, desc, and, or, sql, like, asc, lt, ne, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { users, items, deals, reviews, messages, item_reports, revoked_tokens } from "../drizzle/schema";
+import { users, items, deals, reviews, messages, item_reports, revoked_tokens, admin_actions } from "../drizzle/schema";
 import type {
   InsertUser,
   InsertReview,
   InsertMessage,
   InsertItemReport,
+  InsertAdminAction,
 } from "../drizzle/schema";
 import crypto from "crypto";
 
@@ -55,14 +56,12 @@ export async function getDb() {
 
 export async function createUser(data: {
   email: string;
-  passwordHash: string;
   name: string;
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(users).values({
     email: data.email,
-    passwordHash: data.passwordHash,
     name: data.name,
   }).returning({ insertId: users.id });
   return result[0].insertId;
@@ -152,7 +151,6 @@ export async function anonymizeUser(userId: number) {
     .set({
       email: `deleted_user_${userId}@deleted.invalid`,
       name: "Deleted User",
-      passwordHash: "DELETED",
       upiId: null,
       upiName: null,
       whatsapp: null,
@@ -707,19 +705,7 @@ export async function getUserByResetToken(token: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function updateUserPassword(userId: number, passwordHash: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return await db
-    .update(users)
-    .set({
-      passwordHash,
-      resetToken: null,
-      resetTokenExpiresAt: null,
-      tokenVersion: sql`${users.tokenVersion} + 1`,
-    })
-    .where(eq(users.id, userId));
-}
+
 
 export async function incrementUserTokenVersion(userId: number) {
   const db = await getDb();
@@ -925,3 +911,38 @@ export async function isTokenRevoked(tokenHash: string): Promise<boolean> {
 
   return result.length > 0;
 }
+
+// ─── Admin Audit Trail ────────────────────────────────────────────────────────
+
+export async function logAdminAction(data: InsertAdminAction) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db
+    .insert(admin_actions)
+    .values(data)
+    .returning({ insertId: admin_actions.id });
+  return result.insertId;
+}
+
+export async function getAdminActions(limit = 100) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const admins = aliasedTable(users, "admins");
+
+  return await db
+    .select({
+      id: admin_actions.id,
+      adminId: admin_actions.adminId,
+      action: admin_actions.action,
+      targetId: admin_actions.targetId,
+      details: admin_actions.details,
+      timestamp: admin_actions.timestamp,
+      adminName: admins.name,
+      adminEmail: admins.email,
+    })
+    .from(admin_actions)
+    .innerJoin(admins, eq(admin_actions.adminId, admins.id))
+    .orderBy(desc(admin_actions.timestamp))
+    .limit(limit);
+}
+

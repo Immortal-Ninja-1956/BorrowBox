@@ -105,7 +105,6 @@ export async function authenticateRequest(req: Request): Promise<User | null> {
       if (!user) {
         const userId = await db.createUser({
           email: userEmail,
-          passwordHash: "", // Supabase is now the password authority
           name:
             authUser.user_metadata?.full_name ||
             userEmail.split("@")[0],

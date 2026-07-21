@@ -48,6 +48,7 @@ export default function AdminDashboard() {
       toast.success("User status updated");
       refetch();
       refetchReports();
+      refetchAuditLogs();
     },
     onError: error => {
       toast.error(error.message);
@@ -62,10 +63,19 @@ export default function AdminDashboard() {
     enabled: user?.role === "admin",
   });
 
+  const {
+    data: auditLogs,
+    isLoading: auditLogsLoading,
+    refetch: refetchAuditLogs,
+  } = trpc.admin.getAuditLogs.useQuery(undefined, {
+    enabled: user?.role === "admin",
+  });
+
   const updateReportStatusMutation = trpc.admin.updateReportStatus.useMutation({
     onSuccess: () => {
       toast.success("Report status updated");
       refetchReports();
+      refetchAuditLogs();
     },
     onError: error => {
       toast.error(error.message);
@@ -76,6 +86,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       toast.success("Listing deleted successfully");
       refetchReports();
+      refetchAuditLogs();
     },
     onError: error => {
       toast.error(error.message);
@@ -160,6 +171,7 @@ export default function AdminDashboard() {
         <TabsList>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="reports">Reports Management</TabsTrigger>
+          <TabsTrigger value="audit">Audit Logs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -327,6 +339,71 @@ export default function AdminDashboard() {
                                 Delete Listing
                               </Button>
                             </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Admin</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Target ID</TableHead>
+                      <TableHead>Details</TableHead>
+                      <TableHead>Timestamp</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {auditLogsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          <Loader2 className="animate-spin h-6 w-6 mx-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ) : auditLogs?.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          No audit logs recorded yet.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      auditLogs?.map(log => (
+                        <TableRow key={log.id}>
+                          <TableCell>{log.id}</TableCell>
+                          <TableCell>
+                            <span className="font-semibold">{log.adminName}</span>
+                            <br />
+                            <span className="text-xs text-muted-foreground">{log.adminEmail}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-semibold ${
+                                log.action.includes("BAN")
+                                  ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                  : log.action.includes("DELETE")
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                              }`}
+                            >
+                              {log.action}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{log.targetId}</TableCell>
+                          <TableCell>{log.details || "-"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleString()}
                           </TableCell>
                         </TableRow>
                       ))

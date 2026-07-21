@@ -21,7 +21,6 @@ export const reportStatusEnum = pgEnum("report_status", ["OPEN", "RESOLVED", "DI
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 320 }).notNull().unique(),
-  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   role: roleEnum("role").default("user").notNull(),
   isBanned: integer("isBanned").default(0).notNull(),
@@ -157,3 +156,18 @@ export const revoked_tokens = pgTable("revoked_tokens", {
 
 export type RevokedToken = typeof revoked_tokens.$inferSelect;
 export type InsertRevokedToken = typeof revoked_tokens.$inferInsert;
+
+export const admin_actions = pgTable("admin_actions", {
+  id: serial("id").primaryKey(),
+  adminId: integer("adminId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  action: varchar("action", { length: 100 }).notNull(),
+  targetId: integer("targetId").notNull(),
+  details: text("details"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export type AdminAction = typeof admin_actions.$inferSelect;
+export type InsertAdminAction = typeof admin_actions.$inferInsert;
+

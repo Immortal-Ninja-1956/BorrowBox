@@ -1402,6 +1402,12 @@ Found a security vulnerability? Please email `security@borrowbox.dev` (or create
 
 **Do not** open a public issue for security vulnerabilities.
 
+### Secret Management & Rotation Policy
+- **Secrets in `.env` Only:** All API keys, secrets, database URLs, and token keys must be stored in `.env` files and environment settings. No hardcoded secrets.
+- **Secret Rotation Plan:** Detailed procedures for rotating Supabase JWT secrets, Cloudinary API credentials, and database passwords are documented in [SECRET_ROTATION_PLAN.md](file:///d:/PROGRAMMING/BorrowBox/borrowbox_fixed%20%281%29/borrowbox/docs/SECRET_ROTATION_PLAN.md).
+- **Admin Audit Trail:** All administrative actions (user bans/unbans, listing deletions, deal cancellations, report status updates) are logged in the `admin_actions` table and viewable via the Admin Dashboard.
+
+
 ---
 
 ## 📄 License
