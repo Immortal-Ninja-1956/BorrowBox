@@ -94,13 +94,7 @@ export default function Marketplace() {
     }
   }, [data?.items, offset]);
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  // Removed authLoading early return so skeletons can render immediately
 
   const categories = [
     "all",
@@ -258,10 +252,10 @@ export default function Marketplace() {
                 <SearchX className="w-12 h-12 text-muted-foreground mb-4" />
                 <h3 className="text-xl font-semibold text-foreground mb-2">No results found</h3>
                 <p className="text-muted-foreground max-w-md mb-6">
-                  We couldn't find anything matching your search. Try adjusting your filters or search terms.
+                  We couldn't find anything matching {searchQuery ? <span className="font-bold text-foreground">"{searchQuery}"</span> : "your filters"}. Try adjusting your keywords or categories.
                 </p>
                 <Button variant="outline" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }}>
-                  Clear Filters
+                  Clear search
                 </Button>
               </>
             ) : (
@@ -378,7 +372,10 @@ function ItemCard({ item }: { item: any }) {
           </span>
         </div>
 
-        <h3 className="text-base font-semibold text-foreground line-clamp-1 mb-1 group-hover:text-primary transition-colors">
+        <h3 
+          className="text-base font-semibold text-foreground line-clamp-2 mb-1 group-hover:text-primary transition-colors"
+          title={item.title}
+        >
           {item.title}
         </h3>
         

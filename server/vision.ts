@@ -228,7 +228,7 @@ export async function checkImageSafety(
         console.log(`[Vision API] Blocked: top label "${top.description}" (${topScore})`);
         return {
           safe: false,
-          reason: `This doesn't look like a marketplace item. Top detected content: ${top.description}.`,
+          reason: "Please upload a clear, real photo of the item you want to sell. Landscapes, buildings, and abstract photos are not allowed.",
         };
       }
     }
@@ -245,7 +245,7 @@ export async function checkImageSafety(
           console.log(`[Vision API] Blocked: banned label "${label.description}" (${score})`);
           return {
             safe: false,
-            reason: `Image contains restricted content: ${label.description}. Please upload a real photo of the item you are listing.`,
+            reason: "This photo contains content that isn't allowed (such as memes, screenshots, selfies, or prohibited items). Please upload a clear photo of your item.",
           };
         }
       }

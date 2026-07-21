@@ -268,9 +268,9 @@ export async function getPagedItems(options: {
     .where(and(...conditions));
 
   if (options.sortBy === "price-low") {
-    query = query.orderBy(asc(items.amount)) as any;
+    query = query.orderBy(asc(sql`${items.amount}::numeric`)) as any;
   } else if (options.sortBy === "price-high") {
-    query = query.orderBy(desc(items.amount)) as any;
+    query = query.orderBy(desc(sql`${items.amount}::numeric`)) as any;
   } else if (options.sortBy === "oldest") {
     query = query.orderBy(asc(items.createdAt)) as any;
   } else {

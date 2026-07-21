@@ -126,6 +126,28 @@ export default function EditPost() {
     },
   });
 
+  useEffect(() => {
+    if (!item) return;
+
+    const isDirty = 
+      formData.title !== item.title ||
+      formData.description !== (item.description || "") ||
+      formData.amount !== item.amount.toString() ||
+      formData.category !== (item.category || "Other") ||
+      formData.condition !== (item.condition || "Good") ||
+      formData.imageUrl !== (item.imageUrl || "") ||
+      imageFile !== null;
+
+    if (isDirty && !updateItemMutation.isSuccess) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = "";
+      };
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }
+  }, [formData, item, imageFile, updateItemMutation.isSuccess]);
+
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
