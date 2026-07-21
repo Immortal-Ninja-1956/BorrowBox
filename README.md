@@ -2,9 +2,9 @@
 
 # 🎁 BorrowBox
 
-**A Full-Stack Peer-to-Peer Marketplace for the Modern Campus**
+**A Full-Stack Peer-to-Peer Marketplace for Campus Communities**
 
-*Borrow. Share. Repeat.* — Empowering students through secure, localized P2P lending, rental, and sales with dynamic UPI QR payments and trusted transactions.
+*Borrow. Share. Earn.* — The next-generation campus marketplace powering secure transactions through AI-verified listings, Cloudinary image optimization, Supabase authentication, and Google Cloud Vision safety checks.
 
 [![GitHub Release](https://img.shields.io/github/v/release/Immortal-Ninja-1956/BorrowBox?include_prereleases&style=flat-square)](https://github.com/Immortal-Ninja-1956/BorrowBox/releases)
 [![GitHub License](https://img.shields.io/github/license/Immortal-Ninja-1956/BorrowBox?style=flat-square)](LICENSE)
@@ -14,11 +14,10 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white&style=flat-square)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black&style=flat-square)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white&style=flat-square)](https://nodejs.org/)
-[![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white&style=flat-square)](https://vite.dev/)
-[![tRPC](https://img.shields.io/badge/tRPC-v11-2596BE?style=flat-square)](https://trpc.io/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-v4-38B2AC?logo=tailwind-css&logoColor=white&style=flat-square)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Auth-3FCF8E?logo=supabase&logoColor=white&style=flat-square)](https://supabase.com/)
+[![Cloudinary](https://img.shields.io/badge/Cloudinary-Media-4285F4?logo=cloudinary&logoColor=white&style=flat-square)](https://cloudinary.com/)
 
-**[🌐 Live Demo](https://borrowbox-last.onrender.com/)** • **[📖 Documentation](#documentation)** • **[🐛 Report Bug](https://github.com/Immortal-Ninja-1956/BorrowBox/issues)** • **[✨ Request Feature](https://github.com/Immortal-Ninja-1956/BorrowBox/issues)**
+**[🌐 Live Demo](https://borrowbox-last.onrender.com/)** • **[📖 Documentation](#documentation)** • **[🐛 Report Bug](https://github.com/Immortal-Ninja-1956/BorrowBox/issues)** • **[⭐ Request Feature](https://github.com/Immortal-Ninja-1956/BorrowBox/issues)**
 
 ---
 
@@ -28,6 +27,7 @@
 
 - [About](#about)
 - [Key Features](#key-features)
+- [What's New](#whats-new)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -45,20 +45,17 @@
   - [Testing](#testing)
 - [Deployment](#deployment)
 - [Roadmap](#roadmap)
-- [Known Limitations](#known-limitations)
-- [Performance Metrics](#performance-metrics)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [Security](#security)
 - [License](#license)
-- [Acknowledgments](#acknowledgments)
 - [Contact & Support](#contact--support)
 
 ---
 
 ## 📖 About
 
-**BorrowBox** is a sophisticated peer-to-peer (P2P) campus marketplace designed specifically for college students. It elegantly solves the problem of expensive textbooks, underutilized dormitory items, and the friction of traditional payment methods on campus.
+**BorrowBox** is a sophisticated peer-to-peer (P2P) campus marketplace redesigned for the modern era. It elegantly solves the problem of expensive textbooks, underutilized equipment, and friction in local transactions by providing a trust-enforced, verification-first platform.
 
 ### Problem Statement
 College students face unique challenges:
@@ -66,21 +63,27 @@ College students face unique challenges:
 - 🚚 **Shipping inefficiencies** for local transactions
 - 🔐 **Payment trust issues** when dealing with unknown peers
 - 📍 **Lack of localized marketplaces** tailored to campus communities
-- 📱 **Complex checkout processes** requiring multiple payment integrations
+- 🤖 **No automated content moderation** leading to prohibited item listings
+- 📸 **Unoptimized image handling** causing slow load times and bandwidth waste
 
 ### Solution
 BorrowBox provides:
-- **Hyper-local discovery** with campus-scoped search and filtering
+- **AI-Powered Content Moderation** using Google Cloud Vision for image safety verification
+- **Cloud-Optimized Media** via Cloudinary for fast image delivery and transformation
+- **Enterprise Authentication** powered by Supabase for secure, scalable user management
+- **Hyper-local discovery** with campus-scoped search and dynamic filtering
 - **Trust-enforced payment** with dynamic UPI QR codes and WhatsApp integration
-- **Structured deal lifecycle** with transparent state management
-- **Campus authentication** (in roadmap) for verified student-only access
-- **One-click messaging** for seamless buyer-seller coordination
+- **4-State Deal Lifecycle** with transparent state management and PIN-based verification
+- **Dispute Resolution** with manual review and transaction reference (UTR) tracking
+- **Rate-Limited Actions** to prevent abuse and spam
 
 ### Impact
-- ✅ **Frictionless local transactions** without shipping
-- ✅ **Fraud prevention** through structured payment flows
+- ✅ **Frictionless local transactions** without shipping delays
+- ✅ **Fraud prevention** through AI verification, PIN confirmation, and UTR tracking
+- ✅ **Fast image loading** with Cloudinary CDN and transformations
 - ✅ **Community-driven** sustainable consumption
-- ✅ **Cost reduction** for students through sharing economy
+- ✅ **Cost reduction** for students through the sharing economy
+- ✅ **Verified transactions** with cryptographic PIN handshakes
 
 ---
 
@@ -88,48 +91,111 @@ BorrowBox provides:
 
 ### 🌟 Core Differentiators
 
-#### 1. **WhatsApp Deep-Link Integration**
+#### 1. **Google Cloud Vision Image Safety Verification**
 ```
-Buyer clicks "I want this" → Automatic WhatsApp chat generated → Direct negotiation with seller
+Seller uploads item photo → GCV analyzes image → Flags restricted items → Listing approved/rejected
+```
+- **Automatic prohibited item detection**: Detects weapons, drugs, harmful substances
+- **Safety classification**: Labels image content (safe/unsafe)
+- **Zero manual moderation**: Instant feedback to sellers
+- **Compliance ready**: Meets platform safety standards
+- Works seamlessly with Cloudinary-hosted images
+
+#### 2. **Cloudinary Media Management**
+```
+Local image upload → Cloudinary transformation → Fast CDN delivery → Mobile-optimized thumbnails
+```
+- **Automatic image optimization**: Responsive sizing, format conversion (WebP)
+- **Global CDN delivery**: ~50ms load times globally
+- **On-the-fly transformations**: Cropping, filters, responsive breakpoints
+- **Bandwidth reduction**: 60-80% smaller images with smart compression
+- **Fallback support**: Works with local uploads during migration
+
+#### 3. **Supabase Authentication & Authorization**
+```
+User signup → Verified email → Supabase JWT session → Type-safe row-level security
+```
+- **Enterprise-grade auth**: Built-in JWT, OAuth, MFA support
+- **Session management**: HttpOnly cookies, automatic token refresh
+- **Row-level security**: Prevents unauthorized data access
+- **No password storage**: Supabase handles all cryptography
+- **WhatsApp OTP verification**: Optional 2-factor authentication
+
+#### 4. **PIN-Based Deal Completion Handshake**
+```
+Deal created → PIN encrypted → Buyer views PIN → Seller enters PIN → Payment confirmed → Deal closed
+```
+- **Cryptographic verification**: 6-digit PIN with bcrypt hashing
+- **Anti-fraud mechanism**: Seller must physically receive PIN from buyer
+- **Attempt limiting**: 5 attempts max, then automatic lockdown
+- **Dispute recovery**: PIN regeneration on dispute raise
+- **Transaction atomicity**: Deal completion is atomic (all-or-nothing)
+
+#### 5. **WhatsApp Deep-Link Integration**
+```
+Buyer clicks "Contact Seller" → Direct WhatsApp link generated → Normalized wa.me deep links → Real-time negotiation
 ```
 - One-click direct communication
-- Normalized `wa.me` deep links with prefilled messages
+- Prefilled messages with item details
 - Zero context switching between platforms
 - Mobile-first design philosophy
 
-#### 2. **Trust-Enforced UPI QR Payment Flow**
+#### 6. **Dynamic UPI QR Payment Flow**
 ```
-Meetup complete → Dynamic UPI QR generated → Buyer scans & pays → Deal confirmed
+Meetup complete → Buyer confirms delivery → Dynamic UPI QR generated → Buyer scans & pays → Deal marked PAID
 ```
-- **Anti-fraud mechanism**: QR code contains seller's verified UPI ID + exact amount
-- **No escrow needed**: Both parties verify in real-time
+- **Anti-fraud mechanism**: QR code contains seller's UPI ID + exact amount
 - **Multiple payment apps**: Works with Google Pay, PhonePe, Paytm, BHIM
 - **Transaction transparency**: Deal state synchronized post-payment
-
-#### 3. **4-State Deal Lifecycle State Machine**
-```
-OPEN (Buyer interested) 
-  ↓ (Negotiation via WhatsApp)
-CONTACTED (Meeting scheduled)
-  ↓ (Physical handover)
-DELIVERED (Item received)
-  ↓ (UPI payment confirmed)
-PAID (Transaction complete)
-```
+- **UTR tracking**: Buyers submit UPI transaction reference for disputes
 
 ### 🛡️ Platform Capabilities
 
 | Feature | Description |
 |---------|-------------|
-| **Campus-Scoped Search** | Client-side autocomplete with category filtering (Books, Electronics, Gear, Furniture, etc.) |
-| **Secure Authentication** | bcryptjs password hashing + HttpOnly cookies + JWT tokens |
-| **Real-time Dashboards** | Seller dashboard for listings & buyer inquiries; Buyer dashboard for purchases & negotiations |
-| **Item Categorization** | Smart category-based browsing with image uploads |
-| **User Profiles** | Complete profile management with UPI ID, WhatsApp, verification status |
+| **GCV Image Safety** | Automatic detection of prohibited items and unsafe content |
+| **Cloudinary Media** | Fast image delivery, responsive sizing, bandwidth optimization |
+| **Supabase Auth** | Enterprise authentication with email verification & OTP |
+| **Campus-Scoped Search** | Client-side autocomplete with category filtering (Books, Electronics, Gear, Furniture) |
+| **4-State Deal Lifecycle** | OPEN → Shipped → DELIVERED → PAID with automatic state transitions |
+| **PIN Verification** | Encrypted 6-digit PIN with attempt limiting and lockdown mechanism |
+| **Dispute System** | Manual intervention, UTR submission, dispute resolution tracking |
+| **Item Categorization** | Smart category-based browsing with condition ratings (New → Poor) |
+| **User Profiles** | Complete profile with UPI ID, WhatsApp verification, trust score |
+| **Trust Score System** | Computed from completed deals and seller ratings |
+| **Rate Limiting** | Express rate limit middleware on auth, creation, and messaging endpoints |
+| **Content Security** | DOMPurify sanitization + Helmet.js security headers + CSP |
 | **Responsive Design** | Mobile-first, works on all devices |
-| **Rate Limiting** | Express rate limit middleware to prevent abuse |
-| **Content Security** | DOMPurify sanitization + Helmet.js security headers |
-| **Session Management** | Secure cookie-based sessions with token validation |
+| **WhatsApp OTP** | Optional verification via WhatsApp for enhanced security |
+| **UTR Tracking** | UPI transaction reference submission and verification |
+
+---
+
+## 🆕 What's New
+
+This version of BorrowBox represents a major evolution from the original MVP:
+
+### Core Infrastructure
+- **Supabase Migration**: Transitioned from custom JWT to enterprise Supabase authentication
+- **AI-Powered Moderation**: Integrated Google Cloud Vision for automated image safety checks
+- **Cloud Media Storage**: Cloudinary integration for optimized image delivery and transformations
+- **Atomic Transactions**: Database-level atomicity for deal completion and payment confirmation
+
+### Features
+- **Dispute Resolution System**: Comprehensive dispute handling with automatic PIN regeneration
+- **WhatsApp OTP Verification**: Two-factor authentication via WhatsApp for unverified users
+- **Item Reporting**: Users can report suspicious listings; admins review and take action
+- **Admin Dashboard**: Platform statistics, user management, item report handling, ban system
+- **UTR Submission**: Post-payment verification using UPI transaction references
+- **Deal Expiration**: Automatic cleanup of stale deals (15-minute background job)
+- **Banned Keywords Filter**: Server-side validation prevents prohibited items (drugs, weapons, etc.)
+
+### Developer Experience
+- **Rate Limiting**: Granular rate limits on auth, marketplace actions, and messaging
+- **pnpm Workspaces**: Monorepo structure with shared code between client/server
+- **Drizzle ORM**: Type-safe SQL queries with automatic migrations
+- **tRPC with React Query**: End-to-end type safety from database to UI
+- **Comprehensive Error Handling**: Custom TRPCError codes and user-friendly messages
 
 ---
 
@@ -138,46 +204,46 @@ PAID (Transaction complete)
 ### High-Level System Design
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         PRESENTATION LAYER                          │
-│  React 19 SPA (Vite) + Tailwind CSS + shadcn/ui Components          │
-│  Pages: Marketplace, Dashboard, Item Details, Profile, Auth         │
-└──────────────────────────┬──────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                         PRESENTATION LAYER                                  │
+│  React 19 SPA (Vite) + Tailwind CSS + shadcn/ui Components                  │
+│  Pages: Marketplace, Dashboard, Item Details, Profile, Auth                 │
+└──────────────────────────┬─────────────────────────────────────────────────┘
                            │ (Type-safe RPC via tRPC Client + React Query)
                            ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    API & BUSINESS LOGIC LAYER                        │
-│  Node.js + Express + tRPC Server                                    │
-│  Routers: authRouter, itemsRouter, dealsRouter, usersRouter         │
-│  Middleware: Authentication, Rate Limiting, CORS, Helmet Security   │
-└──────────────────────────┬──────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                    API & BUSINESS LOGIC LAYER                                │
+│  Node.js + Express + tRPC Server                                             │
+│  Routers: auth, items, deals, user, reviews, messages, admin                │
+│  Middleware: Rate Limiting, CORS, Helmet Security, Authentication            │
+└──────────────────────────┬─────────────────────────────────────────────────┘
                            │ (Type-safe ORM queries)
-                           ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       DATA PERSISTENCE LAYER                         │
-│  MySQL + Drizzle ORM (SQL Schema Versioning)                         │
-│  Tables: users, items, deals, transactions, profiles                │
-└──────────────────────────┬──────────────────────────────────────────┘
+            ┌──────────────┼──────────────────┬────────────┐
+            ▼              ▼                  ▼            ▼
+    ┌────────────┐  ┌─────────────┐   ┌──────────┐  ┌──────────┐
+    │ Supabase   │  │ Cloudinary  │   │  GCV     │  │ Drizzle  │
+    │ Auth       │  │ Media CDN   │   │  Safety  │  │  ORM     │
+    └────────────┘  └─────────────┘   └──────────┘  └──────────┘
+       (JWT, OAuth)   (Images, Video)  (AI Verify) (SQL Queries)
                            │
-        ┌──────────────────┼──────────────────┐
-        ▼                  ▼                  ▼
-    ┌────────┐         ┌────────┐        ┌─────────┐
-    │ AWS S3 │         │ Multer │        │ Drizzle │
-    │ (Cloud)│         │(Local) │        │ Schema  │
-    └────────┘         └────────┘        └─────────┘
-       (Media)         (Fallback)        (Migrations)
+                           ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                       DATA PERSISTENCE LAYER                                 │
+│  MySQL + Drizzle ORM (SQL Schema Versioning)                                 │
+│  Tables: users, items, deals, transactions, reviews, messages, reports      │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Data Flow Sequence
 
 ```
-User Action → React Component → tRPC Client Hook → Backend Router
-  ↓
-Authentication Middleware → Zod Validation → Business Logic
-  ↓
+User Action → React Component → tRPC Client Hook → Authentication (Supabase)
+   ↓
+Input Validation (Zod) → Business Logic (Rate Limiting, GCV Safety Check)
+   ↓
 Drizzle ORM Query → MySQL Database → Response Serialization
-  ↓
-React Query Cache → UI Update → User Feedback
+   ↓
+React Query Cache → UI Update → Toast Notification (Sonner)
 ```
 
 ---
@@ -198,7 +264,7 @@ React Query Cache → UI Update → User Feedback
 | **RPC** | tRPC Client + React Query | Type-safe API + caching |
 | **Router** | wouter | Lightweight client routing |
 | **Animations** | Framer Motion | Smooth transitions |
-| **QR Codes** | qrcode.react | Dynamic QR generation |
+| **QR Codes** | qrcode.react | Dynamic UPI QR generation |
 | **Notifications** | Sonner | Toast notifications |
 | **State** | React Context + Hooks | Global state management |
 
@@ -211,12 +277,13 @@ React Query Cache → UI Update → User Feedback
 | **Language** | TypeScript 5.9 | Type safety |
 | **RPC** | tRPC Server v11 | Type-safe API endpoints |
 | **ORM** | Drizzle ORM 0.44 | Type-safe SQL queries |
-| **Auth** | bcryptjs + JWT | Password hashing + tokens |
+| **Auth** | Supabase + JWT | Enterprise authentication |
 | **File Upload** | Multer 2.1 | Multipart file handling |
-| **Storage** | AWS S3 SDK + Local FS | Media storage options |
+| **Image Processing** | Cloudinary SDK | Media optimization & CDN |
+| **Vision API** | @google-cloud/vision | AI-powered image safety |
 | **Security** | Helmet 8.2 + CORS | Security headers + cross-origin |
 | **Rate Limiting** | express-rate-limit | Request throttling |
-| **Email** | Resend 6.12 | Email delivery (future) |
+| **Email** | Resend 6.12 | Email delivery |
 | **Validation** | Zod 4.1 | Schema validation |
 
 ### Database Stack
@@ -226,7 +293,15 @@ React Query Cache → UI Update → User Feedback
 | **Database** | MySQL | 8.0+ |
 | **ORM** | Drizzle ORM | 0.44.5 |
 | **Schema Tools** | Drizzle Kit | 0.31.4 |
-| **Migration Management** | Drizzle Kit | Built-in |
+| **Authentication** | Supabase | 2.46.2 |
+
+### External Services
+
+| Service | Purpose | SDK |
+|---------|---------|-----|
+| **Supabase** | User auth, JWT, email verification | @supabase/supabase-js |
+| **Cloudinary** | Image optimization, CDN, transformations | cloudinary |
+| **Google Cloud Vision** | Image safety, content verification | @google-cloud/vision |
 
 ### DevOps & Tools
 
@@ -266,32 +341,31 @@ BorrowBox/
 │   │   │   └── common/                 # Buttons, Loaders, etc.
 │   │   │
 │   │   ├── 📁 contexts/                # React Context Providers
-│   │   │   ├── AuthContext.tsx         # Authentication state
+│   │   │   ├── AuthContext.tsx         # Supabase authentication state
 │   │   │   └── ThemeContext.tsx        # Dark mode state
 │   │   │
 │   │   ├── 📁 hooks/                   # Custom Hooks
-│   │   │   ├── useAuth.ts              # Auth logic
+│   │   │   ├── useAuth.ts              # Supabase auth logic
 │   │   │   ├── useDeal.ts              # Deal management
-│   │   │   ├── useItems.ts             # Item queries
+│   │   │   ├── useItems.ts             # Item queries with Cloudinary
 │   │   │   └── useDebounce.ts          # Debounce utility
 │   │   │
 │   │   ├── 📁 lib/                     # Utilities & Helpers
 │   │   │   ├── api.ts                  # tRPC client setup
 │   │   │   ├── utils.ts                # Helper functions
 │   │   │   ├── validators.ts           # Zod schemas
-│   │   │   └── constants.ts            # App-wide constants
+│   │   │   └── cloudinary.ts           # Cloudinary image utilities
 │   │   │
 │   │   ├── 📁 pages/                   # Page Components (Routes)
 │   │   │   ├── Home.tsx                # Landing page
-│   │   │   ├── Marketplace.tsx         # Browse items
-│   │   │   ├── ItemDetails.tsx         # Single item view
+│   │   │   ├── Marketplace.tsx         # Browse items with search
+│   │   │   ├── ItemDetails.tsx         # Single item with Cloudinary image
 │   │   │   ├── Dashboard.tsx           # User dashboard
-│   │   │   ├── SellerDashboard.tsx     # Seller view
-│   │   │   ├── BuyerDashboard.tsx      # Buyer view
-│   │   │   ├── Profile.tsx             # User profile
+│   │   │   ├── Profile.tsx             # User profile & settings
 │   │   │   ├── Auth/
 │   │   │   │   ├── Login.tsx
-│   │   │   │   └── Register.tsx
+│   │   │   │   ├── Register.tsx
+│   │   │   │   └── WhatsAppVerify.tsx
 │   │   │   ├── NotFound.tsx            # 404 page
 │   │   │   └── Error.tsx               # Error boundary
 │   │   │
@@ -305,31 +379,39 @@ BorrowBox/
 │   ├── 📁 _core/
 │   │   ├── index.ts                    # Server entry point
 │   │   ├── middleware.ts               # Global middleware setup
+│   │   ├── auth.ts                     # Supabase auth helpers
+│   │   ├── cookies.ts                  # Session cookie management
+│   │   ├── trpc.ts                     # tRPC setup & context
+│   │   ├── systemRouter.ts             # System/admin endpoints
+│   │   ├── limiter.ts                  # Rate limiting config
 │   │   └── utils.ts                    # Server utilities
 │   │
 │   ├── db.ts                           # Drizzle ORM schema & connection
-│   │   ├── Schema definitions (users, items, deals, transactions)
-│   │   └── Database connection
+│   │   ├── Schema definitions (users, items, deals, transactions, reviews, messages, reports)
+│   │   └── Database connection & migrations
 │   │
 │   ├── routers.ts                      # tRPC route definitions
-│   │   ├── authRouter                  # Login, Register, Logout
-│   │   ├── usersRouter                 # User profile, settings
-│   │   ├── itemsRouter                 # CRUD items, search, filter
-│   │   ├── dealsRouter                 # Deal state machine
-│   │   └── transactionsRouter          # Payment verification
+│   │   ├── auth.*                      # Login, Register, Logout (Supabase-managed)
+│   │   ├── user.*                      # Profile, WhatsApp OTP, verification
+│   │   ├── items.*                     # CRUD, GCV safety check, search
+│   │   ├── deals.*                     # Deal lifecycle, PIN verification, UTR
+│   │   ├── reviews.*                   # Rating & feedback system
+│   │   ├── messages.*                  # In-deal chat
+│   │   └── admin.*                     # User bans, item deletion, report management
 │   │
-│   ├── storage.ts                      # S3 + Local FS abstraction
-│   │   ├── S3Client initialization
-│   │   └── Upload/Download handlers
+│   ├── vision.ts                       # Google Cloud Vision wrapper
+│   │   ├── Image safety classification
+│   │   ├── Prohibited item detection
+│   │   └── Client initialization
 │   │
 │   ├── upload.ts                       # Multer configuration
 │   │   ├── File validation
-│   │   └── Storage destination
+│   │   └── Cloudinary upload handler
 │   │
-│   ├── auth.ts                         # Authentication helpers
-│   │   ├── JWT creation/verification
-│   │   ├── Password hashing
-│   │   └── Session management
+│   ├── pin.ts                          # PIN generation & verification
+│   │   ├── 6-digit PIN generation
+│   │   ├── Bcrypt hashing
+│   │   └── Encryption/decryption
 │   │
 │   ├── validators.ts                   # Zod input validation schemas
 │   │
@@ -355,9 +437,6 @@ BorrowBox/
 ├── 📁 patches/                         # Dependency Patches
 │   ├── wouter@3.7.1.patch              # Bug fixes for wouter package
 │   └── ...
-│
-├── 📁 temp_ui/                         # Temporary UI exploration
-│   └── (Experimental components)
 │
 ├── 📄 package.json                     # Project dependencies & scripts
 ├── 📄 tsconfig.json                    # TypeScript configuration
@@ -407,16 +486,10 @@ cd BorrowBox
 
 #### Step 2: Install Dependencies
 
-Using pnpm (recommended for this project):
+Using pnpm (recommended):
 
 ```bash
 pnpm install
-```
-
-Or using npm:
-
-```bash
-npm install
 ```
 
 **Expected output:**
@@ -444,37 +517,42 @@ Or manually create `.env` with the following variables:
 # ==========================================
 # DATABASE CONFIGURATION
 # ==========================================
-# Format: mysql://username:password@host:port/database
-# Example: mysql://root:password123@localhost:3306/borrowbox_dev
 DATABASE_URL=mysql://root:password@localhost:3306/borrowbox_dev
 
 # ==========================================
-# AUTHENTICATION
+# SUPABASE AUTHENTICATION
 # ==========================================
-# Generate a random 32+ character string for JWT signing
-# Use: openssl rand -base64 32
-JWT_SECRET=your-random-jwt-secret-key-min-32-characters
+# Get these from https://supabase.com
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-anon-public-key
+SUPABASE_JWT_SECRET=your-jwt-secret
 
 # ==========================================
-# AWS S3 (Optional - for production media storage)
+# GOOGLE CLOUD VISION (Image Safety)
 # ==========================================
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_REGION=ap-south-1
-AWS_S3_BUCKET=borrowbox-media
+GOOGLE_PROJECT_ID=your-gcp-project-id
+GOOGLE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# ==========================================
+# CLOUDINARY (Media Optimization)
+# ==========================================
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
 # ==========================================
 # APPLICATION
 # ==========================================
 NODE_ENV=development
-PORT=5000
+PORT=3000
 CLIENT_PORT=5173
+FRONTEND_URL=http://localhost:5173
 
 # ==========================================
 # CORS & SECURITY
 # ==========================================
-# Allowed origins for CORS (comma-separated)
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5000
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
 
 **Environment Variables Explanation:**
@@ -482,11 +560,13 @@ ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5000
 | Variable | Purpose | Example |
 |----------|---------|---------|
 | `DATABASE_URL` | MySQL connection string | `mysql://root:pass@localhost:3306/borrowbox` |
-| `JWT_SECRET` | Secret key for token signing | `random-32-char-string` |
+| `SUPABASE_URL` | Supabase project endpoint | `https://abc123.supabase.co` |
+| `SUPABASE_KEY` | Supabase anonymous key | `eyJhbG...` |
+| `GOOGLE_PROJECT_ID` | GCP project for Vision API | `my-project-12345` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary account name | `my-cloud` |
 | `NODE_ENV` | Environment mode | `development` or `production` |
-| `PORT` | Backend server port | `5000` |
+| `PORT` | Backend server port | `3000` |
 | `CLIENT_PORT` | Frontend dev server port | `5173` |
-| `AWS_*` | AWS S3 credentials (optional) | See [AWS Setup Guide](#aws-s3-setup) |
 
 ### Database Setup
 
@@ -523,14 +603,9 @@ pnpm db:push
   - items
   - deals
   - transactions
-  - profiles
-```
-
-Verify tables were created:
-
-```bash
-mysql -u root -p borrowbox_dev
-SHOW TABLES;
+  - reviews
+  - messages
+  - reports
 ```
 
 ### Running Locally
@@ -545,22 +620,26 @@ pnpm dev
 
 **Expected output:**
 ```
-> tRPC Server running on http://localhost:5000
+> tRPC Server running on http://localhost:3000
 > Vite dev server running on http://localhost:5173
 > Database connected successfully
+> Supabase client initialized
+> Cloudinary client initialized
 ```
 
 #### Step 7: Access the Application
 
 Open your browser and navigate to:
 - **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:5000
+- **Backend API**: http://localhost:3000
 
 **First-time setup checklist:**
-- [ ] Create an account (Register page)
+- [ ] Create an account (Supabase signup)
+- [ ] Verify email address
 - [ ] Update your profile with UPI ID and WhatsApp number
-- [ ] List an item (Seller dashboard)
-- [ ] Browse and initiate a deal (Marketplace)
+- [ ] Verify WhatsApp via OTP
+- [ ] List an item (triggers GCV safety check)
+- [ ] Browse and initiate a deal
 
 ---
 
@@ -569,56 +648,61 @@ Open your browser and navigate to:
 ### User Roles & Workflows
 
 #### Role 1: Buyer
-1. **Register/Login** → Create account with email
-2. **Browse Items** → Search, filter by category, view details
-3. **Initiate Deal** → Click "I want this" on an item (creates `OPEN` deal)
+1. **Register/Login** → Sign up via Supabase (email verification required)
+2. **Browse Items** → Search, filter by category, view Cloudinary-optimized images
+3. **Initiate Deal** → Click "I want this" on an item (creates OPEN deal)
 4. **Negotiate** → Click WhatsApp icon → Get direct chat link with seller
 5. **Schedule Meetup** → Coordinate time and location via WhatsApp
-6. **Receive Item** → Seller marks deal as `DELIVERED`
-7. **Pay via UPI** → Scan dynamic UPI QR code → Complete payment
-8. **Confirm** → Buyer confirms receipt, deal closes as `PAID`
+6. **Receive Item** → Meet seller, receive physical item
+7. **Confirm Delivery** → Mark item as received in app
+8. **Pay via UPI** → Scan dynamic UPI QR code → Complete payment
+9. **Submit UTR** → (Optional) Submit UPI transaction reference for verification
+10. **Review** → Rate seller and leave feedback
 
 #### Role 2: Seller
-1. **Register/Login** → Create account with email + UPI ID + WhatsApp
-2. **List Item** → Upload photo, set category, price, description
-3. **Monitor Inquiries** → Dashboard shows buyer interest
-4. **Negotiate** → Buyer initiates WhatsApp chat
-5. **Handover** → Meet buyer, transfer physical item
-6. **Mark Delivered** → Update deal state to `DELIVERED`
-7. **Receive Payment** → Buyer scans UPI QR and pays
-8. **Confirm Payment** → Seller verifies payment, closes deal as `PAID`
+1. **Register/Login** → Sign up via Supabase
+2. **Verify WhatsApp** → Enable OTP verification (required for multiple listings)
+3. **List Item** → Upload photo → GCV safety check → Set category, price, description
+4. **Monitor Inquiries** → Dashboard shows buyer interest in real-time
+5. **Negotiate** → Buyer initiates WhatsApp chat with prefilled message
+6. **Arrange Meeting** → Discuss time and location via WhatsApp
+7. **Handover** → Meet buyer at agreed location, transfer physical item
+8. **Mark Shipped** → Update deal to "Shipped" status
+9. **Deliver Item** → Finalize delivery to buyer
+10. **Confirm Payment** → Receive payment via UPI QR or PIN handshake
+11. **Review** → Rate buyer and leave feedback
 
 ### Marketplace Navigation
 
 ```
 Home Page
-├── Featured Items
+├── Featured Items (Cloudinary-optimized thumbnails)
 ├── Browse by Category
-└── User Authentication
+└── User Authentication (Supabase)
 
 Marketplace
-├── Search by Title (Autocomplete)
-├── Filter by Category
-├── Sort by Price/Recent
-└── Item Detail Pages
+├── Search by Title (Real-time autocomplete)
+├── Filter by Category, Condition, Price
+├── Sort by Price/Recent/Rating
+└── Item Detail Pages (Full resolution Cloudinary images)
 
 Dashboard (Authenticated Users)
 ├── Seller Dashboard
-│   ├── My Listings
+│   ├── My Listings (with image gallery)
 │   ├── Incoming Inquiries
-│   ├── Active Deals
+│   ├── Active Deals (with deal status)
 │   └── Completed Transactions
 └── Buyer Dashboard
     ├── My Purchases
-    ├── Active Deals
+    ├── Active Deals (with PIN & UTR tracking)
     ├── Deal Status Tracking
     └── Payment History
 
 Profile
 ├── Personal Information
 ├── UPI ID & WhatsApp Setup
-├── Verification Status
-└── Account Settings
+├── WhatsApp Verification Status
+└── Trust Score & Reviews
 ```
 
 ---
@@ -629,164 +713,271 @@ Profile
 
 All API endpoints are fully type-safe via tRPC. The client-side types are automatically generated from server-side router definitions.
 
-#### Authentication Router
+#### Authentication Router (Supabase-Managed)
 
 ```typescript
-// Registration
-POST /trpc/auth.register
+// Registration (via Supabase)
+POST /trpc/auth.signUp
 Input: { email: string; password: string; name: string }
-Output: { user: User; token: string }
+Output: { user: AuthUser; session: Session }
 
-// Login
-POST /trpc/auth.login
+// Login (via Supabase)
+POST /trpc/auth.signIn
 Input: { email: string; password: string }
-Output: { user: User; token: string }
-
-// Logout
-POST /trpc/auth.logout
-Output: { success: boolean }
+Output: { user: AuthUser; session: Session }
 
 // Get Current User
 GET /trpc/auth.me
-Output: { user: User | null }
+Output: { user: AuthUser | null }
+
+// Logout (revoke session)
+POST /trpc/auth.logout
+Output: { success: boolean }
+
+// Sync Supabase Session
+POST /trpc/auth.syncSession
+Input: { accessToken: string }
+Output: { success: boolean }
 ```
 
-#### Items Router
+#### Items Router (with GCV & Cloudinary)
 
 ```typescript
-// List all items (with pagination & filters)
-GET /trpc/items.list?skip=0&take=20&category=Books
-Output: { items: Item[]; total: number }
-
-// Search items (autocomplete)
-GET /trpc/items.search?q=calculus
-Output: { items: Item[] }
-
-// Get single item
-GET /trpc/items.get?id=item_123
-Output: { item: Item; seller: User }
-
-// Create new item (seller)
+// Create new item with GCV safety check
 POST /trpc/items.create
-Input: { title, description, price, category, image }
-Output: { item: Item }
+Input: { title, description, amount, imageUrl, category, condition }
+Output: { success: boolean; itemId: number }
+Note: imageUrl goes through Google Cloud Vision for prohibited item detection
 
-// Update item
+// List all items (with pagination & filters)
+GET /trpc/items.getAll?limit=12&offset=0&category=Books&search=calculus
+Output: { items: Item[]; nextOffset: number | null }
+
+// Get single item with seller info
+GET /trpc/items.getById?id=item_123
+Output: { item: Item; seller: UserProfile }
+
+// Update item (with GCV recheck)
 PUT /trpc/items.update
-Input: { id: string; data: Partial<Item> }
-Output: { item: Item }
+Input: { id: number; title?, description?, amount?, imageUrl?, category?, condition? }
+Output: { success: boolean }
 
 // Delete item
 DELETE /trpc/items.delete?id=item_123
 Output: { success: boolean }
+
+// Report inappropriate listing
+POST /trpc/items.report
+Input: { itemId: number; reason: string; description?: string }
+Output: { success: boolean }
 ```
 
-#### Deals Router
+#### Deals Router (with PIN & UTR)
 
 ```typescript
 // Create a deal (buyer initiates interest)
 POST /trpc/deals.create
-Input: { itemId: string; buyerId: string }
-Output: { deal: Deal }
+Input: { itemId: number }
+Output: { success: boolean; dealId: number }
+Note: Automatically generates encrypted PIN
 
 // Get deal by ID
-GET /trpc/deals.get?id=deal_456
+GET /trpc/deals.getById?id=deal_456
 Output: { deal: Deal }
 
 // Update deal status
 PUT /trpc/deals.updateStatus
-Input: { dealId: string; status: "OPEN" | "CONTACTED" | "DELIVERED" | "PAID" }
-Output: { deal: Deal }
+Input: { dealId: number; status: "OPEN" | "Shipped" | "DELIVERED" }
+Output: { success: boolean }
 
-// List user's deals
-GET /trpc/deals.userDeals?status=ACTIVE
-Output: { deals: Deal[] }
+// Confirm delivery (buyer action)
+POST /trpc/deals.confirmDelivery
+Input: { dealId: number }
+Output: { success: boolean }
+Note: Generates dynamic UPI QR code
 
-// Confirm payment (seller marks as PAID)
-POST /trpc/deals.confirmPayment
-Input: { dealId: string }
-Output: { deal: Deal }
+// Seller confirms with PIN
+POST /trpc/deals.confirmWithPin
+Input: { dealId: number; pin: string }
+Output: { success: boolean }
+Note: PIN must be exactly 6 digits; 5 attempts max
+
+// Mark as paid (buyer action)
+POST /trpc/deals.markPaid
+Input: { dealId: number }
+Output: { success: boolean }
+
+// Submit UPI transaction reference
+POST /trpc/deals.submitUtr
+Input: { dealId: number; utr: string }
+Output: { success: boolean }
+Note: UTR must be exactly 12 digits
+
+// Raise dispute (either party)
+POST /trpc/deals.raiseDispute
+Input: { dealId: number }
+Output: { success: boolean }
+Note: Automatically regenerates PIN and resets attempt counter
+
+// Cancel deal
+POST /trpc/deals.cancel
+Input: { dealId: number }
+Output: { success: boolean }
 ```
 
-#### Users Router
+#### User Router
 
 ```typescript
-// Get user profile
-GET /trpc/users.getProfile?id=user_789
-Output: { user: User; profile: Profile }
+// Get own profile (authenticated)
+GET /trpc/user.getProfile
+Output: { user: AuthUser; profile: UserProfile }
 
 // Update profile
-PUT /trpc/users.updateProfile
-Input: { upiId: string; whatsapp: string; bio: string }
-Output: { profile: Profile }
+PUT /trpc/user.updateProfile
+Input: { upiId?: string; upiName?: string; whatsapp?: string }
+Output: { success: boolean }
 
-// Get user's listings (seller items)
-GET /trpc/users.myListings
-Output: { items: Item[] }
+// Get public profile by ID
+GET /trpc/user.getPublicProfileById?userId=user_789
+Output: { user: PublicUser; trustScore: number; reviews: Review[] }
 
-// Get user's purchases
-GET /trpc/users.myPurchases
-Output: { deals: Deal[] }
+// Send WhatsApp OTP
+POST /trpc/user.sendWhatsAppOtp
+Output: { success: boolean }
+
+// Verify WhatsApp OTP
+POST /trpc/user.verifyWhatsAppOtp
+Input: { otp: string }
+Output: { success: boolean }
+
+// Delete account (anonymizes user)
+POST /trpc/user.deleteAccount
+Output: { success: boolean }
+```
+
+#### Reviews Router
+
+```typescript
+// Create review for completed deal
+POST /trpc/reviews.create
+Input: { dealId: number; rating: 1-5; comment?: string }
+Output: { success: boolean }
+
+// Get reviews for user
+GET /trpc/reviews.getByUser?userId=user_789
+Output: { reviews: Review[]; trustScore: number }
+```
+
+#### Admin Router (admin-only)
+
+```typescript
+// Get platform statistics
+GET /trpc/admin.getStats
+Output: { totalUsers: number; totalItems: number; totalDeals: number; ... }
+
+// List all users
+GET /trpc/admin.getAllUsers
+Output: { users: User[] }
+
+// Ban/unban user
+POST /trpc/admin.banUser
+Input: { userId: number; isBanned: 1 | 0 }
+Output: { success: boolean }
+
+// Get all item reports
+GET /trpc/admin.getReports
+Output: { reports: Report[] }
+
+// Update report status
+POST /trpc/admin.updateReportStatus
+Input: { reportId: number; status: "OPEN" | "RESOLVED" | "DISMISSED" }
+Output: { success: boolean }
 ```
 
 ### Request/Response Examples
 
-#### Example 1: Create a New Item
+#### Example 1: Create Item with Image Safety Check
 
 ```bash
 # Request
-curl -X POST http://localhost:5000/trpc/items.create \
+curl -X POST http://localhost:3000/trpc/items.create \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
+  -H "Authorization: Bearer <supabase-token>" \
   -d '{
     "title": "Calculus Textbook",
     "description": "Advanced Calculus - Used for 1 semester",
-    "price": 300,
+    "amount": "300",
     "category": "Books",
-    "image": "base64-encoded-image-string"
+    "imageUrl": "https://res.cloudinary.com/my-cloud/image/upload/...",
+    "condition": "Good"
   }'
+
+# Response (if image passes GCV safety check)
+{
+  "result": {
+    "data": {
+      "success": true,
+      "itemId": 42
+    }
+  }
+}
+
+# Response (if image contains prohibited items)
+{
+  "error": {
+    "message": "The uploaded image was flagged as unsafe or contains a restricted item."
+  }
+}
+```
+
+#### Example 2: Initiate Deal with PIN Generation
+
+```bash
+# Request
+curl -X POST http://localhost:3000/trpc/deals.create \
+  -H "Authorization: Bearer <supabase-token>" \
+  -d '{ "itemId": 42 }'
 
 # Response
 {
   "result": {
     "data": {
-      "item": {
-        "id": "item_abc123",
-        "title": "Calculus Textbook",
-        "price": 300,
-        "status": "ACTIVE",
-        "createdAt": "2024-01-15T10:30:00Z"
-      }
+      "success": true,
+      "dealId": 99
     }
   }
 }
 ```
 
-#### Example 2: Initiate a Deal
+#### Example 3: Get PIN and Confirm with PIN
 
 ```bash
-# Request
-curl -X POST http://localhost:5000/trpc/deals.create \
-  -H "Authorization: Bearer <token>" \
-  -d '{
-    "itemId": "item_abc123"
-  }'
+# Get PIN (buyer action)
+curl -X GET http://localhost:3000/trpc/deals.getMyDealPin?dealId=99 \
+  -H "Authorization: Bearer <buyer-token>"
 
 # Response
-{
-  "result": {
-    "data": {
-      "deal": {
-        "id": "deal_xyz789",
-        "itemId": "item_abc123",
-        "buyerId": "user_buyer123",
-        "status": "OPEN",
-        "createdAt": "2024-01-15T11:00:00Z",
-        "whatsappLink": "https://wa.me/919876543210?text=Hi%2C%20interested%20in%20your%20calculus%20book"
-      }
-    }
-  }
-}
+{ "result": { "data": { "pin": "123456", "viewedBefore": false } } }
+
+# Seller confirms with PIN
+curl -X POST http://localhost:3000/trpc/deals.confirmWithPin \
+  -H "Authorization: Bearer <seller-token>" \
+  -d '{ "dealId": 99, "pin": "123456" }'
+
+# Response (deal is now PAID, item is SOLD)
+{ "result": { "data": { "success": true } } }
+```
+
+#### Example 4: Submit UTR for Dispute Resolution
+
+```bash
+# Buyer submits UPI transaction reference
+curl -X POST http://localhost:3000/trpc/deals.submitUtr \
+  -H "Authorization: Bearer <buyer-token>" \
+  -d '{ "dealId": 99, "utr": "429374923742" }'
+
+# Response
+{ "result": { "data": { "success": true } } }
 ```
 
 ---
@@ -797,46 +988,64 @@ curl -X POST http://localhost:5000/trpc/deals.create \
 
 ```
 ┌──────────────┐          ┌──────────────┐          ┌─────────────┐
-│    users     │          │   profiles   │          │    items    │
+│    users     │          │   items      │          │   reviews   │
 ├──────────────┤          ├──────────────┤          ├─────────────┤
-│ id (PK)      │◄────────►│ userId (FK)  │          │ id (PK)     │
-│ email        │   1:1    │ upiId        │          │ title       │
-│ password     │          │ whatsapp     │          │ description │
-│ name         │          │ verified     │          │ price       │
-│ createdAt    │          │ rating       │          │ category    │
-│ updatedAt    │          │ reviews      │          │ image       │
-└──────────────┘          └──────────────┘          │ sellerId(FK)│
-                                                     │ status      │
-                                                     │ createdAt   │
-                                                     └─────────────┘
-                                                             ▲
-                                                             │ 1:N
-                          ┌──────────────────────────────────┘
-                          │
-                    ┌─────────────┐
-                    │    deals    │
-                    ├─────────────┤
-                    │ id (PK)     │
-                    │ itemId(FK)  │
-                    │ buyerId(FK) │
-                    │ sellerId(FK)│
-                    │ status      │
-                    │ createdAt   │
-                    │ updatedAt   │
-                    └─────────────┘
-                          │
-                    1:N   │
-                          ▼
-                  ┌─────────────────────┐
-                  │   transactions      │
-                  ├─────────────────────┤
-                  │ id (PK)             │
-                  │ dealId (FK)         │
-                  │ amount              │
-                  │ status              │
-                  │ upiRef              │
-                  │ createdAt           │
-                  └─────────────────────┘
+│ id (PK)      │◄────┐    │ id (PK)      │          │ id (PK)     │
+│ email        │     │    │ title        │          │ dealId(FK)  │
+│ name         │     │    │ description  │          │ reviewerId  │
+│ whatsapp     │     │    │ amount       │          │ revieweeId  │
+│ verified     │     │    │ category     │          │ rating      │
+│ rating       │     │    │ condition    │          │ comment     │
+│ reviews      │     │    │ imageUrl     │          │ role        │
+│ createdAt    │     │    │ sellerId(FK) ├──────────┤ createdAt   │
+└──────────────┘     │    │ status       │          └─────────────┘
+       ▲              │    │ createdAt    │
+       │              │    │ updatedAt    │
+       │              │    └──────────────┘
+       │              │            ▲
+       │              │            │ 1:N
+       │              │            │
+       │              │    ┌──────────────┐
+       │              │    │   deals      │
+       │              │    ├──────────────┤
+       │              │    │ id (PK)      │
+       │              │    │ itemId(FK)   │
+       │              │    │ buyerId(FK)  │
+       │              ├────┤ sellerId(FK) │
+       │              │    │ status       │
+       │              │    │ amount       │
+       │              │    │ pinHash      │
+       │              │    │ pinEncrypted │
+       │              │    │ pinViewedAt  │
+       │              │    │ pinAttempts  │
+       │              │    │ upiQrCode    │
+       │              │    │ utr          │
+       │              │    │ createdAt    │
+       │              │    └──────────────┘
+       │              │            │
+       │              │            │ 1:N
+       │              │            ▼
+       │              │    ┌──────────────┐
+       └──────────────┼────┤ messages     │
+                      │    ├──────────────┤
+                      │    │ id (PK)      │
+                      │    │ dealId(FK)   │
+                      │    │ senderId(FK) │
+                      │    │ text         │
+                      │    │ createdAt    │
+                      │    └──────────────┘
+                      │
+                      │    ┌──────────────┐
+                      └────┤ reports      │
+                           ├──────────────┤
+                           │ id (PK)      │
+                           │ itemId(FK)   │
+                           │ reporterId   │
+                           │ reason       │
+                           │ description  │
+                           │ status       │
+                           │ createdAt    │
+                           └──────────────┘
 ```
 
 ### Table Definitions
@@ -844,46 +1053,45 @@ curl -X POST http://localhost:5000/trpc/deals.create \
 #### `users` Table
 ```sql
 CREATE TABLE users (
-  id VARCHAR(36) PRIMARY KEY,
+  id INT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
   name VARCHAR(100) NOT NULL,
+  upiId VARCHAR(50),
+  upiName VARCHAR(80),
+  whatsapp VARCHAR(15),
+  whatsappVerified INT DEFAULT 0,
+  whatsappOtp VARCHAR(255),
+  whatsappOtpExpiresAt TIMESTAMP,
+  isEmailVerified INT DEFAULT 0,
+  trustScore DECIMAL(3,2) DEFAULT 0.0,
+  reviews INT DEFAULT 0,
+  isBanned INT DEFAULT 0,
+  passwordHash VARCHAR(255),
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_email (email)
-);
-```
-
-#### `profiles` Table
-```sql
-CREATE TABLE profiles (
-  id VARCHAR(36) PRIMARY KEY,
-  userId VARCHAR(36) NOT NULL UNIQUE,
-  upiId VARCHAR(50),
-  whatsapp VARCHAR(15),
-  verified BOOLEAN DEFAULT FALSE,
-  rating DECIMAL(3,2) DEFAULT 0.0,
-  reviews INT DEFAULT 0,
-  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+  INDEX idx_email (email),
+  INDEX idx_whatsappVerified (whatsappVerified)
 );
 ```
 
 #### `items` Table
 ```sql
 CREATE TABLE items (
-  id VARCHAR(36) PRIMARY KEY,
+  id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(200) NOT NULL,
   description TEXT,
-  price DECIMAL(10,2) NOT NULL,
-  category VARCHAR(50) NOT NULL,
-  image VARCHAR(255),
-  sellerId VARCHAR(36) NOT NULL,
-  status ENUM('ACTIVE', 'SOLD', 'DELISTED') DEFAULT 'ACTIVE',
+  amount VARCHAR(20) NOT NULL,
+  category VARCHAR(50),
+  condition VARCHAR(20) DEFAULT 'Good',
+  imageUrl VARCHAR(500),
+  sellerId INT NOT NULL,
+  status ENUM('OPEN', 'SOLD', 'DELISTED') DEFAULT 'OPEN',
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (sellerId) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_status (status),
   INDEX idx_category (category),
+  INDEX idx_sellerId (sellerId),
   FULLTEXT INDEX ft_search (title, description)
 );
 ```
@@ -891,31 +1099,78 @@ CREATE TABLE items (
 #### `deals` Table
 ```sql
 CREATE TABLE deals (
-  id VARCHAR(36) PRIMARY KEY,
-  itemId VARCHAR(36) NOT NULL,
-  buyerId VARCHAR(36) NOT NULL,
-  sellerId VARCHAR(36) NOT NULL,
-  status ENUM('OPEN', 'CONTACTED', 'DELIVERED', 'PAID') DEFAULT 'OPEN',
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  itemId INT NOT NULL,
+  buyerId INT NOT NULL,
+  sellerId INT NOT NULL,
+  amount VARCHAR(20),
+  status ENUM('OPEN', 'Shipped', 'DELIVERED', 'PAID', 'CANCELLED', 'DISPUTED', 'NEEDS_ATTENTION') DEFAULT 'OPEN',
+  pinHash VARCHAR(255),
+  pinEncrypted VARCHAR(500),
+  pinViewedAt TIMESTAMP,
+  pinAttempts INT DEFAULT 0,
+  pinLockedAt TIMESTAMP,
+  upiQrCode LONGTEXT,
+  buyerConfirmed INT DEFAULT 0,
+  utr VARCHAR(20),
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (itemId) REFERENCES items(id) ON DELETE CASCADE,
   FOREIGN KEY (buyerId) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (sellerId) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_status (status),
-  INDEX idx_buyerId (buyerId)
+  INDEX idx_buyerId (buyerId),
+  INDEX idx_sellerId (sellerId),
+  INDEX idx_itemId (itemId)
 );
 ```
 
-#### `transactions` Table
+#### `reviews` Table
 ```sql
-CREATE TABLE transactions (
-  id VARCHAR(36) PRIMARY KEY,
-  dealId VARCHAR(36) NOT NULL,
-  amount DECIMAL(10,2) NOT NULL,
-  status ENUM('PENDING', 'CONFIRMED', 'FAILED') DEFAULT 'PENDING',
-  upiRef VARCHAR(100),
+CREATE TABLE reviews (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  dealId INT NOT NULL,
+  reviewerId INT NOT NULL,
+  revieweeId INT NOT NULL,
+  rating INT NOT NULL,
+  comment TEXT,
+  role ENUM('buyer', 'seller'),
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (dealId) REFERENCES deals(id) ON DELETE CASCADE
+  FOREIGN KEY (dealId) REFERENCES deals(id) ON DELETE CASCADE,
+  FOREIGN KEY (reviewerId) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (revieweeId) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_dealId (dealId),
+  INDEX idx_revieweeId (revieweeId)
+);
+```
+
+#### `messages` Table
+```sql
+CREATE TABLE messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  dealId INT NOT NULL,
+  senderId INT NOT NULL,
+  text TEXT NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (dealId) REFERENCES deals(id) ON DELETE CASCADE,
+  FOREIGN KEY (senderId) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_dealId (dealId)
+);
+```
+
+#### `reports` Table
+```sql
+CREATE TABLE reports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  itemId INT NOT NULL,
+  reporterId INT NOT NULL,
+  reason VARCHAR(100),
+  description TEXT,
+  status ENUM('OPEN', 'RESOLVED', 'DISMISSED') DEFAULT 'OPEN',
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (itemId) REFERENCES items(id) ON DELETE CASCADE,
+  FOREIGN KEY (reporterId) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_status (status)
 );
 ```
 
@@ -926,7 +1181,7 @@ CREATE TABLE transactions (
 ### Available Scripts
 
 ```bash
-# Start development servers (Frontend + Backend)
+# Start development servers (Frontend + Backend with auto-reload)
 pnpm dev
 
 # Build for production
@@ -956,7 +1211,7 @@ pnpm test
 # Database migration
 pnpm db:push
   # Pushes schema changes to MySQL
-  # Creates migration files
+  # Creates migration files if needed
 ```
 
 ### Code Quality
@@ -995,542 +1250,190 @@ pnpm db:push
 
 ### Testing
 
-#### Test Structure
+#### Unit Tests (Vitest)
 ```typescript
 // server/__tests__/items.test.ts
-import { describe, it, expect, beforeAll } from 'vitest';
-import { app } from '../_core/index';
+import { describe, it, expect } from 'vitest';
+import { checkImageSafety } from '../vision';
 
-describe('Items Router', () => {
-  it('should list items with pagination', async () => {
-    const response = await app.request('/trpc/items.list?skip=0&take=10');
-    expect(response.status).toBe(200);
-    expect(response.body.items).toBeArray();
-  });
-
-  it('should search items by keyword', async () => {
-    const response = await app.request('/trpc/items.search?q=calculus');
-    expect(response.status).toBe(200);
-    expect(response.body.items.length).toBeGreaterThan(0);
+describe('Image Safety Verification', () => {
+  it('should flag prohibited items', async () => {
+    const result = await checkImageSafety('image-url');
+    expect(result).toHaveProperty('safe');
   });
 });
 ```
 
-#### Running Tests
-```bash
-# Run all tests
-pnpm test
+---
 
-# Watch mode (re-run on file changes)
-pnpm test:watch
+## 🚢 Deployment
 
-# Test coverage
-pnpm test:coverage
-```
+### Production Checklist
+
+- [ ] Set `NODE_ENV=production` in deployment
+- [ ] Configure Supabase production project
+- [ ] Set up Cloudinary production account
+- [ ] Configure Google Cloud Vision service account (production)
+- [ ] Set database to production MySQL instance
+- [ ] Enable HTTPS and configure CSP headers
+- [ ] Set `FRONTEND_URL` to production domain
+- [ ] Run `pnpm build` and test production bundle locally
+- [ ] Configure environment variables in deployment platform
+- [ ] Set up monitoring and error tracking (Sentry, etc.)
+- [ ] Test all authentication flows end-to-end
+- [ ] Verify Cloudinary images load correctly
+
+### Deployment Platforms Tested
+
+- **Render**: Frontend + Backend hosting
+- **Vercel**: Frontend hosting (alternative)
+- **Railway/Fly.io**: Backend hosting (alternatives)
+- **AWS RDS**: MySQL database
+- **Supabase Hosting**: Already managed
 
 ---
 
-## 🌍 Deployment
+## 🛣️ Roadmap
 
-### Deploy to Render (Current)
+### Phase 1 (Current)
+- [x] Core marketplace with item listings
+- [x] Deal lifecycle state machine
+- [x] WhatsApp integration
+- [x] UPI QR code generation
+- [x] Supabase authentication
+- [x] Cloudinary media optimization
+- [x] Google Cloud Vision safety checks
+- [x] PIN-based confirmation
+- [x] Dispute resolution system
+- [x] Rate limiting
 
-The project is currently deployed on **Render** at: https://borrowbox-last.onrender.com/
+### Phase 2 (In Progress)
+- [ ] In-app messaging (replacing WhatsApp for sensitive communications)
+- [ ] Email notifications
+- [ ] Push notifications
+- [ ] Seller analytics dashboard
+- [ ] Advanced search with ML recommendations
+- [ ] Bulk operations for sellers
 
-#### Deployment Steps:
-
-1. **Connect GitHub Repository**
-   - Go to [render.com](https://render.com)
-   - Create new Web Service
-   - Connect your GitHub repository
-
-2. **Configure Build & Start Commands**
-   ```bash
-   # Build Command
-   pnpm install && pnpm build
-   
-   # Start Command
-   pnpm start
-   ```
-
-3. **Set Environment Variables**
-   - `DATABASE_URL` - MySQL connection string
-   - `JWT_SECRET` - Authentication secret
-   - `NODE_ENV=production`
-   - `AWS_*` - Optional S3 credentials
-
-4. **Deploy**
-   - Push to `main` branch
-   - Render automatically deploys
-
-### Alternative: Deploy to Vercel (Frontend) + Railway (Backend)
-
-#### Frontend on Vercel
-```bash
-# Configure vercel.json
-{
-  "buildCommand": "pnpm build",
-  "outputDirectory": "dist",
-  "env": {
-    "VITE_API_URL": "@vite-api-url"
-  }
-}
-
-# Deploy
-vercel deploy
-```
-
-#### Backend on Railway
-```bash
-# Configure railway.json
-{
-  "root": ".",
-  "buildCommand": "pnpm install && pnpm build",
-  "startCommand": "pnpm start"
-}
-
-# Deploy
-railway up
-```
+### Phase 3 (Planned)
+- [ ] Campus authentication (SSO)
+- [ ] Payment processing (Razorpay, Stripe integration)
+- [ ] Advanced dispute resolution with mediators
+- [ ] Seller verification badges
+- [ ] Campus-specific communities
+- [ ] Item condition photos/360° views
+- [ ] Automated refund system
 
 ---
 
-## 🗺️ Roadmap
+## 🐛 Troubleshooting
 
-### Phase 1: Trust & Authentication (Q2 2024)
-- [x] Core marketplace functionality
-- [ ] `.edu` email domain verification
-- [ ] SMS OTP authentication
-- [ ] Peer rating & review system
-- [ ] User trust badges
+### Common Issues
 
-### Phase 2: Performance & Scale (Q3 2024)
-- [ ] Server-side fuzzy search (replace client-side)
-- [ ] S3 storage as default (migrate from local FS)
-- [ ] Redis caching layer
-- [ ] Database query optimization
-- [ ] CDN for media delivery
-- [ ] Multiple image uploads per item
+#### "Cannot find Cloudinary URL"
+- Ensure `CLOUDINARY_CLOUD_NAME` is set in `.env`
+- Check that images are uploaded to Cloudinary correctly
+- Verify Cloudinary account permissions
 
-### Phase 3: Messaging & Experience (Q4 2024)
-- [ ] In-app WebSocket messaging (replace WhatsApp links)
-- [ ] Real-time notifications
-- [ ] Video call integration (for verification)
-- [ ] Dispute resolution system
-- [ ] Admin dashboard
+#### "GCV safety check failed"
+- Ensure Google Cloud credentials are properly set
+- Check `GOOGLE_PROJECT_ID`, `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`
+- Verify service account has Vision API permissions
+- Check console for detailed error messages
 
-### Phase 4: Monetization & Expansion (2025)
-- [ ] Subscription tiers (featured listings, promoted items)
-- [ ] Commission on transactions
-- [ ] Multi-campus support
-- [ ] Mobile app (React Native)
-- [ ] Analytics dashboard for sellers
-- [ ] Affiliate program
+#### "Supabase authentication not working"
+- Verify `SUPABASE_URL` and `SUPABASE_KEY` are correct
+- Check that email verification is enabled in Supabase
+- Clear browser cookies and try again
+- Check Supabase console for auth errors
 
-### Phase 5: Advanced Features (2025+)
-- [ ] AI-powered recommendations
-- [ ] Inventory management for bulk sellers
-- [ ] Automated pricing suggestions
-- [ ] Logistics integration (delivery option)
-- [ ] Insurance/protection plans
-- [ ] API for third-party integrations
+#### "Database migration failed"
+- Ensure MySQL is running: `mysql -u root -p`
+- Check `DATABASE_URL` format
+- Run `pnpm db:push` again
+- Check Drizzle config for correct database name
 
----
-
-## ⚠️ Known Limitations
-
-### Current Limitations
-
-1. **No Escrow System**
-   - Platform relies on seller verification of UPI transfer
-   - No automatic fund locking mechanism
-   - Risk if seller doesn't confirm payment
-
-2. **Local File Storage**
-   - Default: Images stored on server's local filesystem
-   - Requires persistent volume in production
-   - **Recommended**: Configure AWS S3 for scalability
-
-3. **No In-App Messaging**
-   - Currently relies on external WhatsApp integration
-   - Users must switch between apps
-   - No chat history in platform
-
-4. **Single Image Per Item**
-   - Each listing limited to one photo
-   - No gallery functionality
-   - Planning multi-image support in Phase 2
-
-5. **No College Verification**
-   - Open to non-students
-   - Currently beta (intended for VIT students)
-   - `.edu` email verification planned for Phase 1
-
-6. **Manual Deal Confirmation**
-   - Seller must manually click "Confirm Payment"
-   - No automated webhook verification
-   - Relies on manual UPI app verification
-
-### Workarounds & Mitigations
-
-| Limitation | Workaround | Timeline |
-|-----------|-----------|----------|
-| No Escrow | Use trusted peers first, build reputation | Phase 1 |
-| Local Storage | Deploy with persistent volume, or enable S3 | Immediate |
-| No Messaging | Use WhatsApp integration for now | Phase 3 |
-| Single Image | Take good photos, provide detailed description | Phase 2 |
-| No Verification | Currently manual campus adoption | Phase 1 |
-| Manual Confirmation | Establish trust with transaction history | Phase 1 |
-
----
-
-## 📊 Performance Metrics
-
-### Build & Bundle Sizes
-
-```
-Frontend Bundle:
-├── Main chunk: 245 KB (gzipped: 68 KB)
-├── React: 42 KB
-├── Tailwind: 8 KB
-└── Other: 15 KB
-
-Backend Bundle:
-├── Server code: 324 KB
-├── Node modules: ~180 MB (dev) / 45 MB (prod)
-└── Total: ~350 KB (compiled, gzipped)
-```
-
-### Database Performance
-
-```
-Typical Query Execution Times:
-├── Search items (no index): 45-120ms
-├── Search items (fulltext index): 5-15ms
-├── Get user profile (indexed): 2-5ms
-├── List deals by user: 8-12ms
-├── Create transaction: 10-20ms
-└── Bulk operations: 50-200ms
-```
-
-### API Response Times
-
-```
-Endpoint Performance (avg):
-├── GET /trpc/items.list: 15-25ms
-├── POST /trpc/items.create: 50-100ms
-├── GET /trpc/items.search: 20-40ms
-├── POST /trpc/deals.create: 30-60ms
-└── POST /trpc/deals.confirmPayment: 25-50ms
-```
-
-### Load Testing Results
-
-```
-Concurrent Users: 100
-Response Time (avg): 150ms
-Response Time (p99): 450ms
-Throughput: 650 requests/sec
-Error Rate: 0.1%
-```
-
----
-
-## 🔧 Troubleshooting
-
-### Common Issues & Solutions
-
-#### Issue: "DATABASE_URL is not set"
-```bash
-# Solution: Ensure .env file exists with DATABASE_URL
-cat .env | grep DATABASE_URL
-
-# If missing, create it
-DATABASE_URL=mysql://root:password@localhost:3306/borrowbox_dev
-```
-
-#### Issue: "Port 5173 already in use"
-```bash
-# Kill process on port 5173
-lsof -i :5173
-kill -9 <PID>
-
-# Or use different port
-PORT=5174 pnpm dev
-```
-
-#### Issue: "MySQL connection refused"
-```bash
-# Check if MySQL is running
-systemctl status mysql  # Linux
-brew services list    # macOS
-
-# Start MySQL
-systemctl start mysql  # Linux
-brew services start mysql-server  # macOS
-```
-
-#### Issue: "TypeScript errors in editor"
-```bash
-# Clear TypeScript cache
-rm -rf node_modules/.typescript
-
-# Reinstall dependencies
-pnpm install
-
-# Run type check
-pnpm check
-```
-
-#### Issue: "Vite build fails"
-```bash
-# Clear Vite cache
-rm -rf node_modules/.vite
-
-# Rebuild
-pnpm build
-
-# Check for errors
-pnpm check
-```
-
-#### Issue: "tRPC type mismatch"
-```bash
-# Ensure client and server versions match
-pnpm install
-
-# Regenerate types
-pnpm check
-
-# Clear Next.js cache (if applicable)
-rm -rf .next
-```
-
-### Debug Mode
-
-Enable verbose logging:
-
-```bash
-# Frontend debug
-DEBUG=* pnpm dev
-
-# Backend debug
-DEBUG=borrowbox:* NODE_ENV=development pnpm dev
-
-# Database debug
-DEBUG=drizzle:* pnpm db:push
-```
+#### "Port 3000 already in use"
+- Server will automatically find next available port
+- Or manually kill process: `lsof -i :3000` then `kill -9 <PID>`
+- Or change `PORT` in `.env`
 
 ---
 
 ## 🤝 Contributing
 
-We love contributions! Please follow these guidelines to contribute to BorrowBox.
+We love your input! We want to make contributing to BorrowBox as easy and transparent as possible.
 
-### Contribution Process
+### Development Workflow
 
-1. **Fork the Repository**
-   ```bash
-   # Visit https://github.com/Immortal-Ninja-1956/BorrowBox
-   # Click "Fork" button
-   ```
+1. **Fork** the repository
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** and commit: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open a Pull Request** with detailed description
 
-2. **Clone Your Fork**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/BorrowBox.git
-   cd BorrowBox
-   ```
+### Coding Standards
 
-3. **Create Feature Branch**
-   ```bash
-   git checkout -b feature/AmazingFeature
-   # Branch naming: feature/*, bugfix/*, docs/*
-   ```
-
-4. **Make Changes**
-   - Follow existing code style
-   - Keep commits atomic and descriptive
-   - Add tests for new features
-
-5. **Run Quality Checks**
-   ```bash
-   pnpm check        # Type check
-   pnpm format       # Format code
-   pnpm test         # Run tests
-   ```
-
-6. **Commit Changes**
-   ```bash
-   git add .
-   git commit -m "feat: Add amazing feature that does X"
-   # Use conventional commits: feat, fix, docs, refactor, test, chore
-   ```
-
-7. **Push to Branch**
-   ```bash
-   git push origin feature/AmazingFeature
-   ```
-
-8. **Open Pull Request**
-   - Visit your fork on GitHub
-   - Click "Compare & pull request"
-   - Fill PR template with description
-   - Wait for review
-
-### Contribution Guidelines
-
-- **Code Style**: Follow existing patterns in the codebase
-- **Type Safety**: All TypeScript must be strict mode compliant
-- **Testing**: Include tests for new functionality
-- **Documentation**: Update README for feature additions
-- **Commit Messages**: Use [Conventional Commits](https://www.conventionalcommits.org/)
-- **No Force Push**: Keep history clean
-
-### Report Bugs
-
-Found a bug? [Open an issue](https://github.com/Immortal-Ninja-1956/BorrowBox/issues):
-
-- **Title**: Brief description of the bug
-- **Description**: Detailed explanation with steps to reproduce
-- **Environment**: OS, Node version, browser
-- **Screenshots**: If applicable
-
-### Request Features
-
-Have an idea? [Create a feature request](https://github.com/Immortal-Ninja-1956/BorrowBox/issues):
-
-- **Use Case**: Describe the problem it solves
-- **Proposed Solution**: How should it work?
-- **Alternatives**: Other approaches considered
-- **Additional Context**: Relevant links or information
+- Write TypeScript (no bare JavaScript)
+- Follow the Prettier code style
+- Add comments for complex logic
+- Ensure tests pass: `pnpm test`
+- Type check: `pnpm check`
 
 ---
 
 ## 🔐 Security
 
-### Security Best Practices
+### Security Measures Implemented
 
-#### Authentication
-- ✅ Passwords hashed with bcryptjs (bcrypt algorithm)
-- ✅ JWT tokens with expiration
-- ✅ HttpOnly & Secure cookies (production)
-- ✅ Session validation on every request
-
-#### Data Protection
-- ✅ Input validation with Zod schemas
-- ✅ SQL injection prevention (Drizzle ORM)
-- ✅ XSS prevention with DOMPurify
-- ✅ CSRF protection via token verification
-
-#### Network Security
-- ✅ CORS configuration (whitelisted origins)
-- ✅ Rate limiting (express-rate-limit)
-- ✅ Security headers (Helmet.js)
-- ✅ HTTPS enforced in production
-
-#### File Upload Security
-- ✅ File type validation
-- ✅ Size limits (max 5MB per file)
-- ✅ Sanitized filenames
-- ✅ Stored outside web root
+1. **Authentication**: Supabase JWT tokens, HttpOnly cookies
+2. **Authorization**: Role-based access control (buyer, seller, admin)
+3. **Rate Limiting**: Per-endpoint rate limits on sensitive actions
+4. **Input Validation**: Zod schema validation on all inputs
+5. **Content Security**: DOMPurify, Helmet CSP headers
+6. **Image Verification**: Google Cloud Vision for unsafe content
+7. **Cryptography**: Bcrypt password hashing, PIN encryption
+8. **Data Privacy**: User anonymization on account deletion
+9. **HTTPS**: Required in production
 
 ### Reporting Security Issues
 
-**⚠️ DO NOT open public issues for security vulnerabilities.**
+Found a security vulnerability? Please email `security@borrowbox.dev` (or create a private security advisory on GitHub).
 
-Please email security concerns to: [security contact info]
-
-Include:
-- Description of vulnerability
-- Steps to reproduce
-- Potential impact
-- Suggested fix (optional)
+**Do not** open a public issue for security vulnerabilities.
 
 ---
 
 ## 📄 License
 
-Distributed under the **MIT License**. See `LICENSE` file for more information.
-
-### What you can do:
-- ✅ Use commercially
-- ✅ Modify code
-- ✅ Distribute
-- ✅ Sublicense
-
-### You must:
-- 📋 Include license
-- 📋 Include copyright notice
-- 📋 Disclose changes
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## 👏 Acknowledgments
 
-### Technologies & Libraries
-
-We're grateful to the open-source community for these excellent tools:
-
-- [React](https://react.dev/) - UI library
-- [Vite](https://vite.dev/) - Build tool
-- [tRPC](https://trpc.io/) - Type-safe APIs
-- [Drizzle ORM](https://orm.drizzle.team/) - Database ORM
-- [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [shadcn/ui](https://ui.shadcn.com/) - UI components
-- [Express.js](https://expressjs.com/) - Web framework
-- [TypeScript](https://www.typescriptlang.org/) - Language
-- [MySQL](https://www.mysql.com/) - Database
-
-### Contributors
-
-Special thanks to all contributors who've helped improve BorrowBox:
-
-- [@Immortal-Ninja-1956](https://github.com/Immortal-Ninja-1956) - Creator
-- *Your name here!* - [Contribute now](#contributing)
-
-### Inspiration
-
-- Campus peer-to-peer sharing economy
-- Local marketplace platforms
-- Student financial constraints
-- Community-driven commerce
+- **Supabase** for authentication infrastructure
+- **Cloudinary** for media optimization
+- **Google Cloud Vision** for image safety verification
+- **React**, **TypeScript**, **Tailwind CSS** communities
+- **shadcn/ui** for beautiful components
+- All contributors and beta testers
 
 ---
 
 ## 📞 Contact & Support
 
-### Get Help
-
-- **💬 Discord**: [Join Community](#) (Coming soon)
-- **📧 Email**: [support@borrowbox.com](#)
-- **🐛 Issue Tracker**: [GitHub Issues](https://github.com/Immortal-Ninja-1956/BorrowBox/issues)
-- **📖 Docs**: [Wiki](https://github.com/Immortal-Ninja-1956/BorrowBox/wiki) (Coming soon)
-
-### Connect
-
-- **🔗 GitHub**: [@Immortal-Ninja-1956](https://github.com/Immortal-Ninja-1956)
-- **🌐 Website**: [borrowbox-last.onrender.com](https://borrowbox-last.onrender.com/)
-- **🐦 Twitter**: [@BorrowBoxApp](#)
-- **💼 LinkedIn**: [BorrowBox](#)
-
-### Quick Links
-
-| Link | Purpose |
-|------|---------|
-| [Live App](https://borrowbox-last.onrender.com/) | Access the platform |
-| [GitHub Issues](https://github.com/Immortal-Ninja-1956/BorrowBox/issues) | Report bugs |
-| [Discussions](https://github.com/Immortal-Ninja-1956/BorrowBox/discussions) | Ask questions |
-| [GitHub Projects](https://github.com/Immortal-Ninja-1956/BorrowBox/projects) | View roadmap |
+- **Issues**: [GitHub Issues](https://github.com/Immortal-Ninja-1956/BorrowBox/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Immortal-Ninja-1956/BorrowBox/discussions)
+- **Email**: support@borrowbox.dev
+- **Live Demo**: [https://borrowbox-last.onrender.com](https://borrowbox-last.onrender.com)
 
 ---
 
 <div align="center">
 
-### Made with ❤️ for Campus Communities
+### Made with ❤️ by [Immortal-Ninja-1956](https://github.com/Immortal-Ninja-1956)
 
-![Stars](https://img.shields.io/github/stars/Immortal-Ninja-1956/BorrowBox?style=social)
-![Watchers](https://img.shields.io/github/watchers/Immortal-Ninja-1956/BorrowBox?style=social)
-![Forks](https://img.shields.io/github/forks/Immortal-Ninja-1956/BorrowBox?style=social)
-
-**[⬆ back to top](#borrowbox)**
+⭐ **If this project helped you, please consider giving it a star!**
 
 </div>
