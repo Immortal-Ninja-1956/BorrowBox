@@ -7,7 +7,9 @@ import {
   varchar,
   decimal,
   integer,
+  index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const roleEnum = pgEnum("role", ["user", "admin"]);
 export const conditionEnum = pgEnum("condition", ["New", "Like New", "Good", "Fair", "Poor"]);
@@ -57,6 +59,11 @@ export const items = pgTable("items", {
   status: statusEnum("status").default("OPEN").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
+}, (table) => {
+  return {
+    statusCreatedAtIdx: index("status_createdAt_idx").on(table.status, table.createdAt),
+    searchIdx: index("search_idx").using("gin", sql`to_tsvector('english', ${table.title} || ' ' || coalesce(${table.description}, ''))`),
+  };
 });
 
 export type Item = typeof items.$inferSelect;

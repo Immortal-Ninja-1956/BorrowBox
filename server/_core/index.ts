@@ -8,10 +8,10 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { uploadRouter } from "../upload";
-import { authLimiter, pinVerifyLimiter, otpLimiter, createItemLimiter, reportLimiter } from "./limiter";
+import { authLimiter, pinVerifyLimiter, otpLimiter, createItemLimiter, reportLimiter, updateItemLimiter, createDealLimiter, messageLimiter, registerLimiter } from "./limiter";
 import helmet from "helmet";
 import cors from "cors";
-import { expireOldDeals } from "../db";
+import { expireOldDeals, getDb } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -91,6 +91,7 @@ async function startServer() {
 
   // Rate limiting for auth endpoints
   app.set("trust proxy", 1);
+  app.use("/api/trpc/auth.register", registerLimiter);
   app.use("/api/trpc/auth.login", authLimiter);
   app.use("/api/trpc/auth.forgotPassword", authLimiter);
   app.use("/api/trpc/deals.confirmWithPin", pinVerifyLimiter);
@@ -98,8 +99,10 @@ async function startServer() {
 
   // Rate limiting for marketplace actions
   app.use("/api/trpc/items.create", createItemLimiter);
-  app.use("/api/trpc/items.update", createItemLimiter);
+  app.use("/api/trpc/items.update", updateItemLimiter);
   app.use("/api/trpc/items.report", reportLimiter);
+  app.use("/api/trpc/deals.create", createDealLimiter);
+  app.use("/api/trpc/messages.create", messageLimiter);
 
   app.use(
     "/api/trpc",
@@ -123,8 +126,14 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     
     // Start background jobs
-    setInterval(() => {
-      expireOldDeals().catch(err => console.error("[Background Job] Error expiring deals:", err));
+    setInterval(async () => {
+      try {
+        const db = await getDb();
+        if (!db) return; // Skip if DB is down
+        await expireOldDeals();
+      } catch (err) {
+        console.error("[Background Job] Error expiring deals:", err);
+      }
     }, 15 * 60 * 1000); // Run every 15 minutes
   });
 }

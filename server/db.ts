@@ -12,22 +12,43 @@ import crypto from "crypto";
 
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _connectionPromise: Promise<ReturnType<typeof drizzle> | null> | null = null;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      const isLocal = process.env.DATABASE_URL.includes("localhost") || process.env.DATABASE_URL.includes("127.0.0.1");
-      const client = postgres(process.env.DATABASE_URL, { 
-        prepare: false, 
-        ssl: isLocal ? undefined : "require",
-      });
-      _db = drizzle(client);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+  if (_db) return _db;
+  if (!process.env.DATABASE_URL) return null;
+
+  if (!_connectionPromise) {
+    _connectionPromise = (async () => {
+      const isLocal = process.env.DATABASE_URL!.includes("localhost") || process.env.DATABASE_URL!.includes("127.0.0.1");
+      const maxRetries = 3;
+      let attempt = 0;
+
+      while (attempt < maxRetries) {
+        try {
+          const client = postgres(process.env.DATABASE_URL!, { 
+            prepare: false, 
+            ssl: isLocal ? undefined : "require",
+          });
+          // Verify connection
+          await client`SELECT 1`;
+          _db = drizzle(client);
+          return _db;
+        } catch (error) {
+          attempt++;
+          console.warn(`[Database] Failed to connect (Attempt ${attempt}/${maxRetries}):`, error);
+          if (attempt >= maxRetries) {
+            _connectionPromise = null;
+            throw new Error(`Database connection failed after ${maxRetries} attempts`);
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+      return null;
+    })();
   }
-  return _db;
+
+  return _connectionPromise;
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -212,11 +233,7 @@ export async function getItemsBySellerId(sellerId: number) {
   return await db.select().from(items).where(eq(items.sellerId, sellerId));
 }
 
-export async function getAllItems() {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return await db.select().from(items);
-}
+
 
 export async function getPagedItems(options: {
   limit: number;
@@ -240,12 +257,8 @@ export async function getPagedItems(options: {
   }
 
   if (options.search) {
-    const searchPattern = `%${options.search}%`;
     conditions.push(
-      or(
-        like(items.title, searchPattern),
-        like(items.description, searchPattern)
-      )
+      sql`to_tsvector('english', ${items.title} || ' ' || coalesce(${items.description}, '')) @@ plainto_tsquery('english', ${options.search})`
     );
   }
 
@@ -382,6 +395,9 @@ export async function expireOldDeals() {
         )
       );
   }
+
+  // Cleanup expired revoked tokens
+  await db.delete(revoked_tokens).where(lt(revoked_tokens.expiresAt, new Date()));
 }
 
 export async function cancelOtherDeals(itemId: number, activeDealId: number) {
