@@ -72,6 +72,7 @@ export default function Marketplace() {
     },
     {
       placeholderData: prev => prev,
+      staleTime: 30 * 1000,
     }
   );
 

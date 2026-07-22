@@ -434,9 +434,25 @@ export function DealCard({
           )}
           
           {!isLocked && (
-            <p className={`text-xs mt-3 font-semibold ${deal.pinAttempts > 0 ? "text-red-500" : "text-muted-foreground"}`}>
-              {5 - (deal.pinAttempts || 0)} attempt(s) remaining. Locks after 5 failed attempts.
-            </p>
+            <div className={`mt-4 p-3 rounded-xl border flex items-center justify-between flex-wrap gap-2 ${
+              (deal.pinAttempts || 0) >= 2
+                ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
+                : (deal.pinAttempts || 0) > 0
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                  : "bg-muted/50 border-border/30 text-muted-foreground"
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs uppercase tracking-wider">
+                  {(deal.pinAttempts || 0) >= 2 ? "⚠️ High Risk" : (deal.pinAttempts || 0) > 0 ? "⚠️ PIN Attempts" : "🛡️ PIN Security"}
+                </span>
+                <span className="text-xs font-semibold">
+                  {3 - (deal.pinAttempts || 0)} of 3 remaining attempt(s)
+                </span>
+              </div>
+              <span className="text-[11px] opacity-80">
+                Locks automatically on 3rd failed attempt
+              </span>
+            </div>
           )}
         </div>
       )}

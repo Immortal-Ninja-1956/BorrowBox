@@ -200,3 +200,39 @@ export const registerLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   },
 });
+
+export const reviewLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 5, // 5 reviews per hour per user
+  keyGenerator: (req) => extractUserIdFromBearer(req, "review"),
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: {
+      message: "Too many reviews submitted. Please wait an hour.",
+      code: -32005,
+      data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+    },
+  },
+  handler: (req, res, _next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});
+
+export const disputeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 3, // 3 disputes per hour per user
+  keyGenerator: (req) => extractUserIdFromBearer(req, "dispute"),
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: {
+      message: "Too many dispute requests. Please wait an hour before raising another dispute.",
+      code: -32005,
+      data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+    },
+  },
+  handler: (req, res, _next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});

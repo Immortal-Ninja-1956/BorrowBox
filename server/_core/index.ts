@@ -8,10 +8,10 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { uploadRouter } from "../upload";
-import { authLimiter, pinVerifyLimiter, otpLimiter, createItemLimiter, reportLimiter, updateItemLimiter, createDealLimiter, messageLimiter, registerLimiter } from "./limiter";
+import { authLimiter, pinVerifyLimiter, otpLimiter, createItemLimiter, reportLimiter, updateItemLimiter, createDealLimiter, messageLimiter, registerLimiter, reviewLimiter, disputeLimiter } from "./limiter";
 import helmet from "helmet";
 import cors from "cors";
-import { expireOldDeals, getDb } from "../db";
+import { runDistributedGuardedCleanupJob, getDb } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -103,6 +103,8 @@ async function startServer() {
   app.use("/api/trpc/items.report", reportLimiter);
   app.use("/api/trpc/deals.create", createDealLimiter);
   app.use("/api/trpc/messages.create", messageLimiter);
+  app.use("/api/trpc/reviews.create", reviewLimiter);
+  app.use("/api/trpc/deals.raiseDispute", disputeLimiter);
 
   app.use(
     "/api/trpc",
@@ -125,14 +127,12 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     
-    // Start background jobs
+    // Start distributed background jobs (PostgreSQL advisory lock guarded)
     setInterval(async () => {
       try {
-        const db = await getDb();
-        if (!db) return; // Skip if DB is down
-        await expireOldDeals();
+        await runDistributedGuardedCleanupJob();
       } catch (err) {
-        console.error("[Background Job] Error expiring deals:", err);
+        console.error("[Distributed Scheduler] Unexpected error during cleanup execution:", err);
       }
     }, 15 * 60 * 1000); // Run every 15 minutes
   });

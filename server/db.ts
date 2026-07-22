@@ -272,9 +272,19 @@ export async function getPagedItems(options: {
     );
   }
 
+  const sellers = aliasedTable(users, "sellers");
+
   let query = db
-    .select()
+    .select({
+      item: items,
+      sellerName: sellers.name,
+      sellerEmail: sellers.email,
+      sellerTrustScore: sellers.trustScore,
+      sellerWhatsappVerified: sellers.whatsappVerified,
+      sellerRole: sellers.role,
+    })
     .from(items)
+    .innerJoin(sellers, eq(items.sellerId, sellers.id))
     .where(and(...conditions));
 
   if (options.sortBy === "price-low") {
@@ -288,7 +298,15 @@ export async function getPagedItems(options: {
     query = query.orderBy(desc(items.createdAt)) as any;
   }
 
-  return await query.limit(options.limit).offset(options.offset);
+  const results = await query.limit(options.limit).offset(options.offset);
+  return results.map(r => ({
+    ...r.item,
+    sellerName: r.sellerName,
+    sellerEmail: r.sellerEmail,
+    sellerTrustScore: r.sellerTrustScore,
+    sellerWhatsappVerified: r.sellerWhatsappVerified,
+    sellerRole: r.sellerRole,
+  }));
 }
 
 export async function updateItem(
@@ -586,8 +604,17 @@ export async function setDealDisputed(dealId: number, actorId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
+    const [dealRecord] = await tx.select().from(deals).where(eq(deals.id, dealId)).limit(1);
+    if (!dealRecord) throw new Error("Deal not found");
+    if ((dealRecord.disputeCount || 0) >= 3) {
+      throw new Error("Dispute limit reached for this deal (maximum 3 disputes allowed). Please contact support for manual resolution.");
+    }
+
     await transitionDealStatusAtomically(dealId, "DISPUTED", actorId, "Dispute raised", tx);
-    await tx.update(deals).set({ disputedAt: new Date() }).where(eq(deals.id, dealId));
+    await tx.update(deals).set({
+      disputedAt: new Date(),
+      disputeCount: sql`${deals.disputeCount} + 1`,
+    }).where(eq(deals.id, dealId));
   });
 }
 
@@ -1234,6 +1261,36 @@ export async function getAllDealEventsAdmin(limit = 100) {
     .leftJoin(actors, eq(deal_events.actorId, actors.id))
     .orderBy(desc(deal_events.timestamp))
     .limit(limit);
+}
+
+// ─── Distributed Advisory Lock Guarded Scheduler ─────────────────────────────
+
+export async function runDistributedGuardedCleanupJob(): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const LOCK_KEY = 99887766; // Unique 64-bit advisory lock key for BorrowBox cleanup job
+  try {
+    const [lockResult] = await db.execute(sql`SELECT pg_try_advisory_lock(${LOCK_KEY}) as acquired`);
+    const acquired = lockResult?.acquired === true || lockResult?.acquired === "true" || lockResult?.acquired === 1;
+
+    if (!acquired) {
+      console.log("[Distributed Scheduler] Lock key 99887766 held by another instance — skipping redundant execution.");
+      return false;
+    }
+
+    try {
+      console.log("[Distributed Scheduler] Acquired advisory lock 99887766 — executing expireOldDeals...");
+      await expireOldDeals();
+    } finally {
+      await db.execute(sql`SELECT pg_advisory_unlock(${LOCK_KEY})`);
+      console.log("[Distributed Scheduler] Released advisory lock 99887766.");
+    }
+    return true;
+  } catch (err) {
+    console.error("[Distributed Scheduler] Error during cleanup job execution:", err);
+    return false;
+  }
 }
 
 

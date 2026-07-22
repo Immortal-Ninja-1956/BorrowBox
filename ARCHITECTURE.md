@@ -68,7 +68,21 @@ Item deletions (by sellers or administrators) perform soft deletion by setting a
 - **Transactional Review Sync:** When a user receives a review, `createReview` calculates `AVG(rating)` and updates `users.trustScore` atomically within the review insertion transaction.
 - **Batch Recompute Job:** `recomputeAllUserTrustScores()` re-evaluates all user ratings against the `reviews` table to eliminate any cached score drift.
 
+### 3.5. Distributed Advisory Lock Scheduler
+- **Multi-Instance Scaling:** `runDistributedGuardedCleanupJob()` acquires a session-level PostgreSQL advisory lock (`SELECT pg_try_advisory_lock(99887766)`). In multi-instance deployments behind a load balancer, only one node executes 15-minute cleanup tasks while other instances yield without double-firing.
+
+### 3.6. React Query Cache Tuning
+- **Marketplace Browsing (`trpc.items.getAll`):** Configured with `staleTime: 30 * 1000` (30 seconds) to prevent redundant network fetches while navigating.
+- **PIN Handshake (`trpc.deals.getById`):** Configured with `staleTime: 0` and active real-time polling `refetchInterval: 3000` (3 seconds) during delivery confirmation and payment processing.
+
+### 3.8. Optimistic UI & PIN Security Attempt Policy
+- **Optimistic React Query Updates:** Deal status transitions (`updateStatus`, `cancel`) execute optimistic updates via `onMutate` on `trpcContext.deals.getBySeller` and `getByBuyer`. If a network failure occurs, the cache automatically rolls back to `previousDeals` and alerts the user with an error toast.
+- **PIN Attempt Security Badge:** The secure handshake interface displays a prominent attempts badge (`5 - (deal.pinAttempts || 0)` remaining) with visual risk indicators (Normal, High Risk, Locked) to prevent accidental PIN lockouts.
+
 ---
+
+
+
 
 
 ## 4. Key Workflows & Processes
@@ -84,8 +98,9 @@ Item deletions (by sellers or administrators) perform soft deletion by setting a
 
 1.  As the user types in the search bar, a debounced React state updates.
 2.  The `Marketplace` component triggers a `trpc.items.getAll.useQuery` with the `search` string.
-3.  Simultaneously, a background autocomplete query fetches the top 5 matches and displays them in a dropdown.
-4.  The backend uses a PostgreSQL `ILIKE` query to perform case-insensitive partial matching on item titles.
+3.  **Single-Query Batched Join (N+1 Prevention):** `getPagedItems` performs an `INNER JOIN users ON items.sellerId = users.id`, batching seller identity (`sellerName`, `sellerEmail`, `sellerTrustScore`, `sellerWhatsappVerified`) in a single database roundtrip.
+4.  **Search at Scale Roadmap:** Detailed in [`docs/SEARCH_MIGRATION_PLAN.md`](file:///d:/PROGRAMMING/BorrowBox/borrowbox_fixed%20%281%29/borrowbox/docs/SEARCH_MIGRATION_PLAN.md) detailing Meilisearch/Typesense integration, index schemas, dual-write synchronization, and vector search for ML recommendations.
+
 
 ### 4.3. The Deal & Payment Lifecycle
 

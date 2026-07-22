@@ -942,16 +942,16 @@ export const appRouter = router({
 
           const newAttempts = deal.pinAttempts + 1;
           await incrementPinAttempts(input.dealId);
-          if (newAttempts >= 5) {
+          if (newAttempts >= 3) {
             await lockDealPin(input.dealId);
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "PIN is now locked after 5 failed attempts. Raise a dispute to reset.",
+              message: "PIN is now locked after 3 failed attempts. Raise a dispute to reset.",
             });
           }
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `Incorrect PIN. ${5 - newAttempts} attempt(s) remaining.`,
+            message: `Incorrect PIN. ${3 - newAttempts} attempt(s) remaining.`,
           });
         }
 

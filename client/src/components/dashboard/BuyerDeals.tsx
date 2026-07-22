@@ -10,13 +10,30 @@ export default function BuyerDeals({ buyerDeals, refetchBuyerDeals, openReviewDe
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
+  const trpcContext = trpc.useUtils();
+
   const cancelDealMutation = trpc.deals.cancel.useMutation({
+    onMutate: async (newVar) => {
+      await trpcContext.deals.getByBuyer.cancel();
+      const previousDeals = trpcContext.deals.getByBuyer.getData();
+      trpcContext.deals.getByBuyer.setData(undefined, (old: any) => {
+        if (!old) return [];
+        return old.map((d: any) => (d.id === newVar.dealId ? { ...d, status: "CANCELLED" } : d));
+      });
+      return { previousDeals };
+    },
     onSuccess: () => {
       toast.success("Deal cancelled successfully!");
-      refetchBuyerDeals();
     },
-    onError: error => {
+    onError: (error, _newVar, context) => {
+      if (context?.previousDeals) {
+        trpcContext.deals.getByBuyer.setData(undefined, context.previousDeals);
+      }
       toast.error("Failed to cancel deal: " + error.message);
+    },
+    onSettled: () => {
+      trpcContext.deals.getByBuyer.invalidate();
+      refetchBuyerDeals();
     },
   });
 

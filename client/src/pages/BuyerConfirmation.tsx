@@ -44,12 +44,13 @@ export default function BuyerConfirmation() {
   } = trpc.deals.getById.useQuery(
     { id: dealIdNum },
     {
+      staleTime: 0,
       refetchInterval: (query) => {
         const currentDeal = query.state?.data;
-        if (currentDeal && ["PAID", "CANCELLED", "CONFIRMED"].includes(currentDeal.status)) {
+        if (currentDeal && ["PAID", "CANCELLED"].includes(currentDeal.status)) {
           return false;
         }
-        return 8000;
+        return 3000;
       }
     }
   );

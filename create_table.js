@@ -74,6 +74,7 @@ async function run() {
         timestamp TIMESTAMP DEFAULT NOW() NOT NULL
       );
     `;
+    await sql`ALTER TABLE deals ADD COLUMN IF NOT EXISTS "disputeCount" INTEGER DEFAULT 0 NOT NULL;`;
     console.log("✅ Tables and indexes created successfully!");
   } catch (error) {
     console.error("❌ Error creating tables:", error);

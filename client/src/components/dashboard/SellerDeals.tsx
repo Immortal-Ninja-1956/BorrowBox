@@ -10,24 +10,56 @@ export default function SellerDeals({ deals, sellerItems, refetchDeals, refetchI
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
+  const trpcContext = trpc.useUtils();
+
   const updateStatusMutation = trpc.deals.updateStatus.useMutation({
+    onMutate: async (newVar) => {
+      await trpcContext.deals.getBySeller.cancel();
+      const previousDeals = trpcContext.deals.getBySeller.getData();
+      trpcContext.deals.getBySeller.setData(undefined, (old: any) => {
+        if (!old) return [];
+        return old.map((d: any) => (d.id === newVar.dealId ? { ...d, status: newVar.status } : d));
+      });
+      return { previousDeals };
+    },
     onSuccess: () => {
       toast.success("Deal status updated!");
-      refetchDeals();
     },
-    onError: error => {
+    onError: (error, _newVar, context) => {
+      if (context?.previousDeals) {
+        trpcContext.deals.getBySeller.setData(undefined, context.previousDeals);
+      }
       toast.error("Failed to update status: " + error.message);
+    },
+    onSettled: () => {
+      trpcContext.deals.getBySeller.invalidate();
+      refetchDeals();
     },
   });
 
   const cancelDealMutation = trpc.deals.cancel.useMutation({
+    onMutate: async (newVar) => {
+      await trpcContext.deals.getBySeller.cancel();
+      const previousDeals = trpcContext.deals.getBySeller.getData();
+      trpcContext.deals.getBySeller.setData(undefined, (old: any) => {
+        if (!old) return [];
+        return old.map((d: any) => (d.id === newVar.dealId ? { ...d, status: "CANCELLED" } : d));
+      });
+      return { previousDeals };
+    },
     onSuccess: () => {
       toast.success("Deal cancelled successfully!");
+    },
+    onError: (error, _newVar, context) => {
+      if (context?.previousDeals) {
+        trpcContext.deals.getBySeller.setData(undefined, context.previousDeals);
+      }
+      toast.error("Failed to cancel deal: " + error.message);
+    },
+    onSettled: () => {
+      trpcContext.deals.getBySeller.invalidate();
       refetchDeals();
       refetchItems();
-    },
-    onError: error => {
-      toast.error("Failed to cancel deal: " + error.message);
     },
   });
 

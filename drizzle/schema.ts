@@ -94,6 +94,7 @@ export const deals = pgTable("deals", {
   utr: varchar("utr", { length: 12 }).unique(),
   utrSubmittedAt: timestamp("utrSubmittedAt"),
   disputedAt: timestamp("disputedAt"),
+  disputeCount: integer("disputeCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
 }, (table) => {

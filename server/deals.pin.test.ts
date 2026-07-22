@@ -87,8 +87,8 @@ describe("PIN-Based Deal Completion", () => {
       expect(db.completeDealAtomically).toHaveBeenCalledWith(100, 200);
     });
 
-    it("should increment attempts on wrong pin and lock at 5", async () => {
-      vi.mocked(db.getDealRawById).mockResolvedValue({ ...mockDeal, pinAttempts: 4 } as any);
+    it("should increment attempts on wrong pin and lock at 3", async () => {
+      vi.mocked(db.getDealRawById).mockResolvedValue({ ...mockDeal, pinAttempts: 2 } as any);
       vi.mocked(pinUtils.verifyPin).mockResolvedValue(false);
 
       const caller = appRouter.createCaller({ req: {} as any, res: {} as any, user: { id: 2 } as any });
