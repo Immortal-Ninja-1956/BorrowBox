@@ -764,6 +764,18 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    getEvents: protectedProcedure
+      .input(z.object({ dealId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const deal = await getDealById(input.dealId);
+        if (!deal)
+          throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
+        if (ctx.user.id !== deal.buyerId && ctx.user.id !== deal.sellerId && ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
+        }
+        return await getDealEventsByDealId(input.dealId);
+      }),
+
     markPaid: protectedProcedure
       .input(z.object({ dealId: z.number() }))
       .mutation(async ({ ctx, input }) => {

@@ -54,15 +54,17 @@ function Router() {
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 
+import OfflineBanner from "./components/OfflineBanner";
+
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark" switchable>
         <TooltipProvider>
+          <OfflineBanner />
           <Toaster />
           <Navbar />
           <Router />
-
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DealChat } from "@/components/DealChat";
 import { useAuth } from "@/_core/hooks/useAuth";
+import DealTimeline from "./DealTimeline";
 import { CheckCircle2, MessageCircle, ShoppingBag, BookOpen, Laptop, Sofa, Shirt, Trophy, Package } from "lucide-react";
 
 export const categoryMetadata: Record<string, { icon: any; gradient: string }> = {
@@ -238,20 +239,15 @@ export function DealCard({
         >
           {statusLabels[deal.status] || deal.status}
         </span>
-        {(() => {
-          const statusNextSteps: Record<string, {text: string, color: string}> = {
-            OPEN: {text: "Next step: Arrange a meetup.", color: "text-green-600 dark:text-green-400"},
-            Shipped: {text: "Next step: Meet buyer on campus.", color: "text-amber-600 dark:text-amber-400"},
-            DELIVERED: {text: "Next step: Wait for buyer confirmation.", color: "text-blue-600 dark:text-blue-400"},
-            CONFIRMED: {text: "Next step: Enter buyer's PIN.", color: "text-purple-600 dark:text-purple-400"},
-          };
-          return statusNextSteps[deal.status] ? (
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${statusNextSteps[deal.status].color}`}>
-              {statusNextSteps[deal.status].text}
-            </span>
-          ) : null;
-        })()}
       </div>
+
+      <DealTimeline
+        dealId={deal.id}
+        currentStatus={deal.status}
+        isBuyer={false}
+        pinAttempts={deal.pinAttempts}
+        pinLockedAt={deal.pinLockedAt}
+      />
 
       <div className="mb-6 flex gap-3 flex-wrap">
         <Dialog>
@@ -413,6 +409,7 @@ export function DealCard({
                 onChange={setPin}
                 inputMode="numeric"
                 pattern="[0-9]*"
+                aria-label="6-digit security verification PIN"
               >
                 <InputOTPGroup className="bg-background">
                   <InputOTPSlot index={0} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
@@ -502,7 +499,15 @@ export function PurchasedDealCard({
   const isConfirmed = deal.buyerConfirmed === 1;
 
   return (
-    <div className="glass-card border border-border/40 rounded-2xl p-6 shadow-xs hover:shadow-md transition-all flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+    <div className="glass-card border border-border/40 rounded-2xl p-6 shadow-xs hover:shadow-md transition-all flex flex-col gap-6">
+      <DealTimeline
+        dealId={deal.id}
+        currentStatus={deal.status}
+        isBuyer={true}
+        pinAttempts={deal.pinAttempts}
+        pinLockedAt={deal.pinLockedAt}
+      />
+      <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
       <div className="flex gap-4 items-start md:items-center">
         {deal.item?.imageUrl ? (
           <img
@@ -646,5 +651,6 @@ export function PurchasedDealCard({
         )}
       </div>
     </div>
-  );
+  </div>
+);
 }

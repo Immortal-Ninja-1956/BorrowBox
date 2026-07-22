@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+import DealTimeline from "@/components/dashboard/DealTimeline";
 
 export default function BuyerConfirmation() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
@@ -196,6 +197,13 @@ export default function BuyerConfirmation() {
 
       {/* Content */}
       <div className="container max-w-2xl py-12">
+        <DealTimeline
+          dealId={deal.id}
+          currentStatus={deal.status}
+          isBuyer={true}
+          pinAttempts={deal.pinAttempts}
+          pinLockedAt={deal.pinLockedAt}
+        />
         {/* Status Banners */}
         {isDisputed && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8 flex items-start gap-4">

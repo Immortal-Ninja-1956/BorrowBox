@@ -75,11 +75,13 @@ Item deletions (by sellers or administrators) perform soft deletion by setting a
 - **Marketplace Browsing (`trpc.items.getAll`):** Configured with `staleTime: 30 * 1000` (30 seconds) to prevent redundant network fetches while navigating.
 - **PIN Handshake (`trpc.deals.getById`):** Configured with `staleTime: 0` and active real-time polling `refetchInterval: 3000` (3 seconds) during delivery confirmation and payment processing.
 
-### 3.8. Optimistic UI & PIN Security Attempt Policy
-- **Optimistic React Query Updates:** Deal status transitions (`updateStatus`, `cancel`) execute optimistic updates via `onMutate` on `trpcContext.deals.getBySeller` and `getByBuyer`. If a network failure occurs, the cache automatically rolls back to `previousDeals` and alerts the user with an error toast.
-- **PIN Attempt Security Badge:** The secure handshake interface displays a prominent attempts badge (`5 - (deal.pinAttempts || 0)` remaining) with visual risk indicators (Normal, High Risk, Locked) to prevent accidental PIN lockouts.
+### 3.10. Accessibility Standard & Offline Resilience
+- **Real-Time Offline Detection (`OfflineBanner.tsx`):** Listens to browser network state changes (`window.ononline` / `window.onoffline`) to display a high-priority top warning banner during network disconnections.
+- **Accessibility & ARIA Compliance:** Modal dialogs enforce focus traps via Radix UI primitives. PIN input controls (`InputOTP`) feature keyboard navigation, backspace deletion, and explicit `aria-label` accessibility descriptors complying with WCAG AA contrast standards.
 
 ---
+
+
 
 
 
