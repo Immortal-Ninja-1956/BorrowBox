@@ -1,15 +1,19 @@
-import { eq, desc, and, or, sql, like, asc, lt, ne, inArray } from "drizzle-orm";
+import { eq, desc, and, or, sql, like, asc, lt, ne, inArray, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { users, items, deals, reviews, messages, item_reports, revoked_tokens, admin_actions } from "../drizzle/schema";
+import { users, items, deals, reviews, messages, item_reports, revoked_tokens, admin_actions, item_rejections, image_vision_cache, deal_events } from "../drizzle/schema";
 import type {
   InsertUser,
   InsertReview,
   InsertMessage,
   InsertItemReport,
   InsertAdminAction,
+  InsertItemRejection,
+  InsertImageVisionCache,
+  InsertDealEvent,
 } from "../drizzle/schema";
 import crypto from "crypto";
+import { parseCurrencyAmount } from "../shared/currency";
 
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -202,11 +206,12 @@ export async function createItem(data: {
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const formattedAmount = parseCurrencyAmount(data.amount);
   const result = await db.insert(items).values({
     sellerId: data.sellerId,
     title: data.title,
     description: data.description,
-    amount: data.amount as any,
+    amount: formattedAmount as any,
     imageUrl: data.imageUrl,
     category: data.category,
     condition: data.condition as any,
@@ -214,13 +219,17 @@ export async function createItem(data: {
   return result[0].insertId;
 }
 
-export async function getItemById(itemId: number) {
+export async function getItemById(itemId: number, includeDeleted = false) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const conditions = [eq(items.id, itemId)];
+  if (!includeDeleted) {
+    conditions.push(isNull(items.deletedAt));
+  }
   const result = await db
     .select()
     .from(items)
-    .where(eq(items.id, itemId))
+    .where(and(...conditions))
     .limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -228,7 +237,10 @@ export async function getItemById(itemId: number) {
 export async function getItemsBySellerId(sellerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.select().from(items).where(eq(items.sellerId, sellerId));
+  return await db
+    .select()
+    .from(items)
+    .where(and(eq(items.sellerId, sellerId), isNull(items.deletedAt)));
 }
 
 
@@ -244,7 +256,7 @@ export async function getPagedItems(options: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const conditions: any[] = [eq(items.status, "OPEN")];
+  const conditions: any[] = [eq(items.status, "OPEN"), isNull(items.deletedAt)];
 
   if (options.category && options.category !== "all") {
     conditions.push(eq(items.category, options.category));
@@ -295,7 +307,7 @@ export async function updateItem(
   const updateData: any = {};
   if (data.title !== undefined) updateData.title = data.title;
   if (data.description !== undefined) updateData.description = data.description;
-  if (data.amount !== undefined) updateData.amount = data.amount;
+  if (data.amount !== undefined) updateData.amount = parseCurrencyAmount(data.amount);
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
   if (data.category !== undefined) updateData.category = data.category;
   if (data.condition !== undefined) updateData.condition = data.condition;
@@ -315,7 +327,10 @@ export async function updateItemStatus(itemId: number, status: string) {
 export async function deleteItem(itemId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.delete(items).where(eq(items.id, itemId));
+  return await db
+    .update(items)
+    .set({ deletedAt: new Date() })
+    .where(eq(items.id, itemId));
 }
 
 // ─── Deals ────────────────────────────────────────────────────────────────────
@@ -423,11 +438,12 @@ export async function createDeal(data: {
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const formattedAmount = parseCurrencyAmount(data.amount);
   const result = await db.insert(deals).values({
     itemId: data.itemId,
     sellerId: data.sellerId,
     buyerId: data.buyerId,
-    amount: data.amount as any,
+    amount: formattedAmount as any,
     status: "OPEN",
     pinHash: data.pinHash,
     pinEncrypted: data.pinEncrypted,
@@ -504,16 +520,75 @@ export async function isDuplicateUtr(utr: string, excludeDealId: number): Promis
   return result.length > 0;
 }
 
-export async function setDealDisputed(dealId: number) {
+export const LEGAL_DEAL_TRANSITIONS: Record<string, string[]> = {
+  OPEN: ["Contacted", "Shipped", "DELIVERED", "CONFIRMED", "PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"],
+  Contacted: ["Shipped", "DELIVERED", "CONFIRMED", "PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"],
+  Shipped: ["DELIVERED", "CONFIRMED", "PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"],
+  CONFIRMED: ["DELIVERED", "PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"],
+  DELIVERED: ["PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"],
+  NEEDS_ATTENTION: ["OPEN", "Contacted", "Shipped", "CONFIRMED", "DELIVERED", "PAID", "CANCELLED", "DISPUTED"],
+  DISPUTED: ["OPEN", "Contacted", "Shipped", "CONFIRMED", "DELIVERED", "PAID", "CANCELLED"],
+  PAID: [],
+  CANCELLED: [],
+};
+
+export function isValidDealTransition(fromStatus: string, toStatus: string): boolean {
+  if (fromStatus === toStatus) return true;
+  const allowed = LEGAL_DEAL_TRANSITIONS[fromStatus];
+  return allowed ? allowed.includes(toStatus) : false;
+}
+
+export async function transitionDealStatusAtomically(
+  dealId: number,
+  newStatus: string,
+  actorId?: number | null,
+  reason?: string | null,
+  externalTx?: any
+) {
+  const executeInTx = async (tx: any) => {
+    const [currentDeal] = await tx
+      .select()
+      .from(deals)
+      .where(eq(deals.id, dealId))
+      .limit(1);
+
+    if (!currentDeal) throw new Error("Deal not found");
+    const fromStatus = currentDeal.status;
+
+    if (!isValidDealTransition(fromStatus, newStatus)) {
+      throw new Error(`Invalid deal status transition from ${fromStatus} to ${newStatus}`);
+    }
+
+    if (fromStatus !== newStatus) {
+      await tx.update(deals).set({ status: newStatus as any }).where(eq(deals.id, dealId));
+      await tx.insert(deal_events).values({
+        dealId,
+        fromStatus,
+        toStatus: newStatus,
+        actorId: actorId || null,
+        reason: reason || null,
+      });
+    }
+
+    return currentDeal;
+  };
+
+  if (externalTx) {
+    return await executeInTx(externalTx);
+  } else {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    return await db.transaction(executeInTx);
+  }
+}
+
+export async function setDealDisputed(dealId: number, actorId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db
-    .update(deals)
-    .set({
-      status: "DISPUTED" as any,
-      disputedAt: new Date(),
-    })
-    .where(eq(deals.id, dealId));
+  await db.transaction(async (tx) => {
+    await transitionDealStatusAtomically(dealId, "DISPUTED", actorId, "Dispute raised", tx);
+    await tx.update(deals).set({ disputedAt: new Date() }).where(eq(deals.id, dealId));
+  });
 }
 
 export async function getDealRawById(dealId: number) {
@@ -531,15 +606,11 @@ export async function getDealRawById(dealId: number) {
  * Atomically complete a deal: set deal → PAID and item → SOLD in a single transaction.
  * Uses raw SQL to ensure all-or-nothing semantics.
  */
-export async function completeDealAtomically(dealId: number, itemId: number) {
+export async function completeDealAtomically(dealId: number, itemId: number, actorId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  // Use Drizzle's transaction support
   await db.transaction(async (tx) => {
-    await tx
-      .update(deals)
-      .set({ status: "PAID" as any })
-      .where(eq(deals.id, dealId));
+    await transitionDealStatusAtomically(dealId, "PAID", actorId, "Deal payment completed", tx);
     await tx
       .update(items)
       .set({ status: "SOLD" as any })
@@ -602,13 +673,8 @@ export async function getDealsByBuyerId(buyerId: number) {
   }));
 }
 
-export async function updateDealStatus(dealId: number, status: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return await db
-    .update(deals)
-    .set({ status: status as any })
-    .where(eq(deals.id, dealId));
+export async function updateDealStatus(dealId: number, status: string, actorId?: number, reason?: string) {
+  return await transitionDealStatusAtomically(dealId, status, actorId, reason);
 }
 
 export async function confirmDealByBuyer(dealId: number) {
@@ -629,23 +695,18 @@ export async function updateDealUpiQrCode(dealId: number, qrCode: string) {
     .where(eq(deals.id, dealId));
 }
 
-export async function confirmDeliveryAtomically(dealId: number, qrCode: string | undefined) {
+export async function confirmDeliveryAtomically(dealId: number, qrCode: string | undefined, actorId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const data: any = {
-    buyerConfirmed: 1,
-    status: "CONFIRMED" as any,
-  };
-  if (qrCode !== undefined) {
-    data.upiQrCode = qrCode;
-  }
-  return await db
-    .update(deals)
-    .set(data)
-    .where(eq(deals.id, dealId));
+  await db.transaction(async (tx) => {
+    await transitionDealStatusAtomically(dealId, "CONFIRMED", actorId, "Delivery confirmed by buyer", tx);
+    const data: any = { buyerConfirmed: 1 };
+    if (qrCode !== undefined) data.upiQrCode = qrCode;
+    await tx.update(deals).set(data).where(eq(deals.id, dealId));
+  });
 }
 
-export async function advanceDealStatusAtomically(dealId: number, itemId: number, newStatus: string) {
+export async function advanceDealStatusAtomically(dealId: number, itemId: number, newStatus: string, actorId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
@@ -661,13 +722,18 @@ export async function advanceDealStatusAtomically(dealId: number, itemId: number
       }
     }
 
-    await tx.update(deals).set({ status: newStatus as any }).where(eq(deals.id, dealId));
+    await transitionDealStatusAtomically(dealId, newStatus, actorId, `Advanced status to ${newStatus}`, tx);
 
     if (newStatus === "Shipped" || newStatus === "DELIVERED") {
       await tx.update(items).set({ status: newStatus as any }).where(eq(items.id, itemId));
-      await tx.update(deals)
-        .set({ status: "CANCELLED" as any })
-        .where(and(eq(deals.itemId, itemId), ne(deals.id, dealId)));
+      // Cancel other OPEN deals on the same item
+      const openDealsToCancel = await tx
+        .select()
+        .from(deals)
+        .where(and(eq(deals.itemId, itemId), ne(deals.id, dealId), eq(deals.status, "OPEN")));
+      for (const d of openDealsToCancel) {
+        await transitionDealStatusAtomically(d.id, "CANCELLED", actorId, "Auto-cancelled due to another deal progressing", tx);
+      }
     }
   });
 }
@@ -716,13 +782,58 @@ export async function incrementUserTokenVersion(userId: number) {
     .where(eq(users.id, userId));
 }
 
-// Reviews
+export async function recomputeUserTrustScore(userId: number, externalTx?: any) {
+  const executeInTx = async (tx: any) => {
+    const result = await tx
+      .select({
+        avgRating: sql<number>`avg(${reviews.rating})`,
+        count: sql<number>`count(${reviews.id})`,
+      })
+      .from(reviews)
+      .where(eq(reviews.revieweeId, userId));
+
+    const totalReviews = Number(result[0]?.count || 0);
+    const calculatedScore = totalReviews > 0 && result[0]?.avgRating !== null
+      ? Number(result[0].avgRating).toFixed(2)
+      : "5.00";
+
+    await tx
+      .update(users)
+      .set({ trustScore: calculatedScore })
+      .where(eq(users.id, userId));
+
+    return calculatedScore;
+  };
+
+  if (externalTx) {
+    return await executeInTx(externalTx);
+  } else {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    return await db.transaction(executeInTx);
+  }
+}
+
+export async function recomputeAllUserTrustScores() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const allUsers = await db.select({ id: users.id }).from(users);
+  let updatedCount = 0;
+  for (const u of allUsers) {
+    await recomputeUserTrustScore(u.id);
+    updatedCount++;
+  }
+  return updatedCount;
+}
 
 export async function createReview(review: InsertReview) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [result] = await db.insert(reviews).values(review).returning({ insertId: reviews.id });
-  return result.insertId;
+  return await db.transaction(async (tx) => {
+    const [result] = await tx.insert(reviews).values(review).returning({ insertId: reviews.id });
+    await recomputeUserTrustScore(review.revieweeId, tx);
+    return result.insertId;
+  });
 }
 
 export async function getReviewsByDealId(dealId: number) {
@@ -752,11 +863,18 @@ export async function getUserTrustScore(userId: number) {
     .from(reviews)
     .where(eq(reviews.revieweeId, userId));
 
+  const userRecord = await db
+    .select({ trustScore: users.trustScore })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
   return {
     averageRating: result[0]?.averageRating
       ? Number(result[0].averageRating).toFixed(1)
       : "0.0",
     totalReviews: Number(result[0]?.totalReviews || 0),
+    trustScore: userRecord[0]?.trustScore || "5.00",
   };
 }
 
@@ -945,4 +1063,178 @@ export async function getAdminActions(limit = 100) {
     .orderBy(desc(admin_actions.timestamp))
     .limit(limit);
 }
+
+// ─── Rejection Review Queue ──────────────────────────────────────────────────
+
+export async function createItemRejection(data: InsertItemRejection) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db
+    .insert(item_rejections)
+    .values(data)
+    .returning({ insertId: item_rejections.id });
+  return result.insertId;
+}
+
+export async function getAllItemRejectionsAdmin() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const sellers = aliasedTable(users, "sellers");
+
+  return await db
+    .select({
+      id: item_rejections.id,
+      userId: item_rejections.userId,
+      title: item_rejections.title,
+      description: item_rejections.description,
+      imageUrl: item_rejections.imageUrl,
+      reason: item_rejections.reason,
+      confidenceScores: item_rejections.confidenceScores,
+      status: item_rejections.status,
+      createdAt: item_rejections.createdAt,
+      updatedAt: item_rejections.updatedAt,
+      sellerName: sellers.name,
+      sellerEmail: sellers.email,
+    })
+    .from(item_rejections)
+    .innerJoin(sellers, eq(item_rejections.userId, sellers.id))
+    .orderBy(desc(item_rejections.createdAt));
+}
+
+export async function updateItemRejectionStatus(
+  rejectionId: number,
+  status: "PENDING" | "APPROVED" | "DISMISSED"
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .update(item_rejections)
+    .set({ status })
+    .where(eq(item_rejections.id, rejectionId));
+}
+
+export async function approveRejectionAndCreateItem(rejectionId: number, adminId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.transaction(async (tx) => {
+    const [rejection] = await tx
+      .select()
+      .from(item_rejections)
+      .where(eq(item_rejections.id, rejectionId))
+      .limit(1);
+
+    if (!rejection) throw new Error("Rejection record not found");
+    if (rejection.status === "APPROVED") throw new Error("Rejection already approved");
+
+    // 1. Create item in marketplace
+    const [newItem] = await tx
+      .insert(items)
+      .values({
+        sellerId: rejection.userId,
+        title: rejection.title,
+        description: rejection.description,
+        amount: "0.00", // default/placeholder amount if unspecified
+        imageUrl: rejection.imageUrl,
+        condition: "Good",
+        status: "OPEN",
+      })
+      .returning({ insertId: items.id });
+
+    // 2. Mark rejection status as APPROVED
+    await tx
+      .update(item_rejections)
+      .set({ status: "APPROVED" })
+      .where(eq(item_rejections.id, rejectionId));
+
+    // 3. Log admin action
+    await tx.insert(admin_actions).values({
+      adminId,
+      action: "APPROVE_REJECTED_ITEM",
+      targetId: newItem.insertId,
+      details: `Approved false rejection ID ${rejectionId} for seller ID ${rejection.userId}`,
+    });
+
+    return newItem.insertId;
+  });
+}
+
+// ─── Image Vision Cache (GCV Deduplication) ──────────────────────────────────
+
+export async function getVisionCacheByHash(imageHash: string) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(image_vision_cache)
+    .where(eq(image_vision_cache.imageHash, imageHash))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function saveVisionCacheByHash(data: InsertImageVisionCache) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    await db
+      .insert(image_vision_cache)
+      .values(data)
+      .onConflictDoNothing();
+  } catch (err) {
+    console.error("[Database] Error saving vision cache:", err);
+  }
+}
+
+// ─── Deal Events (Dispute Forensics) ──────────────────────────────────────────
+
+export async function getDealEventsByDealId(dealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const actors = aliasedTable(users, "actors");
+
+  return await db
+    .select({
+      id: deal_events.id,
+      dealId: deal_events.dealId,
+      fromStatus: deal_events.fromStatus,
+      toStatus: deal_events.toStatus,
+      actorId: deal_events.actorId,
+      reason: deal_events.reason,
+      timestamp: deal_events.timestamp,
+      actorName: actors.name,
+      actorEmail: actors.email,
+    })
+    .from(deal_events)
+    .leftJoin(actors, eq(deal_events.actorId, actors.id))
+    .where(eq(deal_events.dealId, dealId))
+    .orderBy(asc(deal_events.timestamp));
+}
+
+export async function getAllDealEventsAdmin(limit = 100) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const actors = aliasedTable(users, "actors");
+
+  return await db
+    .select({
+      id: deal_events.id,
+      dealId: deal_events.dealId,
+      fromStatus: deal_events.fromStatus,
+      toStatus: deal_events.toStatus,
+      actorId: deal_events.actorId,
+      reason: deal_events.reason,
+      timestamp: deal_events.timestamp,
+      actorName: actors.name,
+      actorEmail: actors.email,
+    })
+    .from(deal_events)
+    .leftJoin(actors, eq(deal_events.actorId, actors.id))
+    .orderBy(desc(deal_events.timestamp))
+    .limit(limit);
+}
+
+
 

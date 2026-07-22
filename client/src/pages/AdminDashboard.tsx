@@ -71,10 +71,41 @@ export default function AdminDashboard() {
     enabled: user?.role === "admin",
   });
 
+  const {
+    data: rejections,
+    isLoading: rejectionsLoading,
+    refetch: refetchRejections,
+  } = trpc.admin.getRejections.useQuery(undefined, {
+    enabled: user?.role === "admin",
+  });
+
   const updateReportStatusMutation = trpc.admin.updateReportStatus.useMutation({
     onSuccess: () => {
       toast.success("Report status updated");
       refetchReports();
+      refetchAuditLogs();
+    },
+    onError: error => {
+      toast.error(error.message);
+    },
+  });
+
+  const approveRejectionMutation = trpc.admin.approveRejection.useMutation({
+    onSuccess: () => {
+      toast.success("False rejection approved and item created on marketplace!");
+      refetchRejections();
+      refetchAuditLogs();
+      refetch();
+    },
+    onError: error => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateRejectionStatusMutation = trpc.admin.updateRejectionStatus.useMutation({
+    onSuccess: () => {
+      toast.success("Rejection status updated");
+      refetchRejections();
       refetchAuditLogs();
     },
     onError: error => {
@@ -171,6 +202,7 @@ export default function AdminDashboard() {
         <TabsList>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="reports">Reports Management</TabsTrigger>
+          <TabsTrigger value="rejections">Rejections Queue</TabsTrigger>
           <TabsTrigger value="audit">Audit Logs</TabsTrigger>
         </TabsList>
 
@@ -407,6 +439,153 @@ export default function AdminDashboard() {
                           </TableCell>
                         </TableRow>
                       ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="rejections">
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Seller</TableHead>
+                      <TableHead>Listing Info</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>GCV Confidence / Scores</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rejectionsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          <Loader2 className="animate-spin h-6 w-6 mx-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ) : rejections?.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          No rejected items in review queue.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      rejections?.map(rej => {
+                        let scoresObj: any = null;
+                        try {
+                          if (rej.confidenceScores) scoresObj = JSON.parse(rej.confidenceScores);
+                        } catch (e) {}
+
+                        return (
+                          <TableRow key={rej.id}>
+                            <TableCell>{rej.id}</TableCell>
+                            <TableCell>
+                              <span className="font-semibold">{rej.sellerName}</span>
+                              <br />
+                              <span className="text-xs text-muted-foreground">{rej.sellerEmail}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                {rej.imageUrl && (
+                                  <img
+                                    src={rej.imageUrl}
+                                    alt={rej.title}
+                                    className="w-12 h-12 object-cover rounded border"
+                                  />
+                                )}
+                                <div>
+                                  <span className="font-semibold block">{rej.title}</span>
+                                  <span className="text-xs text-muted-foreground line-clamp-1">
+                                    {rej.description || "No description"}
+                                  </span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-[200px] text-xs">
+                              <span className="text-destructive font-medium block">{rej.reason}</span>
+                            </TableCell>
+                            <TableCell className="max-w-[250px]">
+                              {scoresObj ? (
+                                <div className="space-y-1 text-xs">
+                                  {scoresObj.flaggedKeyword && (
+                                    <div className="font-mono text-red-600 bg-red-50 dark:bg-red-950/40 p-1 rounded">
+                                      Flagged Keyword: <strong>{scoresObj.flaggedKeyword}</strong>
+                                    </div>
+                                  )}
+                                  {scoresObj.topLabel && (
+                                    <div className="text-muted-foreground">
+                                      Top Label: <span className="font-semibold text-foreground">{scoresObj.topLabel.description}</span> ({scoresObj.topLabel.score})
+                                    </div>
+                                  )}
+                                  {scoresObj.labels && scoresObj.labels.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {scoresObj.labels.slice(0, 5).map((l: any, i: number) => (
+                                        <span
+                                          key={i}
+                                          className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono"
+                                        >
+                                          {l.description} ({l.score})
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No confidence scores</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-semibold ${
+                                  rej.status === "APPROVED"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                    : rej.status === "DISMISSED"
+                                    ? "bg-muted text-muted-foreground"
+                                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                                }`}
+                              >
+                                {rej.status}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {rej.status === "PENDING" && (
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => approveRejectionMutation.mutate({ rejectionId: rej.id })}
+                                    disabled={approveRejectionMutation.isPending}
+                                    className="h-8 text-xs border-green-600 text-green-600 hover:bg-green-50"
+                                  >
+                                    Approve Listing
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      updateRejectionStatusMutation.mutate({
+                                        rejectionId: rej.id,
+                                        status: "DISMISSED",
+                                      })
+                                    }
+                                    disabled={updateRejectionStatusMutation.isPending}
+                                    className="h-8 text-xs text-muted-foreground"
+                                  >
+                                    Dismiss
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>

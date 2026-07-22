@@ -148,7 +148,7 @@ describe("PIN-Based Deal Completion", () => {
       const caller = appRouter.createCaller({ req: {} as any, res: {} as any, user: { id: 1 } as any });
       await caller.deals.raiseDispute({ dealId: 100 });
 
-      expect(db.setDealDisputed).toHaveBeenCalledWith(100);
+      expect(db.setDealDisputed).toHaveBeenCalledWith(100, 1);
       expect(db.updateDealPinData).toHaveBeenCalledWith(100, {
         pinHash: "newhash",
         pinEncrypted: "newenc",

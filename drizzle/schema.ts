@@ -17,6 +17,7 @@ export const statusEnum = pgEnum("status", ["OPEN", "Contacted", "Shipped", "DEL
 export const dealStatusEnum = pgEnum("deal_status", ["OPEN", "Contacted", "Shipped", "DELIVERED", "CONFIRMED", "PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"]);
 export const reviewRoleEnum = pgEnum("review_role", ["buyer", "seller"]);
 export const reportStatusEnum = pgEnum("report_status", ["OPEN", "RESOLVED", "DISMISSED"]);
+export const rejectionStatusEnum = pgEnum("rejection_status", ["PENDING", "APPROVED", "DISMISSED"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -39,6 +40,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  trustScore: decimal("trustScore", { precision: 5, scale: 2 }).default("5.00").notNull(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -58,9 +60,12 @@ export const items = pgTable("items", {
   status: statusEnum("status").default("OPEN").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
+  deletedAt: timestamp("deletedAt"),
 }, (table) => {
   return {
     statusCreatedAtIdx: index("status_createdAt_idx").on(table.status, table.createdAt),
+    sellerIdStatusIdx: index("items_sellerId_status_idx").on(table.sellerId, table.status),
+    categoryStatusCreatedAtIdx: index("items_category_status_createdAt_idx").on(table.category, table.status, table.createdAt),
     searchIdx: index("search_idx").using("gin", sql`to_tsvector('english', ${table.title} || ' ' || coalesce(${table.description}, ''))`),
   };
 });
@@ -91,6 +96,11 @@ export const deals = pgTable("deals", {
   disputedAt: timestamp("disputedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
+}, (table) => {
+  return {
+    buyerIdStatusIdx: index("deals_buyerId_status_idx").on(table.buyerId, table.status),
+    sellerIdStatusIdx: index("deals_sellerId_status_idx").on(table.sellerId, table.status),
+  };
 });
 
 export type Deal = typeof deals.$inferSelect;
@@ -143,6 +153,10 @@ export const item_reports = pgTable("item_reports", {
   description: text("description"),
   status: reportStatusEnum("status").default("OPEN").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => {
+  return {
+    statusIdx: index("item_reports_status_idx").on(table.status),
+  };
 });
 
 export type ItemReport = typeof item_reports.$inferSelect;
@@ -170,4 +184,50 @@ export const admin_actions = pgTable("admin_actions", {
 
 export type AdminAction = typeof admin_actions.$inferSelect;
 export type InsertAdminAction = typeof admin_actions.$inferInsert;
+
+export const item_rejections = pgTable("item_rejections", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  imageUrl: text("imageUrl"),
+  reason: text("reason").notNull(),
+  confidenceScores: text("confidenceScores"),
+  status: rejectionStatusEnum("status").default("PENDING").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
+});
+
+export type ItemRejection = typeof item_rejections.$inferSelect;
+export type InsertItemRejection = typeof item_rejections.$inferInsert;
+
+export const image_vision_cache = pgTable("image_vision_cache", {
+  id: serial("id").primaryKey(),
+  imageHash: varchar("imageHash", { length: 64 }).notNull().unique(),
+  safe: integer("safe").notNull(),
+  reason: text("reason"),
+  confidenceScores: text("confidenceScores"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ImageVisionCache = typeof image_vision_cache.$inferSelect;
+export type InsertImageVisionCache = typeof image_vision_cache.$inferInsert;
+
+export const deal_events = pgTable("deal_events", {
+  id: serial("id").primaryKey(),
+  dealId: integer("dealId")
+    .notNull()
+    .references(() => deals.id, { onDelete: "cascade" }),
+  fromStatus: varchar("fromStatus", { length: 50 }).notNull(),
+  toStatus: varchar("toStatus", { length: 50 }).notNull(),
+  actorId: integer("actorId").references(() => users.id, { onDelete: "set null" }),
+  reason: text("reason"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export type DealEvent = typeof deal_events.$inferSelect;
+export type InsertDealEvent = typeof deal_events.$inferInsert;
+
 

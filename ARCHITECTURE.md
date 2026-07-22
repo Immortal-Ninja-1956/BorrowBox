@@ -43,6 +43,30 @@ The relational database is built around primary entities:
 4.  **Reviews (`reviews`)**: Created after a deal is marked as `PAID`. Links to the reviewer, the reviewee, the specific deal, and contains a 1-5 star rating.
 5.  **Admin Actions (`admin_actions`)**: Stores audit trail records (`adminId`, `action`, `targetId`, `timestamp`, `details`) for all administrative actions (bans, unbans, listing deletions, deal cancellations, report status updates).
 6.  **Revoked Tokens (`revoked_tokens`)**: Stores SHA-256 hashes of revoked JWT tokens to enforce instant session revocation upon logout.
+7.  **Item Rejections Queue (`item_rejections`)**: Records flagged/rejected listing attempts (`userId`, `title`, `description`, `imageUrl`, `reason`, `confidenceScores`, `status`). Allows admins to review false positives and override rejections.
+8.  **Vision Cache (`image_vision_cache`)**: Caches image SHA-256 hashes to GCV moderation verdicts to prevent redundant Google Cloud Vision API calls and eliminate duplicate billing.
+
+### 3.1. Database Indexing Strategy
+To eliminate full table scans on heavily queried dashboard and marketplace endpoints:
+- **`deals(buyerId, status)`**: Accelerates buyer dashboard active deal lookups.
+- **`deals(sellerId, status)`**: Accelerates seller dashboard active deal lookups.
+- **`items(sellerId, status)`**: Accelerates seller active inventory & profile listing queries.
+- **`items(category, status, createdAt)`**: Accelerates marketplace category filtering, pagination, and date-based sorting.
+- **`item_reports(status)`**: Accelerates admin reports dashboard filtering.
+
+### 3.2. Currency Precision Standard
+Currency amounts (`items.amount`, `deals.amount`) are stored exclusively using fixed-point `DECIMAL(10,2)` in PostgreSQL and processed via integer paise arithmetic (`shared/currency.ts`).
+- Floating-point representations (`float`/`double`) are strictly prohibited to prevent binary floating-point rounding errors (e.g. `19.990000000000002`).
+- All currency calculations perform integer operations in paise (`1 Rupee = 100 Paise`) before serializing back to fixed `DECIMAL(10,2)` strings.
+
+### 3.3. Item Soft-Deletion Lifecycle
+Item deletions (by sellers or administrators) perform soft deletion by setting a timestamp in `items.deletedAt`.
+- **Foreign Key Integrity:** Preserves relational integrity for `deals`, `reviews`, `messages`, and `item_reports`, ensuring historic transaction receipts and dispute resolution evidence are never broken.
+- **Marketplace Filtering:** All public marketplace queries (`getPagedItems`, `getItemsBySellerId`, autocomplete) filter records with `isNull(items.deletedAt)` so soft-deleted items immediately vanish from search and listings.
+
+### 3.4. User Trust Score Synchronization
+- **Transactional Review Sync:** When a user receives a review, `createReview` calculates `AVG(rating)` and updates `users.trustScore` atomically within the review insertion transaction.
+- **Batch Recompute Job:** `recomputeAllUserTrustScores()` re-evaluates all user ratings against the `reviews` table to eliminate any cached score drift.
 
 ---
 
@@ -77,10 +101,13 @@ This is the core business logic of BorrowBox, designed to prevent fraud:
 
 ### 4.4. Content & Listing Moderation Flow
 
-1.  **Image Safety Verification:** Images uploaded during listing creation or updates are analyzed via Google Cloud Vision API for inappropriate content or contraband objects.
-2.  **Text Moderation Engine:** Listing titles and descriptions are processed through `server/moderation.ts`.
+1.  **GCV Hash Deduplication (Cost Control):** Image buffer SHA-256 hash is checked against in-memory and `image_vision_cache` DB table. Identical image re-uploads return cached verdicts without calling Google Cloud Vision API, preventing redundant billing.
+2.  **Image Safety Verification:** On cache miss, images uploaded during listing creation or updates are analyzed via Google Cloud Vision API for inappropriate content or contraband objects. Raw label confidence scores and SafeSearch levels are extracted.
+3.  **Text Moderation Engine:** Listing titles and descriptions are processed through `server/moderation.ts`.
     - **Leetspeak Decoding:** Translates obfuscated characters (`w33d`, `m@ggi`, `k3ttl3`, `v@pe`).
     - **Repetition & Symbol Normalization:** Collapses character runs (`weeeeed` -> `weed`) and strips non-alphanumeric separators (`w-e-e-d` -> `weed`).
     - **Fuzzy Matching:** Uses Levenshtein edit distance to detect typosquatting and minor spelling variations.
-3.  **Mandatory Re-scanning on Update:** `items.update` merges updated text fields with stored item data and re-evaluates both text moderation and image safety on every edit attempt.
+4.  **Rejection Review Queue & Admin Overrides:** Rejected items (e.g. false positives on legitimate items like chemistry kits, lab coats, grafters) are automatically routed to `item_rejections` with raw GCV confidence scores. Admins can inspect the Rejections Queue on the Admin Dashboard and click **Approve Listing** to publish the item directly.
+5.  **Mandatory Re-scanning on Update:** `items.update` merges updated text fields with stored item data and re-evaluates both text moderation and image safety on every edit attempt.
+
 

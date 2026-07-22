@@ -66,10 +66,18 @@ import {
   advanceDealStatusAtomically,
   logAdminAction,
   getAdminActions,
+  createItemRejection,
+  getAllItemRejectionsAdmin,
+  updateItemRejectionStatus,
+  approveRejectionAndCreateItem,
+  getDealEventsByDealId,
+  getAllDealEventsAdmin,
+  recomputeAllUserTrustScores,
 } from "./db";
 import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 import { checkImageSafety } from "./vision";
 import { checkTextModeration } from "./moderation";
+import { isValidCurrencyFormat } from "../shared/currency";
 // Custom auth logic removed, moved to Supabase
 import { TRPCError } from "@trpc/server";
 
@@ -328,10 +336,7 @@ export const appRouter = router({
           amount: z
             .string()
             .min(1)
-            .refine(val => {
-              const num = Number(val);
-              return !isNaN(num) && num > 0;
-            }, "Price must be a positive number"),
+            .refine(val => isValidCurrencyFormat(val), "Price must be a valid positive currency amount up to 2 decimal places (e.g. 150 or 150.50)"),
           imageUrl: z.string().optional(),
           category: z.string().optional(),
           condition: z
@@ -342,6 +347,15 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const textCheck = checkTextModeration(input.title, input.description);
         if (!textCheck.safe) {
+          await createItemRejection({
+            userId: ctx.user.id,
+            title: input.title,
+            description: input.description,
+            imageUrl: input.imageUrl,
+            reason: textCheck.reason || "Text moderation flagged restricted keyword",
+            confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
+            status: "PENDING",
+          });
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: textCheck.reason || "Your listing contains restricted items/keywords which are not allowed.",
@@ -351,6 +365,15 @@ export const appRouter = router({
         if (input.imageUrl) {
           const safety = await checkImageSafety(input.imageUrl);
           if (!safety.safe) {
+            await createItemRejection({
+              userId: ctx.user.id,
+              title: input.title,
+              description: input.description,
+              imageUrl: input.imageUrl,
+              reason: safety.reason || "Image moderation flagged restricted content",
+              confidenceScores: JSON.stringify(safety.confidenceScores || { type: "IMAGE_SAFETY" }),
+              status: "PENDING",
+            });
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: safety.reason || "The uploaded image was flagged as unsafe or contains a restricted item.",
@@ -436,11 +459,7 @@ export const appRouter = router({
           amount: z
             .string()
             .optional()
-            .refine(val => {
-              if (val === undefined) return true;
-              const num = Number(val);
-              return !isNaN(num) && num > 0;
-            }, "Price must be a positive number"),
+            .refine(val => val === undefined || isValidCurrencyFormat(val), "Price must be a valid positive currency amount up to 2 decimal places (e.g. 150 or 150.50)"),
           imageUrl: z.string().optional(),
           category: z.string().optional(),
           condition: z
@@ -458,6 +477,15 @@ export const appRouter = router({
 
         const textCheck = checkTextModeration(finalTitle, finalDescription);
         if (!textCheck.safe) {
+          await createItemRejection({
+            userId: ctx.user.id,
+            title: finalTitle,
+            description: finalDescription,
+            imageUrl: input.imageUrl || item.imageUrl,
+            reason: textCheck.reason || "Text moderation flagged restricted keyword",
+            confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
+            status: "PENDING",
+          });
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: textCheck.reason || "Your listing contains restricted items/keywords which are not allowed.",
@@ -467,6 +495,15 @@ export const appRouter = router({
         if (input.imageUrl) {
           const safety = await checkImageSafety(input.imageUrl);
           if (!safety.safe) {
+            await createItemRejection({
+              userId: ctx.user.id,
+              title: finalTitle,
+              description: finalDescription,
+              imageUrl: input.imageUrl,
+              reason: safety.reason || "Image moderation flagged restricted content",
+              confidenceScores: JSON.stringify(safety.confidenceScores || { type: "IMAGE_SAFETY" }),
+              status: "PENDING",
+            });
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: safety.reason || "The uploaded image was flagged as unsafe or contains a restricted item.",
@@ -676,7 +713,7 @@ export const appRouter = router({
         }
 
         try {
-          await advanceDealStatusAtomically(input.dealId, deal.itemId, input.status);
+          await advanceDealStatusAtomically(input.dealId, deal.itemId, input.status, ctx.user.id);
         } catch (e: any) {
           if (e.message === "ANOTHER_ACTIVE_DEAL") {
             throw new TRPCError({
@@ -723,7 +760,7 @@ export const appRouter = router({
             generateDealTag(input.dealId)
           );
         }
-        await confirmDeliveryAtomically(input.dealId, qrCode);
+        await confirmDeliveryAtomically(input.dealId, qrCode, ctx.user.id);
         return { success: true };
       }),
 
@@ -983,7 +1020,7 @@ export const appRouter = router({
           });
         }
         // Set status to DISPUTED
-        await setDealDisputed(input.dealId);
+        await setDealDisputed(input.dealId, ctx.user.id);
         // Regenerate PIN (invalidates old one, resets attempts)
         const newPin = await generatePin();
         await updateDealPinData(input.dealId, {
@@ -1186,6 +1223,45 @@ export const appRouter = router({
       }),
     getAuditLogs: adminProcedure.query(async () => {
       return await getAdminActions();
+    }),
+    getRejections: adminProcedure.query(async () => {
+      return await getAllItemRejectionsAdmin();
+    }),
+    updateRejectionStatus: adminProcedure
+      .input(
+        z.object({
+          rejectionId: z.number(),
+          status: z.enum(["PENDING", "APPROVED", "DISMISSED"]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await updateItemRejectionStatus(input.rejectionId, input.status);
+        await logAdminAction({
+          adminId: ctx.user.id,
+          action: "UPDATE_REJECTION_STATUS",
+          targetId: input.rejectionId,
+          details: `Updated rejection status to ${input.status}`,
+        });
+        return { success: true };
+      }),
+    approveRejection: adminProcedure
+      .input(z.object({ rejectionId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const newItemId = await approveRejectionAndCreateItem(input.rejectionId, ctx.user.id);
+        return { success: true, itemId: newItemId };
+      }),
+    getDealEvents: adminProcedure.query(async () => {
+      return await getAllDealEventsAdmin();
+    }),
+    recomputeTrustScores: adminProcedure.mutation(async ({ ctx }) => {
+      const count = await recomputeAllUserTrustScores();
+      await logAdminAction({
+        adminId: ctx.user.id,
+        action: "RECOMPUTE_TRUST_SCORES",
+        targetId: 0,
+        details: `Recomputed trust scores for ${count} users`,
+      });
+      return { success: true, count };
     }),
   }),
 });
