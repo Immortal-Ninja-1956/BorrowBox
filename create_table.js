@@ -83,6 +83,7 @@ async function run() {
         "resetAt" TIMESTAMP NOT NULL
       );
     `;
+    await sql`ALTER TABLE users ALTER COLUMN "emailOtp" TYPE VARCHAR(64);`;
     console.log("✅ Tables and indexes created successfully!");
   } catch (error) {
     console.error("❌ Error creating tables:", error);

@@ -32,7 +32,7 @@ export const users = pgTable("users", {
   whatsappOtp: varchar("whatsappOtp", { length: 64 }),
   whatsappOtpExpiresAt: timestamp("whatsappOtpExpiresAt"),
   isEmailVerified: integer("isEmailVerified").default(0).notNull(),
-  emailOtp: varchar("emailOtp", { length: 6 }),
+  emailOtp: varchar("emailOtp", { length: 64 }),
   emailOtpExpiresAt: timestamp("emailOtpExpiresAt"),
   resetToken: varchar("resetToken", { length: 255 }),
   resetTokenExpiresAt: timestamp("resetTokenExpiresAt"),

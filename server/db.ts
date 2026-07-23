@@ -178,9 +178,11 @@ export async function updateUserEmailOtp(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // Store a SHA-256 hash — the raw OTP never touches the database
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
   return await db
     .update(users)
-    .set({ emailOtp: otp, emailOtpExpiresAt: expiresAt })
+    .set({ emailOtp: otpHash, emailOtpExpiresAt: expiresAt })
     .where(eq(users.id, userId));
 }
 
