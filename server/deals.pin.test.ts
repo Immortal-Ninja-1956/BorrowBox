@@ -18,6 +18,9 @@ vi.mock("./db", async () => {
     setDealUtr: vi.fn(),
     setDealDisputed: vi.fn(),
     updateDealPinData: vi.fn(),
+    checkGlobalPinLimit: vi.fn(),
+    recordGlobalPinFailure: vi.fn(),
+    resetGlobalPinFailures: vi.fn(),
   };
 });
 
@@ -110,6 +113,14 @@ describe("PIN-Based Deal Completion", () => {
       vi.mocked(db.getDealRawById).mockResolvedValue(mockDeal as any);
       const caller = appRouter.createCaller({ req: {} as any, res: {} as any, user: { id: 1 } as any });
       await expect(caller.deals.confirmWithPin({ dealId: 100, pin: "123456" })).rejects.toThrowError(/Only the seller can confirm/);
+    });
+
+    it("should block if global PIN limit is exceeded", async () => {
+      vi.mocked(db.getDealRawById).mockResolvedValue(mockDeal as any);
+      vi.mocked(db.checkGlobalPinLimit).mockResolvedValue(true);
+
+      const caller = appRouter.createCaller({ req: {} as any, res: {} as any, user: { id: 2 } as any });
+      await expect(caller.deals.confirmWithPin({ dealId: 100, pin: "123456" })).rejects.toThrowError(/Global PIN limit exceeded/);
     });
   });
 

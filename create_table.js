@@ -75,6 +75,14 @@ async function run() {
       );
     `;
     await sql`ALTER TABLE deals ADD COLUMN IF NOT EXISTS "disputeCount" INTEGER DEFAULT 0 NOT NULL;`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_pin_failures (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        "failureCount" INTEGER DEFAULT 0 NOT NULL,
+        "resetAt" TIMESTAMP NOT NULL
+      );
+    `;
     console.log("✅ Tables and indexes created successfully!");
   } catch (error) {
     console.error("❌ Error creating tables:", error);

@@ -7,10 +7,6 @@ import {
 } from "./_core/trpc";
 import { z } from "zod";
 
-// Global PIN failure tracking (sliding window per user)
-const userGlobalPinFailures = new Map<number, { count: number; resetAt: number }>();
-const GLOBAL_PIN_FAILURE_LIMIT = 15; // Max 15 failed PIN attempts globally
-const GLOBAL_PIN_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 import crypto from "crypto";
 import {
   createUser,
@@ -74,6 +70,9 @@ import {
   getAllDealEventsAdmin,
   recomputeAllUserTrustScores,
   getSuggestedPrice,
+  checkGlobalPinLimit,
+  recordGlobalPinFailure,
+  resetGlobalPinFailures,
 } from "./db";
 import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 import { checkImageSafety } from "./vision";
@@ -935,9 +934,9 @@ export const appRouter = router({
           });
         }
 
-        // Global sliding window PIN limit check
-        const globalRecord = userGlobalPinFailures.get(ctx.user.id);
-        if (globalRecord && Date.now() < globalRecord.resetAt && globalRecord.count >= GLOBAL_PIN_FAILURE_LIMIT) {
+        // Global sliding window PIN limit check (persisted in DB)
+        const isGlobalLocked = await checkGlobalPinLimit(ctx.user.id);
+        if (isGlobalLocked) {
           throw new TRPCError({
             code: "TOO_MANY_REQUESTS",
             message: "Global PIN limit exceeded. Your account is temporarily locked from confirming deals.",
@@ -946,23 +945,8 @@ export const appRouter = router({
 
         const isValid = await verifyPin(input.pin, deal.pinHash);
         if (!isValid) {
-          // Record global failure
-          let currentGlobalRecord = userGlobalPinFailures.get(ctx.user.id);
-          if (!currentGlobalRecord || Date.now() > currentGlobalRecord.resetAt) {
-            currentGlobalRecord = { count: 0, resetAt: Date.now() + GLOBAL_PIN_WINDOW_MS };
-          }
-          currentGlobalRecord.count += 1;
-          userGlobalPinFailures.set(ctx.user.id, currentGlobalRecord);
-
-          // If they just hit the global limit, alert admins
-          if (currentGlobalRecord.count === GLOBAL_PIN_FAILURE_LIMIT) {
-            await createItemReport({
-              itemId: deal.itemId,
-              reporterId: ctx.user.id,
-              reason: "Security Alert: Brute Force",
-              description: `User ${ctx.user.id} has exceeded the global PIN attempt limit (15 failed attempts across deals) and is locked for 1 hour.`,
-            }).catch(e => console.error("Failed to create admin alert for PIN brute force:", e));
-          }
+          // Record global failure in database
+          await recordGlobalPinFailure(ctx.user.id, deal.itemId);
 
           const newAttempts = deal.pinAttempts + 1;
           await incrementPinAttempts(input.dealId);
@@ -980,7 +964,7 @@ export const appRouter = router({
         }
 
         // Success — clear global failures and atomically complete the deal
-        userGlobalPinFailures.delete(ctx.user.id);
+        await resetGlobalPinFailures(ctx.user.id);
         await completeDealAtomically(input.dealId, deal.itemId);
         return { success: true };
       }),

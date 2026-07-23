@@ -29,7 +29,7 @@ export const users = pgTable("users", {
   upiName: varchar("upiName", { length: 255 }),
   whatsapp: varchar("whatsapp", { length: 20 }),
   whatsappVerified: integer("whatsappVerified").default(0).notNull(),
-  whatsappOtp: varchar("whatsappOtp", { length: 6 }),
+  whatsappOtp: varchar("whatsappOtp", { length: 64 }),
   whatsappOtpExpiresAt: timestamp("whatsappOtpExpiresAt"),
   isEmailVerified: integer("isEmailVerified").default(0).notNull(),
   emailOtp: varchar("emailOtp", { length: 6 }),
@@ -231,4 +231,15 @@ export const deal_events = pgTable("deal_events", {
 export type DealEvent = typeof deal_events.$inferSelect;
 export type InsertDealEvent = typeof deal_events.$inferInsert;
 
+export const user_pin_failures = pgTable("user_pin_failures", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  failureCount: integer("failureCount").default(0).notNull(),
+  resetAt: timestamp("resetAt").notNull(),
+});
 
+export type UserPinFailure = typeof user_pin_failures.$inferSelect;
+export type InsertUserPinFailure = typeof user_pin_failures.$inferInsert;

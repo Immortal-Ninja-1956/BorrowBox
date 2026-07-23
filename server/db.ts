@@ -1,7 +1,7 @@
 import { eq, desc, and, or, sql, like, ilike, asc, lt, ne, inArray, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { users, items, deals, reviews, messages, item_reports, revoked_tokens, admin_actions, item_rejections, image_vision_cache, deal_events } from "../drizzle/schema";
+import { users, items, deals, reviews, messages, item_reports, revoked_tokens, admin_actions, item_rejections, image_vision_cache, deal_events, user_pin_failures } from "../drizzle/schema";
 import type {
   InsertUser,
   InsertReview,
@@ -1380,6 +1380,94 @@ export async function getSuggestedPrice(options: { category?: string; title?: st
     matchedBy,
   };
 }
+
+// ─── Global PIN Failure Tracking ──────────────────────────────────────────────
+
+const GLOBAL_PIN_FAILURE_LIMIT = 15;
+const GLOBAL_PIN_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+export async function checkGlobalPinLimit(userId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const result = await db
+    .select()
+    .from(user_pin_failures)
+    .where(eq(user_pin_failures.userId, userId))
+    .limit(1);
+
+  if (result.length === 0) return false;
+
+  const record = result[0];
+  if (Date.now() < record.resetAt.getTime() && record.failureCount >= GLOBAL_PIN_FAILURE_LIMIT) {
+    return true; // limit exceeded
+  }
+  return false;
+}
+
+export async function recordGlobalPinFailure(userId: number, dealId: number): Promise<{ count: number; hitLimit: boolean }> {
+  const db = await getDb();
+  if (!db) return { count: 1, hitLimit: false };
+
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + GLOBAL_PIN_WINDOW_MS);
+
+  const existing = await db
+    .select()
+    .from(user_pin_failures)
+    .where(eq(user_pin_failures.userId, userId))
+    .limit(1);
+
+  let newCount = 1;
+
+  if (existing.length === 0 || now.getTime() >= existing[0].resetAt.getTime()) {
+    newCount = 1;
+    await db
+      .insert(user_pin_failures)
+      .values({
+        userId,
+        failureCount: 1,
+        resetAt,
+      })
+      .onConflictDoUpdate({
+        target: user_pin_failures.userId,
+        set: {
+          failureCount: 1,
+          resetAt,
+        },
+      });
+  } else {
+    newCount = existing[0].failureCount + 1;
+    await db
+      .update(user_pin_failures)
+      .set({
+        failureCount: sql`${user_pin_failures.failureCount} + 1`,
+      })
+      .where(eq(user_pin_failures.userId, userId));
+  }
+
+  const hitLimit = newCount >= GLOBAL_PIN_FAILURE_LIMIT;
+  if (hitLimit) {
+    await createItemReport({
+      itemId: dealId,
+      reporterId: userId,
+      reason: "Security Alert: Brute Force",
+      description: `User ${userId} has exceeded the global PIN attempt limit (15 failed attempts across deals) and is locked for 1 hour.`,
+    }).catch(e => console.error("Failed to create admin alert for PIN brute force:", e));
+  }
+
+  return { count: newCount, hitLimit };
+}
+
+export async function resetGlobalPinFailures(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+
+  await db
+    .delete(user_pin_failures)
+    .where(eq(user_pin_failures.userId, userId));
+}
+
 
 
 
