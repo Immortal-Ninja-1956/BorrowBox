@@ -351,7 +351,10 @@ export const appRouter = router({
             userId: ctx.user.id,
             title: input.title,
             description: input.description,
+            amount: input.amount,
             imageUrl: input.imageUrl,
+            category: input.category,
+            condition: input.condition,
             reason: textCheck.reason || "Text moderation flagged restricted keyword",
             confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
             status: "PENDING",
@@ -369,7 +372,10 @@ export const appRouter = router({
               userId: ctx.user.id,
               title: input.title,
               description: input.description,
+              amount: input.amount,
               imageUrl: input.imageUrl,
+              category: input.category,
+              condition: input.condition,
               reason: safety.reason || "Image moderation flagged restricted content",
               confidenceScores: JSON.stringify(safety.confidenceScores || { type: "IMAGE_SAFETY" }),
               status: "PENDING",
@@ -474,6 +480,9 @@ export const appRouter = router({
 
         const finalTitle = input.title !== undefined ? input.title : item.title;
         const finalDescription = input.description !== undefined ? input.description : item.description;
+        const finalAmount = input.amount !== undefined ? input.amount : item.amount;
+        const finalCategory = input.category !== undefined ? input.category : item.category;
+        const finalCondition = input.condition !== undefined ? input.condition : item.condition;
 
         const textCheck = checkTextModeration(finalTitle, finalDescription);
         if (!textCheck.safe) {
@@ -481,7 +490,10 @@ export const appRouter = router({
             userId: ctx.user.id,
             title: finalTitle,
             description: finalDescription,
+            amount: finalAmount,
             imageUrl: input.imageUrl || item.imageUrl,
+            category: finalCategory,
+            condition: finalCondition,
             reason: textCheck.reason || "Text moderation flagged restricted keyword",
             confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
             status: "PENDING",
@@ -499,7 +511,10 @@ export const appRouter = router({
               userId: ctx.user.id,
               title: finalTitle,
               description: finalDescription,
+              amount: finalAmount,
               imageUrl: input.imageUrl,
+              category: finalCategory,
+              condition: finalCondition,
               reason: safety.reason || "Image moderation flagged restricted content",
               confidenceScores: JSON.stringify(safety.confidenceScores || { type: "IMAGE_SAFETY" }),
               status: "PENDING",

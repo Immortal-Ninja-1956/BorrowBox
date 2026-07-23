@@ -1116,7 +1116,10 @@ export async function getAllItemRejectionsAdmin() {
       userId: item_rejections.userId,
       title: item_rejections.title,
       description: item_rejections.description,
+      amount: item_rejections.amount,
       imageUrl: item_rejections.imageUrl,
+      category: item_rejections.category,
+      condition: item_rejections.condition,
       reason: item_rejections.reason,
       confidenceScores: item_rejections.confidenceScores,
       status: item_rejections.status,
@@ -1156,16 +1159,19 @@ export async function approveRejectionAndCreateItem(rejectionId: number, adminId
     if (!rejection) throw new Error("Rejection record not found");
     if (rejection.status === "APPROVED") throw new Error("Rejection already approved");
 
-    // 1. Create item in marketplace
+    const itemAmount = rejection.amount ? parseCurrencyAmount(rejection.amount) : "0.00";
+
+    // 1. Create item in marketplace with original seller data
     const [newItem] = await tx
       .insert(items)
       .values({
         sellerId: rejection.userId,
         title: rejection.title,
         description: rejection.description,
-        amount: "0.00", // default/placeholder amount if unspecified
+        amount: itemAmount as any,
         imageUrl: rejection.imageUrl,
-        condition: "Good",
+        category: rejection.category,
+        condition: (rejection.condition as any) || "Good",
         status: "OPEN",
       })
       .returning({ insertId: items.id });
