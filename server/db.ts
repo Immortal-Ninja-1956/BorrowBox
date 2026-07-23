@@ -1,4 +1,4 @@
-import { eq, desc, and, or, sql, like, asc, lt, ne, inArray, isNull } from "drizzle-orm";
+import { eq, desc, and, or, sql, like, ilike, asc, lt, ne, inArray, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { users, items, deals, reviews, messages, item_reports, revoked_tokens, admin_actions, item_rejections, image_vision_cache, deal_events } from "../drizzle/schema";
@@ -1291,6 +1291,94 @@ export async function runDistributedGuardedCleanupJob(): Promise<boolean> {
     console.error("[Distributed Scheduler] Error during cleanup job execution:", err);
     return false;
   }
+}
+
+// ─── Price Suggestion (Median Sold Prices) ──────────────────────────────────
+
+export async function getSuggestedPrice(options: { category?: string; title?: string }) {
+  const db = await getDb();
+  if (!db) return { suggestedPrice: null, sampleCount: 0, matchedBy: null };
+
+  const cleanCategory = options.category && options.category !== "all" ? options.category : undefined;
+  const cleanTitle = options.title?.trim();
+
+  let matchedBy: "title_and_category" | "title" | "category" | null = null;
+  let soldItems: { amount: string }[] = [];
+
+  // Base query condition for historical sales
+  const isSoldOrPaid = or(eq(items.status, "SOLD"), eq(deals.status, "PAID"));
+
+  // Helper to fetch prices given additional WHERE condition
+  const fetchPrices = async (additionalCondition?: any) => {
+    const whereClause = additionalCondition ? and(isSoldOrPaid, additionalCondition) : isSoldOrPaid;
+    return await db
+      .select({ amount: sql<string>`coalesce(${deals.amount}, ${items.amount})` })
+      .from(items)
+      .leftJoin(deals, eq(items.id, deals.itemId))
+      .where(whereClause);
+  };
+
+  // Stage 1: Try matching BOTH title AND category
+  if (cleanTitle && cleanTitle.length >= 2 && cleanCategory) {
+    soldItems = await fetchPrices(
+      and(
+        eq(items.category, cleanCategory),
+        or(
+          sql`to_tsvector('english', ${items.title}) @@ plainto_tsquery('english', ${cleanTitle})`,
+          ilike(items.title, `%${cleanTitle}%`)
+        )
+      )
+    );
+    if (soldItems.length > 0) matchedBy = "title_and_category";
+  }
+
+  // Stage 2: Fall back to matching Title across all categories
+  if (soldItems.length === 0 && cleanTitle && cleanTitle.length >= 2) {
+    soldItems = await fetchPrices(
+      or(
+        sql`to_tsvector('english', ${items.title}) @@ plainto_tsquery('english', ${cleanTitle})`,
+        ilike(items.title, `%${cleanTitle}%`)
+      )
+    );
+    if (soldItems.length > 0) matchedBy = "title";
+  }
+
+  // Stage 3: Fall back to matching Category alone
+  if (soldItems.length === 0 && cleanCategory) {
+    soldItems = await fetchPrices(eq(items.category, cleanCategory));
+    if (soldItems.length > 0) matchedBy = "category";
+  }
+
+  if (soldItems.length === 0) {
+    return { suggestedPrice: null, sampleCount: 0, matchedBy: null };
+  }
+
+  // Parse numeric values and sort ascending
+  const prices = soldItems
+    .map((i) => parseFloat(i.amount))
+    .filter((p) => !isNaN(p) && p > 0)
+    .sort((a, b) => a - b);
+
+  if (prices.length === 0) {
+    return { suggestedPrice: null, sampleCount: 0, matchedBy: null };
+  }
+
+  // Calculate Median
+  const n = prices.length;
+  let median: number;
+  if (n % 2 === 1) {
+    median = prices[Math.floor(n / 2)];
+  } else {
+    median = (prices[n / 2 - 1] + prices[n / 2]) / 2;
+  }
+
+  return {
+    suggestedPrice: median.toFixed(2),
+    sampleCount: n,
+    minPrice: prices[0].toFixed(2),
+    maxPrice: prices[n - 1].toFixed(2),
+    matchedBy,
+  };
 }
 
 

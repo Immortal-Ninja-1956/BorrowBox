@@ -73,6 +73,7 @@ import {
   getDealEventsByDealId,
   getAllDealEventsAdmin,
   recomputeAllUserTrustScores,
+  getSuggestedPrice,
 } from "./db";
 import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 import { checkImageSafety } from "./vision";
@@ -586,6 +587,17 @@ export const appRouter = router({
           clientStatus,
           errorMsg
         };
+      }),
+
+    getPriceSuggestion: publicProcedure
+      .input(
+        z.object({
+          category: z.string().optional(),
+          title: z.string().optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        return await getSuggestedPrice(input);
       }),
   }),
 

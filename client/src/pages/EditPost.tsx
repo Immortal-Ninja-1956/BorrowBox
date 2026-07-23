@@ -116,6 +116,17 @@ export default function EditPost() {
     }
   }, [item]);
 
+  const { data: priceSuggestion } = trpc.items.getPriceSuggestion.useQuery(
+    {
+      category: formData.category,
+      title: formData.title,
+    },
+    {
+      enabled: !!formData.category || (!!formData.title && formData.title.trim().length >= 2),
+      staleTime: 10 * 1000,
+    }
+  );
+
   const updateItemMutation = trpc.items.update.useMutation({
     onSuccess: () => {
       toast.success("Item updated successfully!");
@@ -486,6 +497,36 @@ export default function EditPost() {
                     placeholder="e.g., 450"
                     className="h-11 bg-card/40 border-border/50 focus:border-primary/50 rounded-xl"
                   />
+                  {priceSuggestion?.suggestedPrice && (
+                    <div className="mt-2.5 p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between flex-wrap gap-2 text-xs animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">💡</span>
+                        <div>
+                          <span className="font-bold text-primary">
+                            Suggested Price: ₹{priceSuggestion.suggestedPrice}
+                          </span>
+                          <span className="text-muted-foreground ml-1.5 font-normal">
+                            (based on {priceSuggestion.sampleCount} past {priceSuggestion.sampleCount === 1 ? "sale" : "sales"}
+                            {priceSuggestion.matchedBy === "title_and_category"
+                              ? " for similar items"
+                              : priceSuggestion.matchedBy === "title"
+                              ? " matching title"
+                              : ` in ${formData.category}`}
+                            )
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setFormData(prev => ({ ...prev, amount: priceSuggestion.suggestedPrice! }))}
+                        className="h-7 text-[11px] font-bold border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg transition-colors"
+                      >
+                        Apply ₹{priceSuggestion.suggestedPrice}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div>
