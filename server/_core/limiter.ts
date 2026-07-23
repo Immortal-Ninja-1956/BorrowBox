@@ -236,3 +236,20 @@ export const disputeLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   },
 });
+
+export const publicProfileLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: 30, // 30 requests per minute per IP
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: {
+      message: "Too many profile requests. Please slow down.",
+      code: -32005,
+      data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+    },
+  },
+  handler: (req, res, _next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});

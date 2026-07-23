@@ -73,6 +73,8 @@ import {
   checkGlobalPinLimit,
   recordGlobalPinFailure,
   resetGlobalPinFailures,
+  getCompletedDealsCountBySellerId,
+  cancelDealAtomically,
 } from "./db";
 import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 import { checkImageSafety } from "./vision";
@@ -233,13 +235,13 @@ export const appRouter = router({
         
         const trustScore = await getUserTrustScore(input.userId);
         
-        const items = await getPagedItems({ limit: 50, offset: 0, sellerId: input.userId });
+        const items = await getPagedItems({ limit: 10, offset: 0, sellerId: input.userId });
         const activeListings = items.filter(i => i.status === "OPEN");
 
-        const deals = await getDealsBySellerId(input.userId);
-        const completedDealsCount = deals.filter(d => d.status === "CONFIRMED" || d.status === "DELIVERED").length;
+        const completedDealsCount = await getCompletedDealsCountBySellerId(input.userId);
 
-        const reviews = await getUserReviews(input.userId);
+        const allReviews = await getUserReviews(input.userId);
+        const reviews = allReviews.slice(0, 5);
         
         const reviewerIds = Array.from(new Set(reviews.map(r => r.reviewerId)));
         const reviewers = await getUsersByIds(reviewerIds);
@@ -830,26 +832,16 @@ export const appRouter = router({
         if (ctx.user.id !== deal.buyerId && ctx.user.id !== deal.sellerId) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
         }
-        const TERMINAL_OR_FROZEN = ["PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"];
-        if (TERMINAL_OR_FROZEN.includes(deal.status)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Cannot cancel a completed, cancelled, or disputed deal",
-          });
-        }
-
-        // Mark deal as CANCELLED
-        await updateDealStatus(input.dealId, "CANCELLED");
-
-        // Revert item status to OPEN if there are no other active/completed deals
-        const otherDeals = await getDealsByItemId(deal.itemId);
-        const hasOtherActiveDeal = otherDeals.some(
-          d =>
-            d.id !== deal.id &&
-            ["Shipped", "DELIVERED", "CONFIRMED", "PAID"].includes(d.status)
-        );
-        if (!hasOtherActiveDeal) {
-          await updateItemStatus(deal.itemId, "OPEN");
+        try {
+          await cancelDealAtomically(input.dealId, deal.itemId, ctx.user.id);
+        } catch (err: any) {
+          if (err?.message === "CANNOT_CANCEL_TERMINAL") {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Cannot cancel a completed, cancelled, or disputed deal",
+            });
+          }
+          throw err;
         }
 
         // Notify other party (simulation)
@@ -1161,7 +1153,7 @@ export const appRouter = router({
       }),
 
     send: protectedProcedure
-      .input(z.object({ dealId: z.number(), text: z.string().min(1) }))
+      .input(z.object({ dealId: z.number(), text: z.string().min(1).max(2000, "Message must be 2000 characters or fewer") }))
       .mutation(async ({ ctx, input }) => {
         const deal = await getDealById(input.dealId);
         if (!deal)
@@ -1185,9 +1177,18 @@ export const appRouter = router({
     getStats: adminProcedure.query(async () => {
       return await getPlatformStats();
     }),
-    getAllUsers: adminProcedure.query(async () => {
-      return await getAllUsersAdmin();
-    }),
+    getAllUsers: adminProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(200).default(100),
+            offset: z.number().min(0).default(0),
+          })
+          .optional()
+      )
+      .query(async ({ input }) => {
+        return await getAllUsersAdmin({ limit: input?.limit, offset: input?.offset });
+      }),
     banUser: adminProcedure
       .input(z.object({ userId: z.number(), isBanned: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -1224,9 +1225,18 @@ export const appRouter = router({
         });
         return { success: true };
       }),
-    getReports: adminProcedure.query(async () => {
-      return await getAllItemReportsAdmin();
-    }),
+    getReports: adminProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(200).default(100),
+            offset: z.number().min(0).default(0),
+          })
+          .optional()
+      )
+      .query(async ({ input }) => {
+        return await getAllItemReportsAdmin({ limit: input?.limit, offset: input?.offset });
+      }),
     updateReportStatus: adminProcedure
       .input(
         z.object({

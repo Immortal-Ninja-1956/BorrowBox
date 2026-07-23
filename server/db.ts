@@ -280,7 +280,6 @@ export async function getPagedItems(options: {
     .select({
       item: items,
       sellerName: sellers.name,
-      sellerEmail: sellers.email,
       sellerTrustScore: sellers.trustScore,
       sellerWhatsappVerified: sellers.whatsappVerified,
       sellerRole: sellers.role,
@@ -304,7 +303,6 @@ export async function getPagedItems(options: {
   return results.map(r => ({
     ...r.item,
     sellerName: r.sellerName,
-    sellerEmail: r.sellerEmail,
     sellerTrustScore: r.sellerTrustScore,
     sellerWhatsappVerified: r.sellerWhatsappVerified,
     sellerRole: r.sellerRole,
@@ -685,6 +683,21 @@ export async function getDealsBySellerId(sellerId: number) {
   }));
 }
 
+export async function getCompletedDealsCountBySellerId(sellerId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(deals)
+    .where(
+      and(
+        eq(deals.sellerId, sellerId),
+        or(eq(deals.status, "CONFIRMED"), eq(deals.status, "PAID"), eq(deals.status, "DELIVERED"))
+      )
+    );
+  return Number(result[0]?.count || 0);
+}
+
 export async function getDealsByBuyerId(buyerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -763,6 +776,44 @@ export async function advanceDealStatusAtomically(dealId: number, itemId: number
       for (const d of openDealsToCancel) {
         await transitionDealStatusAtomically(d.id, "CANCELLED", actorId, "Auto-cancelled due to another deal progressing", tx);
       }
+    }
+  });
+}
+
+export async function cancelDealAtomically(dealId: number, itemId: number, actorId?: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.transaction(async (tx) => {
+    const [deal] = await tx
+      .select()
+      .from(deals)
+      .where(eq(deals.id, dealId))
+      .limit(1);
+
+    if (!deal) throw new Error("DEAL_NOT_FOUND");
+
+    const TERMINAL_OR_FROZEN = ["PAID", "CANCELLED", "NEEDS_ATTENTION", "DISPUTED"];
+    if (TERMINAL_OR_FROZEN.includes(deal.status)) {
+      throw new Error("CANNOT_CANCEL_TERMINAL");
+    }
+
+    await transitionDealStatusAtomically(dealId, "CANCELLED", actorId, "Deal cancelled by user", tx);
+
+    const otherDeals = await tx
+      .select()
+      .from(deals)
+      .where(and(eq(deals.itemId, itemId), ne(deals.id, dealId)));
+
+    const hasOtherActiveDeal = otherDeals.some(
+      d => ["Shipped", "DELIVERED", "CONFIRMED", "PAID"].includes(d.status)
+    );
+
+    if (!hasOtherActiveDeal) {
+      await tx
+        .update(items)
+        .set({ status: "OPEN" })
+        .where(eq(items.id, itemId));
     }
   });
 }
@@ -846,13 +897,21 @@ export async function recomputeUserTrustScore(userId: number, externalTx?: any) 
 export async function recomputeAllUserTrustScores() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const allUsers = await db.select({ id: users.id }).from(users);
-  let updatedCount = 0;
-  for (const u of allUsers) {
-    await recomputeUserTrustScore(u.id);
-    updatedCount++;
-  }
-  return updatedCount;
+
+  await db.execute(sql`
+    UPDATE users
+    SET "trustScore" = COALESCE(
+      (
+        SELECT ROUND(AVG(r.rating), 2)::numeric
+        FROM reviews r
+        WHERE r."revieweeId" = users.id
+      ),
+      5.00
+    )
+  `);
+
+  const userCount = await db.select({ count: sql<number>`count(*)` }).from(users);
+  return Number(userCount[0]?.count || 0);
 }
 
 export async function createReview(review: InsertReview) {
@@ -928,7 +987,9 @@ export async function createMessage(data: InsertMessage) {
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
-export async function getAllUsersAdmin() {
+export async function getAllUsersAdmin(options?: { limit?: number; offset?: number }) {
+  const limit = options?.limit ?? 100;
+  const offset = options?.offset ?? 0;
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return await db
@@ -942,7 +1003,9 @@ export async function getAllUsersAdmin() {
       whatsappVerified: users.whatsappVerified,
     })
     .from(users)
-    .orderBy(desc(users.createdAt));
+    .orderBy(desc(users.createdAt))
+    .limit(limit)
+    .offset(offset);
 }
 
 export async function updateUserBanStatus(userId: number, isBanned: number) {
@@ -983,7 +1046,9 @@ export async function createItemReport(data: InsertItemReport) {
   return result[0].insertId;
 }
 
-export async function getAllItemReportsAdmin() {
+export async function getAllItemReportsAdmin(options?: { limit?: number; offset?: number }) {
+  const limit = options?.limit ?? 100;
+  const offset = options?.offset ?? 0;
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
@@ -1012,7 +1077,9 @@ export async function getAllItemReportsAdmin() {
     .innerJoin(reporters, eq(item_reports.reporterId, reporters.id))
     .innerJoin(items, eq(item_reports.itemId, items.id))
     .innerJoin(sellers, eq(items.sellerId, sellers.id))
-    .orderBy(desc(item_reports.createdAt));
+    .orderBy(desc(item_reports.createdAt))
+    .limit(limit)
+    .offset(offset);
 }
 
 export async function updateItemReportStatus(

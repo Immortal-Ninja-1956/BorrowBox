@@ -329,8 +329,8 @@ export async function checkImageSafety(
     console.error("[Vision API] Error during safety analysis:", error?.message || error);
     
     if (error?.message?.includes("billing to be enabled")) {
-      console.warn("[Vision API] Google Cloud billing is disabled. Bypassing moderation and allowing image to upload.");
-      return { safe: true };
+      console.error("[Vision API] CRITICAL SECURITY ALERT: Google Cloud Vision billing is disabled. Failing CLOSED to prevent unmoderated uploads.");
+      return { safe: false, reason: "Image moderation service is temporarily unavailable due to billing configuration. Uploads are temporarily paused." };
     }
 
     console.error("[Vision API] Failing CLOSED due to API error — image BLOCKED.");

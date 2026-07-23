@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { uploadRouter } from "../upload";
-import { authLimiter, pinVerifyLimiter, otpLimiter, createItemLimiter, reportLimiter, updateItemLimiter, createDealLimiter, messageLimiter, registerLimiter, reviewLimiter, disputeLimiter } from "./limiter";
+import { authLimiter, pinVerifyLimiter, otpLimiter, createItemLimiter, reportLimiter, updateItemLimiter, createDealLimiter, messageLimiter, registerLimiter, reviewLimiter, disputeLimiter, publicProfileLimiter } from "./limiter";
 import helmet from "helmet";
 import cors from "cors";
 import { runDistributedGuardedCleanupJob, getDb } from "../db";
@@ -96,12 +96,14 @@ async function startServer() {
   app.use("/api/trpc/auth.forgotPassword", authLimiter);
   app.use("/api/trpc/deals.confirmWithPin", pinVerifyLimiter);
   app.use("/api/trpc/user.sendWhatsAppOtp", otpLimiter);
+  app.use("/api/trpc/user.getPublicProfileById", publicProfileLimiter);
 
   // Rate limiting for marketplace actions
   app.use("/api/trpc/items.create", createItemLimiter);
   app.use("/api/trpc/items.update", updateItemLimiter);
   app.use("/api/trpc/items.report", reportLimiter);
   app.use("/api/trpc/deals.create", createDealLimiter);
+  app.use("/api/trpc/messages.send", messageLimiter);
   app.use("/api/trpc/messages.create", messageLimiter);
   app.use("/api/trpc/reviews.create", reviewLimiter);
   app.use("/api/trpc/deals.raiseDispute", disputeLimiter);
