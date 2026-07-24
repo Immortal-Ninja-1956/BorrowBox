@@ -37,7 +37,6 @@ const conditionMetadata = [
   { name: "Like New", desc: "Excellent condition, barely used" },
   { name: "Good", desc: "Fully functional, minor wear & tear" },
   { name: "Fair", desc: "Shows sign of use, works completely" },
-  { name: "Poor", desc: "Heavily used, might need minor fixes" },
 ];
 
 const BANNED_KEYWORDS = [
@@ -73,7 +72,7 @@ export interface ItemFormData {
   description: string;
   amount: string;
   category: string;
-  condition: "New" | "Like New" | "Good" | "Fair" | "Poor";
+  condition: "New" | "Like New" | "Good" | "Fair";
   imageUrl?: string;
 }
 

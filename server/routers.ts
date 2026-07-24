@@ -342,7 +342,7 @@ export const appRouter = router({
           imageUrl: z.string().optional(),
           category: z.string().optional(),
           condition: z
-            .enum(["New", "Like New", "Good", "Fair", "Poor"])
+            .enum(["New", "Like New", "Good", "Fair"])
             .default("Good"),
         })
       )
@@ -471,7 +471,7 @@ export const appRouter = router({
           imageUrl: z.string().optional(),
           category: z.string().optional(),
           condition: z
-            .enum(["New", "Like New", "Good", "Fair", "Poor"])
+            .enum(["New", "Like New", "Good", "Fair"])
             .optional(),
         })
       )
