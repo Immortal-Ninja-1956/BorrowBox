@@ -75,6 +75,7 @@ import {
   resetGlobalPinFailures,
   getCompletedDealsCountBySellerId,
   cancelDealAtomically,
+  getItemReportByUserAndItem,
 } from "./db";
 import { generatePin, decryptPin, verifyPin, generateDealTag } from "./pin";
 import { checkImageSafety } from "./vision";
@@ -583,6 +584,13 @@ export const appRouter = router({
         const item = await getItemById(input.itemId);
         if (!item) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
+        }
+        const existingReport = await getItemReportByUserAndItem(input.itemId, ctx.user.id);
+        if (existingReport) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "You have already reported this item.",
+          });
         }
         await createItemReport({
           itemId: input.itemId,

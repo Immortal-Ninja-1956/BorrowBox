@@ -32,12 +32,22 @@ export function getSessionCookieOptions(
     hostname !== "127.0.0.1" &&
     hostname !== "::1";
 
-  const domain =
-    shouldSetDomain && !hostname.startsWith(".")
-      ? `.${hostname}`
-      : shouldSetDomain
-        ? hostname
-        : undefined;
+  let domain: string | undefined;
+
+  if (shouldSetDomain) {
+    if (process.env.COOKIE_DOMAIN) {
+      domain = process.env.COOKIE_DOMAIN.startsWith(".")
+        ? process.env.COOKIE_DOMAIN
+        : `.${process.env.COOKIE_DOMAIN}`;
+    } else {
+      const parts = hostname.split(".");
+      if (parts.length >= 2) {
+        domain = `.${parts.slice(-2).join(".")}`;
+      } else {
+        domain = `.${hostname}`;
+      }
+    }
+  }
 
   const secure = isSecureRequest(req);
 

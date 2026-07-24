@@ -1039,6 +1039,17 @@ import { aliasedTable } from "drizzle-orm";
 
 // ─── Reports ────────────────────────────────────────────────────────────────────
 
+export async function getItemReportByUserAndItem(itemId: number, reporterId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [report] = await db
+    .select()
+    .from(item_reports)
+    .where(and(eq(item_reports.itemId, itemId), eq(item_reports.reporterId, reporterId)))
+    .limit(1);
+  return report || null;
+}
+
 export async function createItemReport(data: InsertItemReport) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1393,6 +1404,8 @@ export async function getSuggestedPrice(options: { category?: string; title?: st
       .where(whereClause);
   };
 
+  const safeTitlePattern = cleanTitle ? cleanTitle.replace(/[%_\\]/g, "\\$&") : "";
+
   // Stage 1: Try matching BOTH title AND category
   if (cleanTitle && cleanTitle.length >= 2 && cleanCategory) {
     soldItems = await fetchPrices(
@@ -1400,7 +1413,7 @@ export async function getSuggestedPrice(options: { category?: string; title?: st
         eq(items.category, cleanCategory),
         or(
           sql`to_tsvector('english', ${items.title}) @@ plainto_tsquery('english', ${cleanTitle})`,
-          ilike(items.title, `%${cleanTitle}%`)
+          ilike(items.title, `%${safeTitlePattern}%`)
         )
       )
     );
@@ -1412,7 +1425,7 @@ export async function getSuggestedPrice(options: { category?: string; title?: st
     soldItems = await fetchPrices(
       or(
         sql`to_tsvector('english', ${items.title}) @@ plainto_tsquery('english', ${cleanTitle})`,
-        ilike(items.title, `%${cleanTitle}%`)
+        ilike(items.title, `%${safeTitlePattern}%`)
       )
     );
     if (soldItems.length > 0) matchedBy = "title";
