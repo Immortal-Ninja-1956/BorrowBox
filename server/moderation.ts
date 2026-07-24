@@ -175,7 +175,7 @@ export function checkTextModeration(
       if (cleanToken === cleanKeyword || normToken === cleanKeyword) {
         return {
           safe: false,
-          reason: `Your listing contains restricted items/keywords ("${keyword}") which are not allowed.`,
+          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on BorrowBox. Please remove it and try again.`,
           flaggedKeyword: keyword,
         };
       }
@@ -184,7 +184,7 @@ export function checkTextModeration(
       if (cleanToken.length > cleanKeyword.length && cleanToken.includes(cleanKeyword)) {
         return {
           safe: false,
-          reason: `Your listing contains restricted items/keywords ("${keyword}") which are not allowed.`,
+          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on BorrowBox. Please remove it and try again.`,
           flaggedKeyword: keyword,
         };
       }
@@ -198,7 +198,7 @@ export function checkTextModeration(
         if (dist <= maxDist && dist > 0) {
           return {
             safe: false,
-            reason: `Your listing contains text similar to prohibited items ("${keyword}").`,
+            reason: `Your listing looks like it might be referencing "${keyword}", which isn't permitted here. Double-check your title and description.`,
             flaggedKeyword: keyword,
           };
         }
@@ -218,7 +218,7 @@ export function checkTextModeration(
       if (regex.test(normalized)) {
         return {
           safe: false,
-          reason: `Your listing contains restricted items/keywords ("${keyword}") which are not allowed.`,
+          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on BorrowBox. Please remove it and try again.`,
           flaggedKeyword: keyword,
         };
       }
@@ -236,7 +236,7 @@ export function checkTextModeration(
       if (cleanKeyword.length >= 3 && joinedStripped.includes(cleanKeyword)) {
         return {
           safe: false,
-          reason: `Your listing contains restricted items/keywords ("${keyword}") which are not allowed.`,
+          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on BorrowBox. Please remove it and try again.`,
           flaggedKeyword: keyword,
         };
       }

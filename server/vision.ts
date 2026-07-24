@@ -121,7 +121,7 @@ export async function checkImageSafety(
 
   if (!client) {
     console.error("[Vision API] BLOCKED: Client not initialized — refusing upload. Check GOOGLE_* env vars.");
-    return { safe: false, reason: "Image moderation service is unavailable. Please try again later or contact support." };
+    return { safe: false, reason: "Our photo checker is taking a quick break. Give it a minute and try uploading again!" };
   }
 
   try {
@@ -132,7 +132,7 @@ export async function checkImageSafety(
       imageBuffer = Buffer.from(await res.arrayBuffer());
     } else {
       const localPath = path.join(process.cwd(), imageUrl.startsWith("/") ? imageUrl.slice(1) : imageUrl);
-      if (!fs.existsSync(localPath)) return { safe: false, reason: "Image file not found on server." };
+      if (!fs.existsSync(localPath)) return { safe: false, reason: "Hmm, we couldn't find that image on our server. Try uploading it again." };
       imageBuffer = await fs.promises.readFile(localPath);
     }
 
@@ -217,14 +217,14 @@ export async function checkImageSafety(
       const strictLevels = ["POSSIBLE", "LIKELY", "VERY_LIKELY"];
       const normalLevels = ["LIKELY", "VERY_LIKELY"];
       if (strictLevels.includes(ss.adult || "UNKNOWN")) {
-        return await helperCacheAndReturn({ safe: false, reason: "Image contains adult or explicit content." });
+        return await helperCacheAndReturn({ safe: false, reason: "This photo isn't something we can display on campus. Please use a standard item photo." });
       }
       if (
         normalLevels.includes(ss.violence || "UNKNOWN") ||
         normalLevels.includes(ss.racy || "UNKNOWN") ||
         normalLevels.includes(ss.medical || "UNKNOWN")
       ) {
-        return await helperCacheAndReturn({ safe: false, reason: "Image contains inappropriate content." });
+        return await helperCacheAndReturn({ safe: false, reason: "This photo isn't appropriate for our campus marketplace. Please upload a clean, clear photo of the item." });
       }
     }
 
@@ -234,7 +234,7 @@ export async function checkImageSafety(
       console.log(`[Vision API] Blocked: ${faces.length} face(s) detected.`);
       return await helperCacheAndReturn({
         safe: false,
-        reason: "Listing photos must show the item, not people. Please upload a photo without any faces.",
+        reason: "Your photo appears to have a person in it. Listing photos should show the item only — no faces please!",
       });
     }
 
@@ -242,7 +242,7 @@ export async function checkImageSafety(
     const colors = result.imagePropertiesAnnotation?.dominantColors?.colors;
     if (colors && colors.length > 0) {
       if ((colors[0].pixelFraction ?? 0) > 0.95) {
-        return await helperCacheAndReturn({ safe: false, reason: "Image appears to be a solid color. Please upload a real photo of the item." });
+        return await helperCacheAndReturn({ safe: false, reason: "That image looks blank or completely one color. Please snap an actual photo of what you're selling!" });
       }
       let totalScore = 0, weightedLum = 0;
       for (const col of colors) {
@@ -254,8 +254,8 @@ export async function checkImageSafety(
       }
       if (totalScore > 0) {
         const lum = weightedLum / totalScore;
-        if (lum < 8) return await helperCacheAndReturn({ safe: false, reason: "Image is too dark." });
-        if (lum > 248) return await helperCacheAndReturn({ safe: false, reason: "Image is completely overexposed." });
+        if (lum < 8) return await helperCacheAndReturn({ safe: false, reason: "Your photo is too dark to see the item clearly. Try taking it in better lighting!" });
+        if (lum > 248) return await helperCacheAndReturn({ safe: false, reason: "Your photo is way too bright — the item is barely visible. Try again away from direct light." });
       }
     }
 
@@ -265,12 +265,12 @@ export async function checkImageSafety(
       const extractedText = (textAnnotations[0].description ?? "").toLowerCase();
       const bannedWords = ["drug", "cocaine", "heroin", "cannabis", "weed", "meth", "weapon", "gun", "pistol", "rifle", "explosive"];
       if (bannedWords.some(w => extractedText.includes(w))) {
-        return await helperCacheAndReturn({ safe: false, reason: "Image contains text related to a prohibited item." });
+        return await helperCacheAndReturn({ safe: false, reason: "Your photo contains text mentioning something not allowed on campus. Please use a clean item photo with no banned words." });
       }
       const wordCount = extractedText.split(/\s+/).filter(Boolean).length;
       if (wordCount > 25) {
         console.log(`[Vision API] Blocked: text-heavy image (${wordCount} words) — likely meme/screenshot.`);
-        return await helperCacheAndReturn({ safe: false, reason: "This looks like a screenshot, meme, or document. Please upload a real photo of the item." });
+        return await helperCacheAndReturn({ safe: false, reason: "That looks like a screenshot or document, not an item photo. Please take an actual photo of what you're listing." });
       }
     }
 
@@ -288,7 +288,7 @@ export async function checkImageSafety(
         console.log(`[Vision API] Blocked: top label "${top.description}" (${top.score})`);
         return await helperCacheAndReturn({
           safe: false,
-          reason: "Please upload a clear, real photo of the item you want to sell. Landscapes, buildings, and abstract photos are not allowed.",
+          reason: "That photo doesn't look like a campus marketplace item. Please upload a clear photo of what you're actually selling!",
         });
       }
     }
@@ -302,7 +302,7 @@ export async function checkImageSafety(
           console.log(`[Vision API] Blocked: banned label "${label.description}" (${label.score})`);
           return await helperCacheAndReturn({
             safe: false,
-            reason: "This photo contains content that isn't allowed (such as memes, screenshots, selfies, or prohibited items). Please upload a clear photo of your item.",
+            reason: "We spotted something in your photo that isn't allowed here — like a banned item, selfie, or meme. Please upload a straightforward photo of the item you're listing.",
           });
         }
       }
@@ -319,7 +319,7 @@ export async function checkImageSafety(
       return await helperCacheAndReturn({
         safe: false,
         reason:
-          "We couldn't detect a recognizable marketplace item in this photo. Please upload a clear, real photo of what you're listing (e.g. laptop, book, camera, bag, etc.).",
+          "We couldn't tell what item is in this photo — it might be blurry, too far away, or just not a product. Try a clearer shot of what you're selling (e.g. a laptop, book, bag, or gadget).",
       });
     }
 
@@ -330,10 +330,10 @@ export async function checkImageSafety(
     
     if (error?.message?.includes("billing to be enabled")) {
       console.error("[Vision API] CRITICAL SECURITY ALERT: Google Cloud Vision billing is disabled. Failing CLOSED to prevent unmoderated uploads.");
-      return { safe: false, reason: "Image moderation service is temporarily unavailable due to billing configuration. Uploads are temporarily paused." };
+      return { safe: false, reason: "Our photo checker is temporarily offline. We've been notified and are looking into it. Please try again in a little while." };
     }
 
     console.error("[Vision API] Failing CLOSED due to API error — image BLOCKED.");
-    return { safe: false, reason: "Image moderation service encountered an error. Please try again in a few moments." };
+    return { safe: false, reason: "Something went wrong while checking your photo. It's likely temporary — please try again in a moment." };
   }
 }

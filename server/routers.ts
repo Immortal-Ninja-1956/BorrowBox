@@ -357,13 +357,13 @@ export const appRouter = router({
             imageUrl: input.imageUrl,
             category: input.category,
             condition: input.condition,
-            reason: textCheck.reason || "Text moderation flagged restricted keyword",
+            reason: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
             confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
             status: "PENDING",
           });
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: textCheck.reason || "Your listing contains restricted items/keywords which are not allowed.",
+            message: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
           });
         }
 
@@ -384,7 +384,7 @@ export const appRouter = router({
             });
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: safety.reason || "The uploaded image was flagged as unsafe or contains a restricted item.",
+              message: safety.reason || "That photo didn't pass our check. Please use a clear, real photo of the item you're selling.",
             });
           }
         }
@@ -394,7 +394,7 @@ export const appRouter = router({
           if (existing.length >= 1) {
             throw new TRPCError({
               code: "FORBIDDEN",
-              message: "Verify your WhatsApp to post more listings.",
+              message: "You've already posted 1 listing without verifying your WhatsApp. Verify your number to post more — it only takes a minute!",
             });
           }
         }
@@ -496,13 +496,13 @@ export const appRouter = router({
             imageUrl: input.imageUrl || item.imageUrl,
             category: finalCategory,
             condition: finalCondition,
-            reason: textCheck.reason || "Text moderation flagged restricted keyword",
+            reason: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
             confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
             status: "PENDING",
           });
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: textCheck.reason || "Your listing contains restricted items/keywords which are not allowed.",
+            message: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
           });
         }
 
@@ -523,7 +523,7 @@ export const appRouter = router({
             });
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: safety.reason || "The uploaded image was flagged as unsafe or contains a restricted item.",
+              message: safety.reason || "That photo didn't pass our check. Please use a clear, real photo of the item you're selling.",
             });
           }
         }
@@ -531,7 +531,7 @@ export const appRouter = router({
         if (item.status !== "OPEN") {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Cannot edit an item that is finalized or sold",
+            message: "This listing is no longer editable since it's already been sold or completed.",
           });
         }
         await updateItem(input.id, {

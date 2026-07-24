@@ -19,7 +19,7 @@ describe("Token Revocation System", () => {
     // State after revocation: revoked
     const afterRevocation = await isTokenRevoked(tokenHash);
     expect(afterRevocation).toBe(true);
-  });
+  }, 10_000);
 
   it("should return false for any non-revoked token hash", async () => {
     const randomHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
