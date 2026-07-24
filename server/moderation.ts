@@ -180,15 +180,6 @@ export function checkTextModeration(
         };
       }
 
-      // Substring check on individual token if token is a composite (e.g., "weed-pipes")
-      if (cleanToken.length > cleanKeyword.length && cleanToken.includes(cleanKeyword)) {
-        return {
-          safe: false,
-          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on BorrowBox. Please remove it and try again.`,
-          flaggedKeyword: keyword,
-        };
-      }
-
       // Fuzzy match for minor typos/variations:
       // For short keywords (<= 4 chars, e.g. "rum", "gun", "weed", "vape"), maxDist is 0 (exact/leetspeak only) to prevent false positives on "RAM", "car", "bar", etc.
       // For medium/long keywords (>= 5 chars, e.g. "kettle", "cigarette", "marijuana"), maxDist is 1 or 2.

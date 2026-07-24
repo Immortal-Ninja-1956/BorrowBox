@@ -349,18 +349,22 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const textCheck = checkTextModeration(input.title, input.description);
         if (!textCheck.safe) {
-          await createItemRejection({
-            userId: ctx.user.id,
-            title: input.title,
-            description: input.description,
-            amount: input.amount,
-            imageUrl: input.imageUrl,
-            category: input.category,
-            condition: input.condition,
-            reason: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
-            confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
-            status: "PENDING",
-          });
+          try {
+            await createItemRejection({
+              userId: ctx.user.id,
+              title: input.title,
+              description: input.description,
+              amount: input.amount,
+              imageUrl: input.imageUrl,
+              category: input.category,
+              condition: input.condition,
+              reason: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
+              confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
+              status: "PENDING",
+            });
+          } catch (rejectionErr) {
+            console.error("[ItemRejection] Failed to record rejection in DB:", rejectionErr);
+          }
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
@@ -370,18 +374,22 @@ export const appRouter = router({
         if (input.imageUrl) {
           const safety = await checkImageSafety(input.imageUrl);
           if (!safety.safe) {
-            await createItemRejection({
-              userId: ctx.user.id,
-              title: input.title,
-              description: input.description,
-              amount: input.amount,
-              imageUrl: input.imageUrl,
-              category: input.category,
-              condition: input.condition,
-              reason: safety.reason || "Image moderation flagged restricted content",
-              confidenceScores: JSON.stringify(safety.confidenceScores || { type: "IMAGE_SAFETY" }),
-              status: "PENDING",
-            });
+            try {
+              await createItemRejection({
+                userId: ctx.user.id,
+                title: input.title,
+                description: input.description,
+                amount: input.amount,
+                imageUrl: input.imageUrl,
+                category: input.category,
+                condition: input.condition,
+                reason: safety.reason || "Image moderation flagged restricted content",
+                confidenceScores: JSON.stringify(safety.confidenceScores || { type: "IMAGE_SAFETY" }),
+                status: "PENDING",
+              });
+            } catch (rejectionErr) {
+              console.error("[ItemRejection] Failed to record image rejection in DB:", rejectionErr);
+            }
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: safety.reason || "That photo didn't pass our check. Please use a clear, real photo of the item you're selling.",
@@ -488,18 +496,22 @@ export const appRouter = router({
 
         const textCheck = checkTextModeration(finalTitle, finalDescription);
         if (!textCheck.safe) {
-          await createItemRejection({
-            userId: ctx.user.id,
-            title: finalTitle,
-            description: finalDescription,
-            amount: finalAmount,
-            imageUrl: input.imageUrl || item.imageUrl,
-            category: finalCategory,
-            condition: finalCondition,
-            reason: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
-            confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
-            status: "PENDING",
-          });
+          try {
+            await createItemRejection({
+              userId: ctx.user.id,
+              title: finalTitle,
+              description: finalDescription,
+              amount: finalAmount,
+              imageUrl: input.imageUrl || item.imageUrl,
+              category: finalCategory,
+              condition: finalCondition,
+              reason: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
+              confidenceScores: JSON.stringify({ flaggedKeyword: textCheck.flaggedKeyword, type: "TEXT_MODERATION" }),
+              status: "PENDING",
+            });
+          } catch (rejectionErr) {
+            console.error("[ItemRejection] Failed to record rejection in DB:", rejectionErr);
+          }
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: textCheck.reason || "Your listing was flagged for restricted content. Please review your title and description.",
@@ -509,18 +521,22 @@ export const appRouter = router({
         if (input.imageUrl) {
           const safety = await checkImageSafety(input.imageUrl);
           if (!safety.safe) {
-            await createItemRejection({
-              userId: ctx.user.id,
-              title: finalTitle,
-              description: finalDescription,
-              amount: finalAmount,
-              imageUrl: input.imageUrl,
-              category: finalCategory,
-              condition: finalCondition,
-              reason: safety.reason || "Image moderation flagged restricted content",
-              confidenceScores: JSON.stringify(safety.confidenceScores || { type: "IMAGE_SAFETY" }),
-              status: "PENDING",
-            });
+            try {
+              await createItemRejection({
+                userId: ctx.user.id,
+                title: finalTitle,
+                description: finalDescription,
+                amount: finalAmount,
+                imageUrl: input.imageUrl,
+                category: finalCategory,
+                condition: finalCondition,
+                reason: safety.reason || "Image moderation flagged restricted content",
+                confidenceScores: JSON.stringify(safety.confidenceScores || { type: "IMAGE_SAFETY" }),
+                status: "PENDING",
+              });
+            } catch (rejectionErr) {
+              console.error("[ItemRejection] Failed to record image rejection in DB:", rejectionErr);
+            }
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: safety.reason || "That photo didn't pass our check. Please use a clear, real photo of the item you're selling.",
