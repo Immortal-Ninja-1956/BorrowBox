@@ -126,18 +126,42 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
+  const cleanupInterval = setInterval(async () => {
+    try {
+      await runDistributedGuardedCleanupJob();
+    } catch (err) {
+      console.error("[Distributed Scheduler] Unexpected error during cleanup execution:", err);
+    }
+  }, 15 * 60 * 1000); // Run every 15 minutes
+
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    
-    // Start distributed background jobs (PostgreSQL advisory lock guarded)
-    setInterval(async () => {
-      try {
-        await runDistributedGuardedCleanupJob();
-      } catch (err) {
-        console.error("[Distributed Scheduler] Unexpected error during cleanup execution:", err);
-      }
-    }, 15 * 60 * 1000); // Run every 15 minutes
   });
+
+  const gracefulShutdown = (signal: string) => {
+    console.log(`[Server] ${signal} received. Initiating graceful shutdown...`);
+    clearInterval(cleanupInterval);
+
+    server.close(async () => {
+      console.log("[Server] HTTP server closed. Draining database connection...");
+      try {
+        const { closeDbConnection } = await import("../db");
+        await closeDbConnection();
+      } catch (err) {
+        console.error("[Server] Error closing database connection:", err);
+      }
+      console.log("[Server] Graceful shutdown complete.");
+      process.exit(0);
+    });
+
+    setTimeout(() => {
+      console.error("[Server] Could not close connections in 10s, forcing shutdown.");
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 }
 
 startServer().catch(console.error);

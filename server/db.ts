@@ -16,6 +16,7 @@ import crypto from "crypto";
 import { parseCurrencyAmount } from "../shared/currency";
 
 
+let _client: ReturnType<typeof postgres> | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
 let _connectionPromise: Promise<ReturnType<typeof drizzle> | null> | null = null;
 
@@ -37,6 +38,7 @@ export async function getDb() {
           });
           // Verify connection
           await client`SELECT 1`;
+          _client = client;
           _db = drizzle(client);
           return _db;
         } catch (error) {
@@ -54,6 +56,19 @@ export async function getDb() {
   }
 
   return _connectionPromise;
+}
+
+export async function closeDbConnection() {
+  if (_client) {
+    try {
+      await _client.end({ timeout: 5 });
+    } catch (err) {
+      console.warn("[Database] Error during client.end():", err);
+    }
+    _client = null;
+    _db = null;
+    _connectionPromise = null;
+  }
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -1412,7 +1427,7 @@ export async function getSuggestedPrice(options: { category?: string; title?: st
       and(
         eq(items.category, cleanCategory),
         or(
-          sql`to_tsvector('english', ${items.title}) @@ plainto_tsquery('english', ${cleanTitle})`,
+          sql`to_tsvector('english', ${items.title} || ' ' || coalesce(${items.description}, '')) @@ plainto_tsquery('english', ${cleanTitle})`,
           ilike(items.title, `%${safeTitlePattern}%`)
         )
       )
@@ -1424,7 +1439,7 @@ export async function getSuggestedPrice(options: { category?: string; title?: st
   if (soldItems.length === 0 && cleanTitle && cleanTitle.length >= 2) {
     soldItems = await fetchPrices(
       or(
-        sql`to_tsvector('english', ${items.title}) @@ plainto_tsquery('english', ${cleanTitle})`,
+        sql`to_tsvector('english', ${items.title} || ' ' || coalesce(${items.description}, '')) @@ plainto_tsquery('english', ${cleanTitle})`,
         ilike(items.title, `%${safeTitlePattern}%`)
       )
     );
