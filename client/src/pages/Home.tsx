@@ -75,6 +75,7 @@ export default function Home() {
                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
                   <span>Built for VIT Chennai</span>
                 </div>
+                {/* 
                 <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-full border border-border/50">
                   <Users className="w-4 h-4 text-primary" />
                   <span className="font-tabular font-bold text-foreground">200+</span>
@@ -85,6 +86,7 @@ export default function Home() {
                   <span className="font-tabular font-bold text-foreground">₹50k+</span>
                   <span>traded</span>
                 </div>
+                */}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center">
