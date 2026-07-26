@@ -191,7 +191,7 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Dropdown */}
       {mobileOpen && (
         <div className="md:hidden border-t border-border/40 bg-card/95 backdrop-blur-md animate-in slide-in-from-top-2 duration-200">
           <div className="container py-3 space-y-1">
@@ -279,6 +279,47 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {/* Mobile Fixed Bottom TabBar — 1-tap navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-lg border-t border-border/50 px-2 py-2 shadow-2xl">
+        <div className="flex items-center justify-around max-w-md mx-auto">
+          {navLinks.map((link) => {
+            const isActive = location === link.path;
+            const Icon = link.icon;
+            const isPost = link.path === "/create-post";
+
+            if (isPost) {
+              return (
+                <button
+                  key={link.path}
+                  onClick={() => handleNav(link.path)}
+                  className="flex flex-col items-center justify-center -mt-6 group"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 transition-transform active:scale-95 group-hover:scale-105">
+                    <PlusCircle className="w-6 h-6" />
+                  </div>
+                  <span className="text-[10px] font-bold mt-1 text-primary">Post</span>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={link.path}
+                onClick={() => handleNav(link.path)}
+                className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
+                  isActive
+                    ? "text-primary font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? "scale-110 text-primary" : ""}`} />
+                <span className="text-[10px] font-semibold mt-1">{link.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </nav>
   );
 }

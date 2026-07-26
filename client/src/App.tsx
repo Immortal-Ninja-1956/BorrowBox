@@ -89,7 +89,7 @@ function App() {
       <ThemeProvider defaultTheme="dark" switchable>
         <TooltipProvider>
           <OfflineBanner />
-          <Toaster />
+          <Toaster position="bottom-right" />
           <Navbar />
           <Router />
         </TooltipProvider>
