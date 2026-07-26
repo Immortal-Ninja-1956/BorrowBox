@@ -51,8 +51,14 @@ export default function BuyerConfirmation() {
         if (currentDeal && ["PAID", "CANCELLED"].includes(currentDeal.status)) {
           return false;
         }
-        return 3000;
-      }
+        // Exponential backoff: start at 3s, step up to 5s -> 10s -> max 30s for long open/shipped deals
+        const updates = query.state?.dataUpdateCount ?? 0;
+        if (updates <= 3) return 3000;
+        if (updates <= 8) return 5000;
+        if (updates <= 15) return 10000;
+        return 30000;
+      },
+      refetchIntervalInBackground: false,
     }
   );
 

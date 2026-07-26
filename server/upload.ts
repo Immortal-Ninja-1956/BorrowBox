@@ -99,6 +99,15 @@ export const uploadRouter = Router();
 uploadRouter.post(
   "/api/upload",
   uploadLimiter,
+  // Pre-check Content-Length header before processing stream/body (5MB limit)
+  (req, res, next) => {
+    const contentLength = req.headers["content-length"];
+    if (contentLength && parseInt(contentLength, 10) > 5 * 1024 * 1024) {
+      res.status(413).json({ error: "Payload Too Large: Content-Length exceeds 5MB limit." });
+      return;
+    }
+    next();
+  },
   async (req, res, next) => {
     try {
       const user = await authenticateRequest(req);

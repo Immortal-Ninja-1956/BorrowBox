@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /marketplace
+Allow: /item/
+Disallow: /api/
+Disallow: /trpc/
+Disallow: /dashboard
+Disallow: /buyer-confirmation/
+Disallow: /seller-handshake/
+Disallow: /chat/
+Disallow: /admin/
+Disallow: /reset-password
+Disallow: /login
+
+Sitemap: /sitemap.xml

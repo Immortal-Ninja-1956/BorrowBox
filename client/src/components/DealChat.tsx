@@ -27,11 +27,17 @@ export function DealChat({
 
   const isTerminal = dealStatus === "PAID" || dealStatus === "CANCELLED";
 
-  // Poll for new messages every 10 seconds, disable if terminal
+  // Poll for new messages with exponential backoff (5s -> 10s -> 30s), disable if terminal
   const { data: messages, isLoading } = trpc.messages.getByDealId.useQuery(
     { dealId },
     { 
-      refetchInterval: isTerminal ? false : 10000,
+      refetchInterval: (query) => {
+        if (isTerminal) return false;
+        const updates = query.state?.dataUpdateCount ?? 0;
+        if (updates <= 5) return 5000;
+        if (updates <= 12) return 10000;
+        return 30000;
+      },
       refetchIntervalInBackground: false
     }
   );

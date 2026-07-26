@@ -104,9 +104,58 @@ async function startServer() {
   app.use("/api/trpc/items.report", reportLimiter);
   app.use("/api/trpc/deals.create", createDealLimiter);
   app.use("/api/trpc/messages.send", messageLimiter);
-  app.use("/api/trpc/messages.create", messageLimiter);
   app.use("/api/trpc/reviews.create", reviewLimiter);
   app.use("/api/trpc/deals.raiseDispute", disputeLimiter);
+
+  // Dynamic sitemap endpoint for public marketplace pages & items
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const db = await getDb();
+      const baseUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+      let itemUrls = "";
+      if (db) {
+        const { items } = await import("../../drizzle/schema");
+        const { eq, and, isNull } = await import("drizzle-orm");
+        const openItems = await db
+          .select({ id: items.id, updatedAt: items.updatedAt })
+          .from(items)
+          .where(and(eq(items.status, "OPEN"), isNull(items.deletedAt)))
+          .limit(1000);
+
+        itemUrls = openItems
+          .map(
+            (item) => `
+  <url>
+    <loc>${baseUrl}/item/${item.id}</loc>
+    <lastmod>${(item.updatedAt || new Date()).toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>`
+          )
+          .join("");
+      }
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/marketplace</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+  </url>${itemUrls}
+</urlset>`;
+
+      res.header("Content-Type", "application/xml");
+      res.send(xml);
+    } catch (err) {
+      console.error("[Sitemap] Error generating sitemap:", err);
+      res.status(500).end();
+    }
+  });
 
   app.use(
     "/api/trpc",

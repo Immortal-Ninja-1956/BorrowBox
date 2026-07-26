@@ -1079,7 +1079,7 @@ export const appRouter = router({
         z.object({
           dealId: z.number(),
           rating: z.number().min(1).max(5),
-          comment: z.string().optional(),
+          comment: z.string().max(2000, "Review comment cannot exceed 2000 characters").optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {

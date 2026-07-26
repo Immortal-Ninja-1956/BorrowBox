@@ -66,9 +66,20 @@ export const DealTimeline: React.FC<DealTimelineProps> = ({
   pinAttempts = 0,
   pinLockedAt = null,
 }) => {
+  const isTerminal = ["PAID", "CANCELLED"].includes(currentStatus);
   const { data: events } = trpc.deals.getEvents.useQuery(
     { dealId },
-    { enabled: !!dealId, refetchInterval: 5000 }
+    {
+      enabled: !!dealId && !isTerminal,
+      refetchInterval: (query) => {
+        if (isTerminal) return false;
+        const updates = query.state?.dataUpdateCount ?? 0;
+        if (updates <= 3) return 5000;
+        if (updates <= 8) return 10000;
+        return 30000;
+      },
+      refetchIntervalInBackground: false,
+    }
   );
 
   // Map state to step index (0..3)

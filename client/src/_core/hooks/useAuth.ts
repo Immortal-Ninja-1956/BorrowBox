@@ -2,12 +2,14 @@ import { trpc } from "@/lib/trpc";
 import { useCallback, useMemo, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 const ALLOWED_DOMAIN = "@vitstudent.ac.in";
 
 export function useAuth() {
   const utils = trpc.useUtils();
   const clearSession = trpc.auth.clearSession.useMutation();
+  const [, setLocation] = useLocation();
   const [sessionReady, setSessionReady] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
 
@@ -93,8 +95,8 @@ export function useAuth() {
       if (sessionReady) {
         timeoutId = setTimeout(() => {
           logout();
-          // Import toast from sonner if not imported globally, but here we can just rely on state change
-          window.location.href = "/login?expired=true";
+          toast.error("Session expired due to inactivity. Please log in again.");
+          setLocation("/login?expired=true");
         }, 10 * 60 * 1000); // 10 minutes
       }
     };
@@ -115,7 +117,7 @@ export function useAuth() {
       window.removeEventListener("click", resetTimer);
       window.removeEventListener("scroll", resetTimer);
     };
-  }, [sessionReady, logout]);
+  }, [sessionReady, logout, setLocation]);
 
   const refresh = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
