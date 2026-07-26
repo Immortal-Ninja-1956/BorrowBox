@@ -120,7 +120,7 @@ export default function Register() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-8">
+        <div className="bg-card border border-border/50 rounded-2xl p-8 auth-card glass-card shadow-2xl">
           <h1 className="text-2xl font-bold text-foreground mb-2">
             Create account
           </h1>

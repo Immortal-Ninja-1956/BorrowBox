@@ -231,15 +231,29 @@ export default function Navbar() {
                     className="text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   >
                     {theme === "dark" ? (
-                      <>
-                        <Sun className="w-4 h-4 mr-1" />
+                      <span className="flex items-center gap-1.5">
+                        <motion.div
+                          key="dark"
+                          initial={{ scale: 0, rotate: -90 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <Sun className="w-4 h-4" />
+                        </motion.div>
                         Light Mode
-                      </>
+                      </span>
                     ) : (
-                      <>
-                        <Moon className="w-4 h-4 mr-1" />
+                      <span className="flex items-center gap-1.5">
+                        <motion.div
+                          key="light"
+                          initial={{ scale: 0, rotate: -90 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <Moon className="w-4 h-4" />
+                        </motion.div>
                         Dark Mode
-                      </>
+                      </span>
                     )}
                   </Button>
                 </div>

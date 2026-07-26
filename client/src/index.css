@@ -247,6 +247,27 @@
     font-feature-settings: "tnum";
   }
 
+  /* Auth background & card ambient depth glow */
+  .auth-bg {
+    background-image: radial-gradient(circle, oklch(0.53 0.22 275 / 0.06) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .auth-card {
+    position: relative;
+  }
+
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    background: radial-gradient(ellipse at center, oklch(0.53 0.22 275 / 0.08), transparent 70%);
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(40px);
+    pointer-events: none;
+  }
+
   /* Auth page dot-grid background pattern */
   .auth-bg {
     background-image: radial-gradient(circle, oklch(0.53 0.22 275 / 0.06) 1px, transparent 1px);
