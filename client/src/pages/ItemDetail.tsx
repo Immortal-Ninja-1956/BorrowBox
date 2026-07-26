@@ -15,6 +15,7 @@ import {
   Trophy,
   Package,
   Check,
+  BadgeCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StarRating } from "@/components/ui/star-rating";
@@ -348,27 +349,37 @@ export default function ItemDetail() {
               </p>
             </div>
 
-            {/* Seller Profile & Campus Verification */}
+            {/* Seller Profile & Campus Verification — Social Proof Badge */}
             {sellerProfile && (
               <div 
                 onClick={() => setLocation(`/user/${item.sellerId}`)}
-                className="glass-card rounded-2xl p-5 mb-8 flex items-center justify-between flex-wrap gap-4 cursor-pointer transition-all duration-300 group hover:-translate-y-0.5"
+                className="glass-card rounded-2xl p-5 mb-8 flex items-center justify-between flex-wrap gap-4 cursor-pointer transition-all duration-300 group hover:-translate-y-0.5 border border-border/60 hover:border-primary/40 shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg group-hover:scale-105 transition-transform">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-primary-foreground font-extrabold text-lg group-hover:scale-105 transition-transform shadow-md"
+                    style={{
+                      backgroundColor: `hsl(${(item.sellerId * 137) % 360}, 65%, 45%)`
+                    }}
+                  >
                     {sellerProfile.name ? sellerProfile.name[0].toUpperCase() : "U"}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 mb-0.5">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <p className="font-bold text-foreground text-base group-hover:text-primary transition-colors">
                         {sellerProfile.name}
                       </p>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                        <Check className="w-3 h-3" /> Campus Verified
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" /> Campus Verified
                       </span>
+                      {Number(sellerProfile.trustScore?.averageRating || 0) >= 4.0 && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                          <BadgeCheck className="w-3.5 h-3.5" /> Trusted Seller
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      VIT Student • Click to view profile
+                      VIT Student Member • Click to view full profile & active listings
                     </p>
                   </div>
                 </div>
@@ -376,7 +387,7 @@ export default function ItemDetail() {
                 {sellerProfile.trustScore && (
                   <div className="text-right">
                     <div className="flex items-center gap-1.5 justify-end mb-0.5">
-                      <span className="font-bold text-base font-tabular">
+                      <span className="font-extrabold text-base font-tabular text-foreground">
                         {sellerProfile.trustScore.averageRating}
                       </span>
                       <StarRating
@@ -387,7 +398,7 @@ export default function ItemDetail() {
                         size={14}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground font-tabular">
+                    <p className="text-xs text-muted-foreground font-tabular font-medium">
                       {sellerProfile.trustScore.totalReviews} reviews
                     </p>
                   </div>

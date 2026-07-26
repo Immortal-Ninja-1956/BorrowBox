@@ -415,12 +415,28 @@ function getCategoryMeta(category?: string) {
 function ItemCard({ item }: { item: any }) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const utils = trpc.useUtils();
+  const prefetchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isOwner = user?.id === item.sellerId;
   const { icon: CategoryIcon } = getCategoryMeta(item.category);
+
+  const handleMouseEnter = () => {
+    prefetchTimerRef.current = setTimeout(() => {
+      utils.items.getById.prefetch({ id: item.id });
+    }, 100);
+  };
+
+  const handleMouseLeave = () => {
+    if (prefetchTimerRef.current) {
+      clearTimeout(prefetchTimerRef.current);
+    }
+  };
 
   return (
     <div 
       onClick={() => setLocation(`/item/${item.id}`)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className="group flex flex-col bg-card rounded-2xl border border-border hover:border-primary/50 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg dark:hover:shadow-primary/5 h-full"
     >
       {/* Image Area — blur-up loading technique */}

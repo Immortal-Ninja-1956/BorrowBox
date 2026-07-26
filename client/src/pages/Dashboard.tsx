@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Store, ShoppingBag, CheckCircle2, Star } from "lucide-react";
+import { Loader2, Plus, Store, ShoppingBag, CheckCircle2, Star, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
@@ -224,10 +224,25 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Urgent Action Banner */}
+      {/* Urgent Action Banner — Visual Weight with pulse animation & attention icon */}
       {urgentCount > 0 && (
-        <div className="bg-yellow-500 text-yellow-950 px-4 py-3 text-center font-bold relative z-20 shadow-md">
-          {urgentCount} deal(s) need your immediate attention. Please check your active sales and purchases below.
+        <div className="bg-amber-500/15 border-l-4 border-l-amber-500 border-y border-r border-amber-500/30 text-amber-900 dark:text-amber-200 px-6 py-3.5 relative z-20 shadow-lg backdrop-blur-md container my-4 rounded-xl flex items-center justify-between flex-wrap gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 animate-pulse" />
+            </div>
+            <div>
+              <p className="font-extrabold text-sm tracking-tight">
+                {urgentCount} deal(s) require your immediate action!
+              </p>
+              <p className="text-xs opacity-90">
+                Please check your active sales and purchases below to confirm handover or submit payment.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold uppercase tracking-wider bg-amber-500 text-amber-950 px-3 py-1 rounded-full shadow-xs">
+            Action Required
+          </span>
         </div>
       )}
 
