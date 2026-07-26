@@ -230,22 +230,32 @@ export default function Marketplace() {
             {categories.map(cat => {
               const CatIcon = cat === "all" ? LayoutGrid : (categoryMetadata[cat]?.icon || Package);
               const isActive = selectedCategory === cat;
+              const count = cat === "all" 
+                ? accumulatedItems.length 
+                : accumulatedItems.filter(i => i.category === cat).length;
               return (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className="relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2"
+                  className="relative px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2"
                 >
                   {isActive && (
                     <motion.div
                       layoutId="active-category"
-                      className="absolute inset-0 bg-foreground rounded-lg"
+                      className="absolute inset-0 bg-foreground rounded-xl"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <span className={`relative z-10 flex items-center gap-2 ${isActive ? "text-background" : "text-muted-foreground hover:text-foreground"}`}>
+                  <span className={`relative z-10 flex items-center gap-2 font-semibold ${isActive ? "text-background" : "text-muted-foreground hover:text-foreground"}`}>
                     <CatIcon className="w-4 h-4" />
                     {cat === "all" ? "All" : cat}
+                    <span className={`text-[10px] font-bold font-tabular px-1.5 py-0.5 rounded-full transition-colors ${
+                      isActive 
+                        ? "bg-background/20 text-background" 
+                        : "bg-muted-foreground/15 text-muted-foreground"
+                    }`}>
+                      {count}
+                    </span>
                   </span>
                 </button>
               );

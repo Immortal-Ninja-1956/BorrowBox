@@ -162,6 +162,10 @@ export function ReviewModal({
   );
 }
 
+import confetti from "canvas-confetti";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck } from "lucide-react";
+
 export function DealCard({
   deal,
   statusFlow,
@@ -183,15 +187,26 @@ export function DealCard({
 }) {
   const currentStatusIndex = statusFlow.indexOf(deal.status);
   const [pin, setPin] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [shakeError, setShakeError] = useState(false);
   
   const trpcContext = trpc.useContext();
   
   const confirmWithPinMutation = trpc.deals.confirmWithPin.useMutation({
     onSuccess: () => {
+      setIsSuccess(true);
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ["#10b981", "#6366f1", "#f59e0b", "#3b82f6"],
+      });
       toast.success("Deal completed successfully!");
       trpcContext.deals.getBySeller.invalidate();
     },
     onError: err => {
+      setShakeError(true);
+      setTimeout(() => setShakeError(false), 500);
       toast.error(err.message);
     }
   });
@@ -385,53 +400,90 @@ export function DealCard({
       )}
 
       {(deal.status === "DELIVERED" || deal.status === "CONFIRMED") && (
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 mt-4">
-          <h4 className="font-bold text-primary mb-2 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className={`relative overflow-hidden transition-all duration-500 rounded-2xl p-6 mt-4 border ${
+          isSuccess 
+            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+            : "bg-background border-primary/25 shadow-[inset_0_0_35px_rgba(99,102,241,0.06)]"
+        }`}>
+          {/* Subtle Shield Watermark */}
+          <ShieldCheck className="absolute -right-6 -bottom-6 w-36 h-36 text-primary/5 pointer-events-none" />
+
+          <h4 className="font-bold text-primary mb-2 flex items-center gap-2 text-base">
+            <CheckCircle2 className="w-5 h-5 text-primary" />
             Complete the Deal (Secure Handshake)
           </h4>
-          <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-            <strong>1.</strong> Check YOUR OWN banking app for a credit of <strong>₹{deal.amount}</strong> with the note <strong>BBX-{deal.id}</strong>. Never trust a screenshot. <br/>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed relative z-10">
+            <strong>1.</strong> Check YOUR OWN banking app for a credit of <strong className="text-foreground font-tabular">₹{deal.amount}</strong> with the note <strong className="text-foreground">BBX-{deal.id}</strong>. Never trust a screenshot. <br/>
             <strong>2.</strong> Once you've verified the payment, ask the buyer for their 6-digit PIN and enter it below to atomically complete the deal.
           </p>
           
           {isLocked ? (
-             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-red-800 text-sm font-semibold">
+             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4">
+                <p className="text-red-600 dark:text-red-400 text-sm font-semibold">
                   PIN entry is locked due to too many failed attempts. Please use the "Raise a Problem" button above to dispute and reset the PIN.
                 </p>
              </div>
+          ) : isSuccess ? (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="py-6 flex flex-col items-center justify-center text-center space-y-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30"
+            >
+              <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400">PIN Verified & Deal Complete!</h3>
+              <p className="text-xs text-muted-foreground">Funds transferred & transaction locked on blockchain ledger.</p>
+            </motion.div>
           ) : (
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <InputOTP 
-                maxLength={6} 
-                value={pin} 
-                onChange={setPin}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                aria-label="6-digit security verification PIN"
+            <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10">
+              <motion.div
+                animate={{ x: shakeError ? [-8, 8, -6, 6, -3, 3, 0] : 0 }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+                className="w-full sm:w-auto"
               >
-                <InputOTPGroup className="bg-background">
-                  <InputOTPSlot index={0} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
-                  <InputOTPSlot index={1} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
-                  <InputOTPSlot index={2} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
-                  <InputOTPSlot index={3} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
-                  <InputOTPSlot index={4} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
-                  <InputOTPSlot index={5} className="w-12 h-14 text-xl sm:w-14 sm:h-16 sm:text-2xl" />
-                </InputOTPGroup>
-              </InputOTP>
-              <Button
-                onClick={() => confirmWithPinMutation.mutate({ dealId: deal.id, pin })}
-                disabled={pin.length !== 6 || confirmWithPinMutation.isPending}
-                className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-8 w-full sm:w-auto h-14 sm:h-16 rounded-xl"
+                <InputOTP 
+                  maxLength={6} 
+                  value={pin} 
+                  onChange={setPin}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  aria-label="6-digit security verification PIN"
+                >
+                  <InputOTPGroup className="bg-muted/30 p-1 rounded-xl border border-border/50">
+                    <InputOTPSlot index={0} className="w-11 h-14 text-xl sm:w-13 sm:h-16 sm:text-2xl font-bold font-tabular rounded-lg transition-transform duration-100 focus:scale-105" />
+                    <InputOTPSlot index={1} className="w-11 h-14 text-xl sm:w-13 sm:h-16 sm:text-2xl font-bold font-tabular rounded-lg transition-transform duration-100 focus:scale-105" />
+                    <InputOTPSlot index={2} className="w-11 h-14 text-xl sm:w-13 sm:h-16 sm:text-2xl font-bold font-tabular rounded-lg transition-transform duration-100 focus:scale-105" />
+                    <InputOTPSlot index={3} className="w-11 h-14 text-xl sm:w-13 sm:h-16 sm:text-2xl font-bold font-tabular rounded-lg transition-transform duration-100 focus:scale-105" />
+                    <InputOTPSlot index={4} className="w-11 h-14 text-xl sm:w-13 sm:h-16 sm:text-2xl font-bold font-tabular rounded-lg transition-transform duration-100 focus:scale-105" />
+                    <InputOTPSlot index={5} className="w-11 h-14 text-xl sm:w-13 sm:h-16 sm:text-2xl font-bold font-tabular rounded-lg transition-transform duration-100 focus:scale-105" />
+                  </InputOTPGroup>
+                </InputOTP>
+              </motion.div>
+
+              <motion.div
+                animate={{ scale: pin.length === 6 ? [1, 1.04, 1] : 1 }}
+                transition={{ duration: 0.3 }}
+                className="w-full sm:w-auto"
               >
-                {confirmWithPinMutation.isPending ? "Verifying..." : "Verify & Complete"}
-              </Button>
+                <Button
+                  onClick={() => confirmWithPinMutation.mutate({ dealId: deal.id, pin })}
+                  disabled={pin.length !== 6 || confirmWithPinMutation.isPending}
+                  className={`font-bold px-8 w-full sm:w-auto h-14 sm:h-16 rounded-xl transition-all duration-300 ${
+                    pin.length === 6 
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-2 ring-primary/40 animate-pulse" 
+                      : "bg-primary/80 text-primary-foreground"
+                  }`}
+                >
+                  {confirmWithPinMutation.isPending ? "Verifying..." : "Verify & Complete"}
+                </Button>
+              </motion.div>
             </div>
           )}
           
-          {!isLocked && (
-            <div className={`mt-4 p-3 rounded-xl border flex items-center justify-between flex-wrap gap-2 ${
+          {!isLocked && !isSuccess && (
+            <div className={`mt-4 p-3 rounded-xl border flex items-center justify-between flex-wrap gap-2 relative z-10 ${
               (deal.pinAttempts || 0) >= 2
                 ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
                 : (deal.pinAttempts || 0) > 0
