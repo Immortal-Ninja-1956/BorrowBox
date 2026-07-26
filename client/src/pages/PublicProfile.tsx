@@ -100,7 +100,7 @@ export default function PublicProfile() {
 
   usePageMetadata(
     profile ? `${profile.name}'s Profile` : "Seller Profile",
-    profile ? `View public seller profile of ${profile.name} on BorrowBox. See trust score, verification status, and active listings.` : undefined
+    profile ? `View public seller profile of ${profile.name} on CampusCart. See trust score, verification status, and active listings.` : undefined
   );
 
   if (isLoading) {
@@ -134,7 +134,7 @@ export default function PublicProfile() {
         <AlertCircle className="w-16 h-16 text-destructive mb-4 opacity-80" />
         <h2 className="text-3xl font-bold mb-2">User Not Found</h2>
         <p className="text-muted-foreground mb-8 max-w-md">
-          The profile you are looking for does not exist or has been removed from BorrowBox.
+          The profile you are looking for does not exist or has been removed from CampusCart.
         </p>
         <Button onClick={() => setLocation("/marketplace")} variant="default" className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back to Marketplace

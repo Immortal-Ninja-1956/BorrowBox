@@ -285,7 +285,7 @@ export const appRouter = router({
         console.log("\n========================================================");
         console.log(`[WhatsApp Simulator] TO: ${user.whatsapp}`);
         console.log("--------------------------------------------------------");
-        console.log(`Your BorrowBox WhatsApp verification code is: ${otp}`);
+        console.log(`Your CampusCart WhatsApp verification code is: ${otp}`);
         console.log(`This code will expire in 10 minutes.`);
         console.log("========================================================\n");
       } else {

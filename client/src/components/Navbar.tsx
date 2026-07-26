@@ -72,7 +72,7 @@ export default function Navbar() {
               <ShoppingBag className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors" />
             </div>
             <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden sm:inline">
-              BorrowBox
+              CampusCart
             </span>
           </button>
           <div className="flex items-center gap-3">
@@ -105,7 +105,7 @@ export default function Navbar() {
             <ShoppingBag className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors" />
           </div>
           <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden sm:inline">
-            BorrowBox
+            CampusCart
           </span>
         </button>
 

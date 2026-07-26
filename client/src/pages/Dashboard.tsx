@@ -37,7 +37,7 @@ export default function Dashboard() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  usePageMetadata("My Dashboard", "Manage your listed items, active trade deals, and purchase confirmations on BorrowBox.");
+  usePageMetadata("My Dashboard", "Manage your listed items, active trade deals, and purchase confirmations on CampusCart.");
 
   const [openReviewDealId, setOpenReviewDealId] = useState<number | null>(null);
 

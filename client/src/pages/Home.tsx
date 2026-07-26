@@ -25,7 +25,7 @@ export default function Home() {
   const [location, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
 
-  usePageMetadata("Home", "BorrowBox is a peer-to-peer campus marketplace for students to buy, sell, rent, or share items with in-person meetups and secure UPI payments.");
+  usePageMetadata("Home", "CampusCart is a peer-to-peer campus marketplace for students to buy, sell, rent, or share items with in-person meetups and secure UPI payments.");
 
   useEffect(() => {
     if (isAuthenticated && location === "/") {
@@ -206,7 +206,7 @@ export default function Home() {
           <div className="container relative z-10">
             <div className="text-center max-w-3xl mx-auto mb-20">
               <h3 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-foreground">
-                Why Choose BorrowBox?
+                Why Choose CampusCart?
               </h3>
               <p className="text-muted-foreground text-lg">
                 We've built a trust-first marketplace tailored to campus needs.
@@ -308,7 +308,7 @@ export default function Home() {
 
           <div className="container text-center relative z-10">
             <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">
-              Ready to Join the BorrowBox Community?
+              Ready to Join the CampusCart Community?
             </h3>
             <p className="text-lg md:text-xl mb-10 opacity-90 max-w-2xl mx-auto leading-relaxed">
               Start trading books, items, and gear safely with your college mates today.
@@ -330,7 +330,7 @@ export default function Home() {
       <footer className="border-t border-border/40 bg-card py-10 px-4 relative">
         <div className="container text-center text-muted-foreground">
           <p className="text-sm font-medium">
-            &copy; 2026 BorrowBox. Built for college students, by college students.
+            &copy; 2026 CampusCart. Built for college students, by college students.
           </p>
         </div>
       </footer>

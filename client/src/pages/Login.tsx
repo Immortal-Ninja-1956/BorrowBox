@@ -21,7 +21,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
   
-  usePageMetadata("Sign In", "Sign in to your BorrowBox account to buy, sell, rent, or borrow items on campus.");
+  usePageMetadata("Sign In", "Sign in to your CampusCart account to buy, sell, rent, or borrow items on campus.");
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -92,7 +92,7 @@ export default function Login() {
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-accent-foreground" />
             </div>
-            <span className="text-2xl font-bold text-accent">BorrowBox</span>
+            <span className="text-2xl font-bold text-accent">CampusCart</span>
           </div>
         </div>
 

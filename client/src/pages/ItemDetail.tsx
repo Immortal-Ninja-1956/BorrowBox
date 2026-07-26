@@ -214,7 +214,7 @@ export default function ItemDetail() {
       );
       return;
     }
-    const message = `Hi, I saw your listing for "${item.title}" priced at ₹${item.amount} on BorrowBox. Is it still available?\nLink: ${window.location.href}`;
+    const message = `Hi, I saw your listing for "${item.title}" priced at ₹${item.amount} on CampusCart. Is it still available?\nLink: ${window.location.href}`;
     const encodedMessage = encodeURIComponent(message);
     const number = profile.whatsapp
       .replace(/\s+/g, "")
@@ -553,9 +553,9 @@ export default function ItemDetail() {
           <AlertDialogHeader>
             <AlertDialogTitle className="font-bold text-xl text-foreground">Opening WhatsApp</AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed mt-2">
-              You are leaving BorrowBox to chat with the seller on WhatsApp. 
+              You are leaving CampusCart to chat with the seller on WhatsApp. 
               <br/><br/>
-              After your chat, make sure to <strong>return to BorrowBox</strong> to complete the deal securely!
+              After your chat, make sure to <strong>return to CampusCart</strong> to complete the deal securely!
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4 gap-2">

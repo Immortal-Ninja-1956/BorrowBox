@@ -42,7 +42,7 @@ export const OfflineBanner: React.FC = () => {
       {isOffline ? (
         <>
           <WifiOff className="w-4 h-4 shrink-0 animate-pulse" />
-          <span>You are currently offline. BorrowBox features will resume when connection is restored.</span>
+          <span>You are currently offline. CampusCart features will resume when connection is restored.</span>
         </>
       ) : (
         <>

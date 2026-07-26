@@ -319,7 +319,7 @@ export default function BuyerConfirmation() {
               <p className="text-green-800">
                 This deal has been successfully completed. The item has been
                 delivered and payment has been made. Thank you for using
-                BorrowBox!
+                CampusCart!
               </p>
             </div>
             

@@ -21,7 +21,7 @@ export default function Register() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
   
-  usePageMetadata("Sign Up", "Create a new BorrowBox account to buy, sell, rent, or borrow items within your campus community.");
+  usePageMetadata("Sign Up", "Create a new CampusCart account to buy, sell, rent, or borrow items within your campus community.");
 
   const [form, setForm] = useState({
     name: "",
@@ -116,7 +116,7 @@ export default function Register() {
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-accent-foreground" />
             </div>
-            <span className="text-2xl font-bold text-accent">BorrowBox</span>
+            <span className="text-2xl font-bold text-accent">CampusCart</span>
           </div>
         </div>
 
@@ -124,7 +124,7 @@ export default function Register() {
           <h1 className="text-2xl font-bold text-foreground mb-2">
             Create account
           </h1>
-          <p className="text-muted-foreground mb-6">Join BorrowBox today</p>
+          <p className="text-muted-foreground mb-6">Join CampusCart today</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

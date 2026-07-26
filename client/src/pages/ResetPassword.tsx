@@ -12,7 +12,7 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const [passwords, setPasswords] = useState({ password: "", confirm: "" });
 
-  usePageMetadata("Reset Password", "Create a new password for your BorrowBox account.");
+  usePageMetadata("Reset Password", "Create a new password for your CampusCart account.");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -115,7 +115,7 @@ export default function ResetPassword() {
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-accent-foreground" />
             </div>
-            <span className="text-2xl font-bold text-accent">BorrowBox</span>
+            <span className="text-2xl font-bold text-accent">CampusCart</span>
           </div>
         </div>
 

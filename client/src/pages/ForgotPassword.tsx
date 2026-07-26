@@ -13,7 +13,7 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  usePageMetadata("Forgot Password", "Request a password reset link for your BorrowBox account.");
+  usePageMetadata("Forgot Password", "Request a password reset link for your CampusCart account.");
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -49,7 +49,7 @@ export default function ForgotPassword() {
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-accent-foreground" />
             </div>
-            <span className="text-2xl font-bold text-accent">BorrowBox</span>
+            <span className="text-2xl font-bold text-accent">CampusCart</span>
           </div>
         </div>
 

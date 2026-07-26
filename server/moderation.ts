@@ -1,5 +1,5 @@
 /**
- * Advanced Text Moderation Engine for BorrowBox
+ * Advanced Text Moderation Engine for CampusCart
  * Normalizes leetspeak, collapses character repetitions, strips obfuscating symbols/spaces,
  * and performs fuzzy matching against prohibited keyword categories to catch bypass attempts.
  */
@@ -175,7 +175,7 @@ export function checkTextModeration(
       if (cleanToken === cleanKeyword || normToken === cleanKeyword) {
         return {
           safe: false,
-          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on BorrowBox. Please remove it and try again.`,
+          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on CampusCart. Please remove it and try again.`,
           flaggedKeyword: keyword,
         };
       }
@@ -209,7 +209,7 @@ export function checkTextModeration(
       if (regex.test(normalized)) {
         return {
           safe: false,
-          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on BorrowBox. Please remove it and try again.`,
+          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on CampusCart. Please remove it and try again.`,
           flaggedKeyword: keyword,
         };
       }
@@ -227,7 +227,7 @@ export function checkTextModeration(
       if (cleanKeyword.length >= 3 && joinedStripped.includes(cleanKeyword)) {
         return {
           safe: false,
-          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on BorrowBox. Please remove it and try again.`,
+          reason: `Heads up! Your listing mentions "${keyword}", which isn't allowed on CampusCart. Please remove it and try again.`,
           flaggedKeyword: keyword,
         };
       }

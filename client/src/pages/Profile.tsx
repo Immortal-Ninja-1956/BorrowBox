@@ -33,7 +33,7 @@ export default function Profile() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
 
-  usePageMetadata("My Profile", "View and update your BorrowBox profile details, UPI settings, and student reviews.");
+  usePageMetadata("My Profile", "View and update your CampusCart profile details, UPI settings, and student reviews.");
   const [formData, setFormData] = useState({
     upiId: "",
     upiName: "",

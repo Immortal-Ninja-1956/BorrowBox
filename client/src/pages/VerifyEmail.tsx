@@ -14,7 +14,7 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState<"loading" | "verified" | "pending">("loading");
   const [email, setEmail] = useState("");
 
-  usePageMetadata("Verify Email", "Verify your campus email address to finalize your BorrowBox account registration.");
+  usePageMetadata("Verify Email", "Verify your campus email address to finalize your CampusCart account registration.");
   const [resending, setResending] = useState(false);
 
   useEffect(() => {
@@ -104,7 +104,7 @@ export default function VerifyEmail() {
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-accent-foreground" />
             </div>
-            <span className="text-2xl font-bold text-accent">BorrowBox</span>
+            <span className="text-2xl font-bold text-accent">CampusCart</span>
           </div>
         </div>
 
@@ -119,7 +119,7 @@ export default function VerifyEmail() {
               </h1>
               <p className="text-muted-foreground mb-6 text-sm">
                 Your email has been verified successfully. You're all set to
-                start using BorrowBox.
+                start using CampusCart.
               </p>
               <Button
                 onClick={() => setLocation("/marketplace")}
