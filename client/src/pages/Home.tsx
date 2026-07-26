@@ -62,7 +62,7 @@ export default function Home() {
               </div>
 
               <h2 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 text-foreground leading-[1.1]">
-                Borrow. Share. <span className="gradient-text-animated">Repeat.</span>
+                Share. Sell. <span className="gradient-text-animated">Repeat.</span>
               </h2>
 
               <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
