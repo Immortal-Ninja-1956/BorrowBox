@@ -13,13 +13,15 @@ import {
   Shirt,
   Trophy,
   Package,
+  LayoutGrid,
   Edit2,
   SearchX,
   PackageOpen,
   SlidersHorizontal,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
+import { motion } from "framer-motion";
 
 export default function Marketplace() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
@@ -44,6 +46,8 @@ export default function Marketplace() {
     }
   );
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -53,8 +57,20 @@ export default function Marketplace() {
         setShowSuggestions(false);
       }
     }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const [offset, setOffset] = useState(0);
@@ -137,15 +153,21 @@ export default function Marketplace() {
                 <Search className="h-5 w-5 text-muted-foreground" />
               </div>
               <Input
-                placeholder="Search items, categories, or keywords..."
+                ref={searchInputRef}
+                placeholder="Search items, categories, or keywords... (⌘K)"
                 value={searchQuery}
                 onFocus={() => setShowSuggestions(true)}
                 onChange={e => {
                   setSearchQuery(e.target.value);
                   setShowSuggestions(true);
                 }}
-                className="w-full pl-12 h-14 bg-background border-border hover:border-muted-foreground/30 focus:border-primary rounded-xl text-base transition-colors"
+                className="w-full pl-12 pr-14 h-14 bg-background border-border hover:border-muted-foreground/30 focus:border-primary rounded-xl text-base transition-colors"
               />
+              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                <kbd className="hidden sm:inline-flex items-center gap-0.5 text-[11px] font-mono font-semibold text-muted-foreground bg-muted/80 border border-border px-2 py-1 rounded-md shadow-xs">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </div>
               
               {showSuggestions &&
                 searchQuery.length >= 2 &&
@@ -203,21 +225,31 @@ export default function Marketplace() {
             </div>
           </div>
 
-          {/* Clean Category Navigation */}
-          <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-2 no-scrollbar">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  selectedCategory === cat
-                    ? "bg-foreground text-background"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {cat === "all" ? "All Categories" : cat}
-              </button>
-            ))}
+          {/* Category Navigation with Sliding Indicator */}
+          <div className="flex items-center gap-1.5 mt-6 overflow-x-auto pb-2 no-scrollbar">
+            {categories.map(cat => {
+              const CatIcon = cat === "all" ? LayoutGrid : (categoryMetadata[cat]?.icon || Package);
+              const isActive = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className="relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="active-category"
+                      className="absolute inset-0 bg-foreground rounded-lg"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className={`relative z-10 flex items-center gap-2 ${isActive ? "text-background" : "text-muted-foreground hover:text-foreground"}`}>
+                    <CatIcon className="w-4 h-4" />
+                    {cat === "all" ? "All" : cat}
+                  </span>
+                </button>
+              );
+            })}
             
             {isAuthenticated && user && (
               <>
@@ -247,36 +279,59 @@ export default function Marketplace() {
             ))}
           </div>
         ) : accumulatedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            className="flex flex-col items-center justify-center py-32 text-center"
+          >
             {searchQuery || selectedCategory !== "all" ? (
               <>
-                <SearchX className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold text-foreground mb-2">No results found</h3>
-                <p className="text-muted-foreground max-w-md mb-6">
-                  We couldn't find anything matching {searchQuery ? <span className="font-bold text-foreground">"{searchQuery}"</span> : "your filters"}. Try adjusting your keywords or categories.
+                <div className="w-20 h-20 bg-muted/60 rounded-2xl flex items-center justify-center mb-6">
+                  <SearchX className="w-10 h-10 text-muted-foreground/60" />
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">No results found</h3>
+                <p className="text-muted-foreground max-w-md mb-2 leading-relaxed">
+                  We couldn't find anything matching {searchQuery ? <span className="font-bold text-foreground">"{searchQuery}"</span> : "your filters"}.
                 </p>
-                <Button variant="outline" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }}>
-                  Clear search
+                <p className="text-sm text-muted-foreground/80 mb-8">
+                  Try searching for <button onClick={() => setSearchQuery("books")} className="text-primary font-medium hover:underline bg-transparent border-none p-0">books</button>, <button onClick={() => setSearchQuery("electronics")} className="text-primary font-medium hover:underline bg-transparent border-none p-0">electronics</button>, or <button onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }} className="text-primary font-medium hover:underline bg-transparent border-none p-0">browse everything</button>.
+                </p>
+                <Button variant="outline" className="rounded-xl" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }}>
+                  Clear all filters
                 </Button>
               </>
             ) : (
               <>
-                <PackageOpen className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold text-foreground mb-2">Marketplace is empty</h3>
-                <p className="text-muted-foreground max-w-md mb-6">
-                  There are no items listed yet. Be the first to list something!
+                <div className="w-20 h-20 bg-muted/60 rounded-2xl flex items-center justify-center mb-6">
+                  <PackageOpen className="w-10 h-10 text-muted-foreground/60" />
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">The marketplace is waiting</h3>
+                <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
+                  Your campus marketplace is empty — for now. Got a textbook collecting dust or a keyboard you never use? Be the one who kicks things off.
                 </p>
-                <Button onClick={() => isAuthenticated ? setLocation("/create-post") : setLocation("/login")}>
-                  List an Item
+                <Button className="rounded-xl" onClick={() => isAuthenticated ? setLocation("/create-post") : setLocation("/login")}>
+                  List the first item
                 </Button>
               </>
             )}
-          </div>
+          </motion.div>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {accumulatedItems.map(item => (
-                <ItemCard key={item.id} item={item} />
+              {accumulatedItems.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    delay: index < 12 ? index * 0.04 : 0,
+                    duration: 0.3,
+                    ease: [0.25, 0.1, 0.25, 1],
+                  }}
+                >
+                  <ItemCard item={item} />
+                </motion.div>
               ))}
             </div>
 
@@ -333,14 +388,13 @@ function ItemCard({ item }: { item: any }) {
       onClick={() => setLocation(`/item/${item.id}`)}
       className="group flex flex-col bg-card rounded-2xl border border-border hover:border-primary/50 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg dark:hover:shadow-primary/5 h-full"
     >
-      {/* Image Area */}
+      {/* Image Area — blur-up loading technique */}
       <div className="aspect-[4/3] w-full bg-muted relative overflow-hidden">
         {item.imageUrl ? (
-          <img
+          <BlurUpImage
             src={item.imageUrl}
             alt={item.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/50 transition-transform duration-500 group-hover:scale-105">
@@ -385,7 +439,7 @@ function ItemCard({ item }: { item: any }) {
         </p>
 
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
-          <div className="text-xl font-bold text-foreground">
+          <div className="text-xl font-bold text-foreground font-tabular">
             ₹{item.amount}
           </div>
           
@@ -418,22 +472,41 @@ function ItemCard({ item }: { item: any }) {
   );
 }
 
+/** Blur-up image component — starts blurred/zoomed, sharpens on load */
+function BlurUpImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const onLoad = useCallback(() => setLoaded(true), []);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden">
+      <div className={`absolute inset-0 bg-muted ${loaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 pointer-events-none`} />
+      <img
+        src={src}
+        alt={alt}
+        className={`${className || ''} transition-all duration-500 ${loaded ? 'scale-100 blur-0' : 'scale-105 blur-sm'}`}
+        loading="lazy"
+        onLoad={onLoad}
+      />
+    </div>
+  );
+}
+
 function SkeletonCard() {
   return (
-    <div className="bg-card rounded-2xl border border-border overflow-hidden h-full flex flex-col animate-pulse">
-      <div className="aspect-[4/3] w-full bg-muted/50" />
+    <div className="bg-card rounded-2xl border border-border overflow-hidden h-full flex flex-col">
+      <div className="aspect-[4/3] w-full skeleton-shimmer" />
       <div className="p-5 flex flex-col flex-1">
         <div className="flex gap-2 mb-3">
-          <div className="w-12 h-3 bg-muted rounded" />
-          <div className="w-16 h-3 bg-muted rounded" />
+          <div className="w-12 h-3 skeleton-shimmer" />
+          <div className="w-16 h-3 skeleton-shimmer" />
         </div>
-        <div className="w-3/4 h-5 bg-muted rounded mb-2" />
-        <div className="w-full h-4 bg-muted/60 rounded mb-1" />
-        <div className="w-5/6 h-4 bg-muted/60 rounded mb-4" />
+        <div className="w-3/4 h-5 skeleton-shimmer mb-2" />
+        <div className="w-full h-4 skeleton-shimmer mb-1" />
+        <div className="w-5/6 h-4 skeleton-shimmer mb-4" />
         
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
-          <div className="w-20 h-6 bg-muted rounded" />
-          <div className="w-8 h-8 bg-muted rounded-full" />
+          <div className="w-20 h-6 skeleton-shimmer" />
+          <div className="w-8 h-8 skeleton-shimmer rounded-full" />
         </div>
       </div>
     </div>

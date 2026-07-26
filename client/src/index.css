@@ -147,6 +147,26 @@
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
+
+  /* Physical button press feedback — zero JS, instant tactility */
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  [type="button"]:not(:disabled):active,
+  [type="submit"]:not(:disabled):active {
+    transform: scale(0.97);
+    transition: transform 80ms ease-out;
+  }
+}
+
+/* Keyframe Animations */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gradient-sweep {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
 }
 
 @layer components {
@@ -197,5 +217,32 @@
 
   .gradient-text {
     @apply bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent font-bold;
+  }
+
+  /* Animated gradient text — sweeping shimmer effect for hero headlines */
+  .gradient-text-animated {
+    @apply bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent font-bold;
+    background-size: 200% auto;
+    animation: gradient-sweep 3s linear infinite;
+  }
+
+  /* Skeleton shimmer — replaces static animate-pulse on loading placeholders */
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, var(--muted) 25%, oklch(0.65 0.02 272 / 0.08) 50%, var(--muted) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--radius);
+  }
+
+  /* Tabular figures for monetary values — prices align vertically in grids */
+  .font-tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Auth page dot-grid background pattern */
+  .auth-bg {
+    background-image: radial-gradient(circle, oklch(0.53 0.22 275 / 0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 }

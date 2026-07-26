@@ -9,6 +9,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
 import { URGENT_STATES } from "@/components/dashboard/Shared";
 
+/** Animated counter — counts from 0 to value over 600ms with ease-out cubic */
+function AnimatedNumber({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (value === 0) { setDisplay(0); return; }
+    const duration = 600;
+    const start = performance.now();
+    let raf: number;
+    const step = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(eased * value));
+      if (progress < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{display}</>;
+}
+
 const MyListings = React.lazy(() => import("@/components/dashboard/MyListings"));
 const SellerDeals = React.lazy(() => import("@/components/dashboard/SellerDeals"));
 const BuyerDeals = React.lazy(() => import("@/components/dashboard/BuyerDeals"));
@@ -96,10 +116,53 @@ export default function Dashboard() {
 
   if (authLoading || isLoading || isBuyerLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-accent mx-auto mb-4" />
-          <p className="text-foreground">Loading dashboard...</p>
+      <div className="min-h-screen bg-background">
+        {/* Skeleton Header */}
+        <div className="border-b border-border/40 bg-card/50 backdrop-blur-xs">
+          <div className="container py-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="w-64 h-9 skeleton-shimmer mb-2" />
+                <div className="w-48 h-5 skeleton-shimmer" />
+              </div>
+              <div className="flex gap-3">
+                <div className="w-28 h-10 skeleton-shimmer rounded-xl" />
+                <div className="w-36 h-10 skeleton-shimmer rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Skeleton Stats */}
+        <div className="bg-muted/20 border-b border-border/40 py-8">
+          <div className="container grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array(4).fill(0).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-border/40 p-5 flex items-center gap-4 bg-card/75">
+                <div className="w-11 h-11 skeleton-shimmer rounded-xl" />
+                <div>
+                  <div className="w-20 h-3 skeleton-shimmer mb-2" />
+                  <div className="w-10 h-7 skeleton-shimmer" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Skeleton Tabs + Cards */}
+        <div className="container py-12">
+          <div className="w-full max-w-md h-12 skeleton-shimmer rounded-2xl mb-8" />
+          <div className="space-y-6">
+            {Array(3).fill(0).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-border/40 p-6 bg-card/75">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="w-48 h-5 skeleton-shimmer mb-2" />
+                    <div className="w-24 h-4 skeleton-shimmer" />
+                  </div>
+                  <div className="w-20 h-6 skeleton-shimmer rounded-full" />
+                </div>
+                <div className="w-full h-16 skeleton-shimmer rounded-xl" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -179,8 +242,8 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                 Total Listings
               </p>
-              <h4 className="text-2xl font-black text-foreground mt-0.5">
-                {itemsListed}
+              <h4 className="text-2xl font-black text-foreground mt-0.5 font-tabular">
+                <AnimatedNumber value={itemsListed} />
               </h4>
             </div>
           </div>
@@ -193,8 +256,8 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                 Active Sales
               </p>
-              <h4 className="text-2xl font-black text-foreground mt-0.5">
-                {activeDeals}
+              <h4 className="text-2xl font-black text-foreground mt-0.5 font-tabular">
+                <AnimatedNumber value={activeDeals} />
               </h4>
             </div>
           </div>
@@ -207,8 +270,8 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                 Active Purchases
               </p>
-              <h4 className="text-2xl font-black text-foreground mt-0.5">
-                {buyerDeals?.length || 0}
+              <h4 className="text-2xl font-black text-foreground mt-0.5 font-tabular">
+                <AnimatedNumber value={buyerDeals?.length || 0} />
               </h4>
             </div>
           </div>
@@ -221,9 +284,9 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                 Completed Deals
               </p>
-              <h4 className="text-2xl font-black text-foreground mt-0.5">
-                {(deals?.filter(d => d.status === "PAID").length || 0) + 
-                 (buyerDeals?.filter(d => d.status === "PAID").length || 0)}
+              <h4 className="text-2xl font-black text-foreground mt-0.5 font-tabular">
+                <AnimatedNumber value={(deals?.filter(d => d.status === "PAID").length || 0) + 
+                 (buyerDeals?.filter(d => d.status === "PAID").length || 0)} />
               </h4>
             </div>
           </div>

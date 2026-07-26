@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { DealChat } from "@/components/DealChat";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -155,10 +155,35 @@ export default function ItemDetail() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-accent mx-auto mb-4" />
-          <p className="text-foreground">Loading item...</p>
+      <div className="min-h-screen bg-background">
+        <div className="border-b border-border bg-card">
+          <div className="container py-4 flex items-center gap-4">
+            <div className="w-8 h-8 skeleton-shimmer rounded-lg" />
+            <div className="w-32 h-7 skeleton-shimmer" />
+          </div>
+        </div>
+        <div className="container py-12">
+          <div className="grid md:grid-cols-2 gap-12">
+            <div className="aspect-square w-full skeleton-shimmer rounded-xl" />
+            <div>
+              <div className="w-3/4 h-10 skeleton-shimmer mb-4" />
+              <div className="w-24 h-8 skeleton-shimmer mb-2" />
+              <div className="flex gap-2 mb-6">
+                <div className="w-24 h-8 skeleton-shimmer rounded-full" />
+                <div className="w-32 h-8 skeleton-shimmer rounded-full" />
+              </div>
+              <div className="border border-border rounded-lg p-6 mb-8">
+                <div className="w-28 h-5 skeleton-shimmer mb-4" />
+                <div className="w-full h-4 skeleton-shimmer mb-2" />
+                <div className="w-full h-4 skeleton-shimmer mb-2" />
+                <div className="w-2/3 h-4 skeleton-shimmer" />
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1 h-12 skeleton-shimmer rounded-xl" />
+                <div className="flex-1 h-12 skeleton-shimmer rounded-xl" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -222,11 +247,10 @@ export default function ItemDetail() {
           {/* Image */}
           <div>
             {item.imageUrl ? (
-              <div className="w-full aspect-square bg-muted rounded-xl overflow-hidden">
-                <img
+              <div className="w-full aspect-square bg-muted rounded-xl overflow-hidden relative">
+                <BlurUpDetailImage
                   src={item.imageUrl}
                   alt={item.title}
-                  className="w-full h-full object-cover"
                 />
               </div>
             ) : (
@@ -324,25 +348,35 @@ export default function ItemDetail() {
               </p>
             </div>
 
-            {/* Seller Profile & Trust Score */}
+            {/* Seller Profile & Campus Verification */}
             {sellerProfile && (
               <div 
                 onClick={() => setLocation(`/user/${item.sellerId}`)}
-                className="bg-muted/30 border border-border hover:border-primary/50 hover:bg-muted/50 rounded-lg p-6 mb-8 flex items-center justify-between flex-wrap gap-4 cursor-pointer transition-all duration-200 group"
+                className="glass-card rounded-2xl p-5 mb-8 flex items-center justify-between flex-wrap gap-4 cursor-pointer transition-all duration-300 group hover:-translate-y-0.5"
               >
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1 group-hover:text-primary transition-colors">
-                    Listed by
-                  </p>
-                  <p className="font-semibold text-foreground text-lg flex items-center gap-2">
-                    {sellerProfile.name}
-                    <ArrowLeft className="w-4 h-4 rotate-135 opacity-0 group-hover:opacity-100 transition-all text-primary" style={{ transform: 'rotate(135deg)' }} />
-                  </p>
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg group-hover:scale-105 transition-transform">
+                    {sellerProfile.name ? sellerProfile.name[0].toUpperCase() : "U"}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="font-bold text-foreground text-base group-hover:text-primary transition-colors">
+                        {sellerProfile.name}
+                      </p>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        <Check className="w-3 h-3" /> Campus Verified
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      VIT Student • Click to view profile
+                    </p>
+                  </div>
                 </div>
+
                 {sellerProfile.trustScore && (
                   <div className="text-right">
-                    <div className="flex items-center gap-2 justify-end mb-1">
-                      <span className="font-bold text-lg">
+                    <div className="flex items-center gap-1.5 justify-end mb-0.5">
+                      <span className="font-bold text-base font-tabular">
                         {sellerProfile.trustScore.averageRating}
                       </span>
                       <StarRating
@@ -350,11 +384,11 @@ export default function ItemDetail() {
                           Number(sellerProfile.trustScore.averageRating)
                         )}
                         disabled
-                        size={16}
+                        size={14}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Based on {sellerProfile.trustScore.totalReviews} reviews
+                    <p className="text-xs text-muted-foreground font-tabular">
+                      {sellerProfile.trustScore.totalReviews} reviews
                     </p>
                   </div>
                 )}
@@ -594,5 +628,23 @@ function ReportListingModal({ itemId, itemTitle }: { itemId: number; itemTitle: 
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Blur-up image — starts blurred/zoomed, sharpens on load */
+function BlurUpDetailImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const onLoad = useCallback(() => setLoaded(true), []);
+
+  return (
+    <>
+      <div className={`absolute inset-0 bg-muted ${loaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 pointer-events-none z-10`} />
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-cover transition-all duration-500 ${loaded ? 'scale-100 blur-0' : 'scale-105 blur-sm'}`}
+        onLoad={onLoad}
+      />
+    </>
   );
 }

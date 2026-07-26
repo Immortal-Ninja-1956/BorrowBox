@@ -96,10 +96,23 @@ export default function Profile() {
 
   if (authLoading || profileLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-accent mx-auto mb-4" />
-          <p className="text-foreground">Loading...</p>
+      <div className="min-h-screen bg-background auth-bg">
+        <div className="border-b border-border bg-card">
+          <div className="container py-4 flex items-center gap-4">
+            <div className="w-8 h-8 skeleton-shimmer rounded-lg" />
+            <div className="w-40 h-8 skeleton-shimmer rounded-xl" />
+          </div>
+        </div>
+        <div className="container max-w-2xl py-12 space-y-6">
+          <div className="glass-card rounded-2xl p-6 space-y-4">
+            <div className="w-48 h-6 skeleton-shimmer rounded-lg" />
+            <div className="w-full h-10 skeleton-shimmer rounded-xl" />
+            <div className="w-full h-10 skeleton-shimmer rounded-xl" />
+          </div>
+          <div className="glass-card rounded-2xl p-6 space-y-4">
+            <div className="w-48 h-6 skeleton-shimmer rounded-lg" />
+            <div className="w-full h-10 skeleton-shimmer rounded-xl" />
+          </div>
         </div>
       </div>
     );

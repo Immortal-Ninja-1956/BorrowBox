@@ -105,8 +105,25 @@ export default function PublicProfile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center bg-background">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <div className="min-h-screen bg-background auth-bg py-12">
+        <div className="container max-w-6xl mx-auto space-y-8">
+          <div className="glass-card rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row gap-8 items-center">
+            <div className="w-32 h-32 rounded-full skeleton-shimmer flex-shrink-0" />
+            <div className="flex-1 space-y-4 w-full">
+              <div className="w-64 h-10 skeleton-shimmer rounded-xl" />
+              <div className="w-48 h-4 skeleton-shimmer rounded-md" />
+              <div className="flex gap-3">
+                <div className="w-28 h-7 skeleton-shimmer rounded-full" />
+                <div className="w-28 h-7 skeleton-shimmer rounded-full" />
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array(6).fill(0).map((_, i) => (
+              <div key={i} className="aspect-[4/3] skeleton-shimmer rounded-2xl" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

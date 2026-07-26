@@ -16,6 +16,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 const navLinks = [
   { label: "Marketplace", path: "/marketplace", icon: Store },
@@ -67,7 +68,7 @@ export default function Navbar() {
             onClick={() => handleNav("/")}
             className="flex items-center gap-2.5 group transition-opacity cursor-pointer"
           >
-            <div className="w-9 h-9 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground animate-pulse">
+            <div className="w-9 h-9 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground">
               <ShoppingBag className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors" />
             </div>
             <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden sm:inline">
@@ -151,11 +152,18 @@ export default function Navbar() {
                   : "Switch to Dark Mode"
               }
             >
-              {theme === "dark" ? (
-                <Sun className="w-4 h-4" />
-              ) : (
-                <Moon className="w-4 h-4" />
-              )}
+              <motion.div
+                key={theme}
+                initial={{ scale: 0, rotate: -90 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                {theme === "dark" ? (
+                  <Sun className="w-4 h-4" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
+              </motion.div>
             </Button>
           )}
           <span className="text-sm font-medium text-foreground bg-muted/40 border border-border/30 px-3 py-1 rounded-full">{user?.name}</span>

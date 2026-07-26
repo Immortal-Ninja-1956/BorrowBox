@@ -59,8 +59,20 @@ export default function CreatePost() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8 auth-bg">
+        <div className="max-w-3xl mx-auto">
+          <div className="w-32 h-6 skeleton-shimmer rounded-lg mb-6" />
+          <div className="rounded-2xl border border-border/40 bg-card/80 p-8">
+            <div className="w-48 h-8 skeleton-shimmer rounded-xl mb-3" />
+            <div className="w-64 h-4 skeleton-shimmer rounded-md mb-8" />
+            <div className="w-full h-12 skeleton-shimmer rounded-xl mb-6" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+              {Array(6).fill(0).map((_, i) => (
+                <div key={i} className="h-20 skeleton-shimmer rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

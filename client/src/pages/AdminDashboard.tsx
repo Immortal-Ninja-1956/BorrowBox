@@ -151,45 +151,45 @@ export default function AdminDashboard() {
 
       {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-lg">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
             {statsLoading ? (
-              <Loader2 className="animate-spin h-5 w-5" />
+              <div className="w-24 h-10 skeleton-shimmer rounded-lg" />
             ) : (
-              <p className="text-4xl font-bold text-accent">
+              <p className="text-4xl font-bold text-accent font-tabular">
                 {stats?.totalUsers || 0}
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-lg">Total Listings</CardTitle>
           </CardHeader>
           <CardContent>
             {statsLoading ? (
-              <Loader2 className="animate-spin h-5 w-5" />
+              <div className="w-24 h-10 skeleton-shimmer rounded-lg" />
             ) : (
-              <p className="text-4xl font-bold text-accent">
+              <p className="text-4xl font-bold text-accent font-tabular">
                 {stats?.totalItems || 0}
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-lg">Total Deals</CardTitle>
           </CardHeader>
           <CardContent>
             {statsLoading ? (
-              <Loader2 className="animate-spin h-5 w-5" />
+              <div className="w-24 h-10 skeleton-shimmer rounded-lg" />
             ) : (
-              <p className="text-4xl font-bold text-accent">
+              <p className="text-4xl font-bold text-accent font-tabular">
                 {stats?.totalDeals || 0}
               </p>
             )}

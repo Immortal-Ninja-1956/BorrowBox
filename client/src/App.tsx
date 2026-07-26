@@ -1,11 +1,12 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import { motion, AnimatePresence } from "framer-motion";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -23,28 +24,53 @@ import VerifyEmail from "./pages/VerifyEmail";
 
 import AdminDashboard from "./pages/AdminDashboard";
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Home} />
+/** Smooth page enter animation — fade + subtle vertical slide */
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
 
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/verify-email" component={VerifyEmail} />
-      <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/marketplace" component={Marketplace} />
-      <Route path="/item/:id" component={ItemDetail} />
-      <Route path="/create-post" component={CreatePost} />
-      <Route path="/edit-post/:id" component={EditPost} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/user/:id" component={PublicProfile} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/confirm/:dealId" component={BuyerConfirmation} />
-      <Route path="/404" component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+const pageTransition = {
+  duration: 0.2,
+  ease: [0.25, 0.1, 0.25, 1] as const,
+};
+
+function Router() {
+  const [location] = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={pageTransition}
+      >
+        <Switch location={location}>
+          <Route path="/" component={Home} />
+
+          <Route path="/login" component={Login} />
+          <Route path="/register" component={Register} />
+          <Route path="/verify-email" component={VerifyEmail} />
+          <Route path="/forgot-password" component={ForgotPassword} />
+          <Route path="/reset-password" component={ResetPassword} />
+          <Route path="/marketplace" component={Marketplace} />
+          <Route path="/item/:id" component={ItemDetail} />
+          <Route path="/create-post" component={CreatePost} />
+          <Route path="/edit-post/:id" component={EditPost} />
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/user/:id" component={PublicProfile} />
+          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/confirm/:dealId" component={BuyerConfirmation} />
+          <Route path="/404" component={NotFound} />
+          <Route component={NotFound} />
+        </Switch>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

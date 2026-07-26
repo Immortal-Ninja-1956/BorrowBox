@@ -457,11 +457,18 @@ export default function BuyerConfirmation() {
                     </Button>
                   ) : (
                     <div className="space-y-4 animate-in fade-in zoom-in duration-300">
-                      <div className="text-6xl font-mono font-bold tracking-widest text-accent bg-background py-6 rounded-lg border-2 border-dashed border-accent">
-                        {pinData?.pin || "------"}
+                      <div className="flex justify-center items-center gap-2 sm:gap-3 py-4">
+                        {(pinData?.pin || "------").split("").map((digit, i) => (
+                          <div
+                            key={i}
+                            className="w-11 h-14 sm:w-14 sm:h-16 rounded-xl bg-card border-2 border-primary/50 text-primary font-black text-2xl sm:text-3xl flex items-center justify-center shadow-lg font-tabular"
+                          >
+                            {digit}
+                          </div>
+                        ))}
                       </div>
-                      <p className="text-sm font-semibold text-destructive">
-                        Do not show this to the seller until payment is successful.
+                      <p className="text-xs font-bold text-destructive uppercase tracking-wider">
+                        Read this PIN to the seller only after payment is complete.
                       </p>
                     </div>
                   )}

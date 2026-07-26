@@ -9,11 +9,16 @@ import {
   CheckCircle,
   Sun,
   Moon,
+  ShieldCheck,
+  Sparkles,
+  BookOpen,
+  Laptop,
+  CheckCircle2,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
-
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 
 export default function Home() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -30,11 +35,9 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-          <p className="text-foreground">Loading...</p>
-        </div>
+      <div className="min-h-screen bg-background flex flex-col justify-center items-center p-6">
+        <div className="w-64 h-10 skeleton-shimmer rounded-xl mb-4" />
+        <div className="w-48 h-6 skeleton-shimmer rounded-lg" />
       </div>
     );
   }
@@ -42,63 +45,134 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex flex-col justify-between">
       {/* Background Glowing Blobs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/4 -translate-y-1/2 -z-10 w-[300px] h-[300px] rounded-full bg-secondary/10 blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-[550px] h-[550px] rounded-full bg-primary/10 blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/4 -translate-y-1/2 -z-10 w-[350px] h-[350px] rounded-full bg-secondary/10 blur-[120px] pointer-events-none" />
 
       {/* Main Content Container */}
       <div className="flex-grow">
         {/* Hero */}
-        <section className="py-24 px-4 md:py-36">
-          <div className="container max-w-4xl mx-auto text-center relative">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6 animate-fade-in">
-              <Zap className="w-3.5 h-3.5 animate-pulse" />
-              <span>Exclusively for College Campuses</span>
+        <section className="py-16 px-4 md:py-28">
+          <div className="container max-w-6xl mx-auto grid lg:grid-cols-12 gap-12 items-center">
+            
+            {/* Left Content */}
+            <div className="lg:col-span-7 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-6">
+                <Zap className="w-3.5 h-3.5" />
+                <span>Exclusively for VIT Chennai Students</span>
+              </div>
+
+              <h2 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 text-foreground leading-[1.1]">
+                Borrow. Share. <span className="gradient-text-animated">Repeat.</span>
+              </h2>
+
+              <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                The ultimate peer-to-peer campus marketplace. Rent lab coats, sell engineering books, or borrow a scientific calculator — all within your hostel block.
+              </p>
+
+              {/* Campus Social Proof Badges */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-10 text-xs font-semibold text-muted-foreground">
+                <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-lg border border-border/50">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span>@vitstudent.ac.in Verified</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-lg border border-border/50">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Instant UPI QR Verification</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-lg border border-border/50">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span>Zero Commission</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center">
+                {isAuthenticated ? (
+                  <>
+                    <Button
+                      size="lg"
+                      className="text-base font-semibold px-8 py-6 h-auto bg-primary hover:bg-primary/95 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all duration-300 rounded-xl w-full sm:w-auto"
+                      onClick={() => setLocation("/marketplace")}
+                    >
+                      Explore Marketplace <ArrowRight className="ml-2 w-5 h-5" />
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="text-base font-semibold px-8 py-6 h-auto border-border hover:bg-muted/50 rounded-xl w-full sm:w-auto"
+                      onClick={() => setLocation("/create-post")}
+                    >
+                      Post an Item
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      size="lg"
+                      className="text-base font-semibold px-8 py-6 h-auto bg-primary hover:bg-primary/95 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all duration-300 rounded-xl w-full sm:w-auto"
+                      onClick={() => setLocation("/marketplace")}
+                    >
+                      Explore Marketplace <ArrowRight className="ml-2 w-5 h-5" />
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="text-base font-semibold px-8 py-6 h-auto border-border hover:bg-muted/50 rounded-xl w-full sm:w-auto"
+                      onClick={() => setLocation("/login")}
+                    >
+                      Sign In
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
-            <h2 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-foreground leading-[1.1]">
-              Borrow. Share. <span className="gradient-text">Repeat.</span>
-            </h2>
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-              The ultimate peer-to-peer marketplace for college students. List items, connect via WhatsApp, and complete secure handovers with verified QR payments.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              {isAuthenticated ? (
-                <>
-                  <Button
-                    size="lg"
-                    className="text-base font-semibold px-8 py-6 h-auto bg-primary hover:bg-primary/95 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all duration-300 rounded-xl"
-                    onClick={() => setLocation("/marketplace")}
-                  >
-                    Explore Marketplace <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="text-base font-semibold px-8 py-6 h-auto border-border hover:bg-muted/50 rounded-xl"
-                    onClick={() => setLocation("/create-post")}
-                  >
-                    Post an Item
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    size="lg"
-                    className="text-base font-semibold px-8 py-6 h-auto bg-primary hover:bg-primary/95 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all duration-300 rounded-xl w-full sm:w-auto"
-                    onClick={() => setLocation("/marketplace")}
-                  >
-                    Explore Marketplace <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="text-base font-semibold px-8 py-6 h-auto border-border hover:bg-muted/50 rounded-xl w-full sm:w-auto"
-                    onClick={() => setLocation("/login")}
-                  >
-                    Sign In
-                  </Button>
-                </>
-              )}
+
+            {/* Right Visual Floating Showcase Cards */}
+            <div className="lg:col-span-5 relative flex justify-center items-center">
+              <div className="w-full max-w-sm relative">
+                {/* Floating Card 1 */}
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 4, ease: "easeInOut", repeat: Infinity }}
+                  className="glass-card rounded-2xl p-5 border-primary/20 shadow-xl mb-4 bg-card/80 backdrop-blur-md"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Casio fx-991EX Calculator</h4>
+                      <p className="text-xs text-muted-foreground">Engineering • D-Block Hostel</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                    <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">Available</span>
+                    <span className="text-lg font-black text-foreground font-tabular">₹350</span>
+                  </div>
+                </motion.div>
+
+                {/* Floating Card 2 */}
+                <motion.div
+                  animate={{ y: [0, 8, 0] }}
+                  transition={{ duration: 5, ease: "easeInOut", repeat: Infinity, delay: 0.5 }}
+                  className="glass-card rounded-2xl p-5 border-border/60 shadow-xl ml-6 bg-card/90 backdrop-blur-md"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                      <Laptop className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Lab Coat (Size L)</h4>
+                      <p className="text-xs text-muted-foreground">Chemistry • C-Block</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                    <span className="text-xs font-semibold text-purple-500 bg-purple-500/10 px-2.5 py-0.5 rounded-full">Handshake PIN</span>
+                    <span className="text-lg font-black text-foreground font-tabular">₹200</span>
+                  </div>
+                </motion.div>
+              </div>
             </div>
+
           </div>
         </section>
 
