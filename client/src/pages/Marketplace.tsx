@@ -18,6 +18,7 @@ import {
   SearchX,
   PackageOpen,
   SlidersHorizontal,
+  Sparkles,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { usePageMetadata } from "@/_core/hooks/usePageMetadata";
@@ -293,34 +294,58 @@ export default function Marketplace() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            className="flex flex-col items-center justify-center py-32 text-center"
+            className="flex flex-col items-center justify-center py-20 text-center px-4"
           >
             {searchQuery || selectedCategory !== "all" ? (
               <>
-                <div className="w-20 h-20 bg-muted/60 rounded-2xl flex items-center justify-center mb-6">
-                  <SearchX className="w-10 h-10 text-muted-foreground/60" />
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 4, ease: "easeInOut", repeat: Infinity }}
+                  className="w-36 h-36 mb-6 relative flex items-center justify-center"
+                >
+                  <img
+                    src="/illustrations/empty-backpack.png"
+                    alt="No Search Results"
+                    className="w-full h-full object-contain drop-shadow-xl"
+                  />
+                </motion.div>
+                <h3 className="text-2xl font-black text-foreground mb-2 tracking-tight">No items found</h3>
+                <p className="text-muted-foreground max-w-md mb-4 leading-relaxed">
+                  We couldn't find anything matching {searchQuery ? <span className="font-bold text-foreground">"{searchQuery}"</span> : "your selected filters"}.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 mb-8 text-xs font-semibold text-muted-foreground">
+                  <span>Try searching for:</span>
+                  <button onClick={() => setSearchQuery("books")} className="bg-muted hover:bg-muted/80 text-foreground px-3 py-1 rounded-full border border-border/50 transition-colors">📚 books</button>
+                  <button onClick={() => setSearchQuery("calculator")} className="bg-muted hover:bg-muted/80 text-foreground px-3 py-1 rounded-full border border-border/50 transition-colors">🔢 calculator</button>
+                  <button onClick={() => setSearchQuery("electronics")} className="bg-muted hover:bg-muted/80 text-foreground px-3 py-1 rounded-full border border-border/50 transition-colors">🎧 electronics</button>
                 </div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">No results found</h3>
-                <p className="text-muted-foreground max-w-md mb-2 leading-relaxed">
-                  We couldn't find anything matching {searchQuery ? <span className="font-bold text-foreground">"{searchQuery}"</span> : "your filters"}.
-                </p>
-                <p className="text-sm text-muted-foreground/80 mb-8">
-                  Try searching for <button onClick={() => setSearchQuery("books")} className="text-primary font-medium hover:underline bg-transparent border-none p-0">books</button>, <button onClick={() => setSearchQuery("electronics")} className="text-primary font-medium hover:underline bg-transparent border-none p-0">electronics</button>, or <button onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }} className="text-primary font-medium hover:underline bg-transparent border-none p-0">browse everything</button>.
-                </p>
-                <Button variant="outline" className="rounded-xl" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }}>
+                <Button variant="outline" className="rounded-xl px-6 font-semibold" onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }}>
                   Clear all filters
                 </Button>
               </>
             ) : (
               <>
-                <div className="w-20 h-20 bg-muted/60 rounded-2xl flex items-center justify-center mb-6">
-                  <PackageOpen className="w-10 h-10 text-muted-foreground/60" />
-                </div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">The marketplace is waiting</h3>
-                <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
-                  Your campus marketplace is empty — for now. Got a textbook collecting dust or a keyboard you never use? Be the one who kicks things off.
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 4.5, ease: "easeInOut", repeat: Infinity }}
+                  className="w-44 h-44 mb-6 relative flex items-center justify-center"
+                >
+                  <img
+                    src="/illustrations/empty-backpack.png"
+                    alt="Empty Marketplace"
+                    className="w-full h-full object-contain drop-shadow-2xl"
+                  />
+                </motion.div>
+                <h3 className="text-3xl font-black text-foreground mb-3 tracking-tight">The marketplace is waiting</h3>
+                <p className="text-muted-foreground text-base max-w-lg mb-8 leading-relaxed">
+                  Your campus marketplace is waiting for its first listing. Will it be your old textbook or that keyboard you never use?
                 </p>
-                <Button className="rounded-xl" onClick={() => isAuthenticated ? setLocation("/create-post") : setLocation("/login")}>
+                <Button 
+                  size="lg"
+                  className="rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-8 py-6 shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all duration-300"
+                  onClick={() => isAuthenticated ? setLocation("/create-post") : setLocation("/login")}
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
                   List the first item
                 </Button>
               </>
