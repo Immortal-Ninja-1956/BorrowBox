@@ -70,18 +70,20 @@ export default function Home() {
               </p>
 
               {/* Campus Social Proof Badges */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-10 text-xs font-semibold text-muted-foreground">
-                <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-lg border border-border/50">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-10 text-xs font-semibold text-muted-foreground">
+                <div className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 px-3.5 py-1.5 rounded-full font-bold">
                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  <span>@vitstudent.ac.in Verified</span>
+                  <span>Built for VIT Chennai</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-lg border border-border/50">
+                <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-full border border-border/50">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="font-tabular font-bold text-foreground">200+</span>
+                  <span>students</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-full border border-border/50">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>Instant UPI QR Verification</span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-lg border border-border/50">
-                  <CheckCircle2 className="w-4 h-4 text-primary" />
-                  <span>Zero Commission</span>
+                  <span className="font-tabular font-bold text-foreground">₹50k+</span>
+                  <span>traded</span>
                 </div>
               </div>
 
@@ -128,16 +130,16 @@ export default function Home() {
 
             {/* Right Visual Floating Showcase Cards */}
             <div className="lg:col-span-5 relative flex justify-center items-center">
-              <div className="w-full max-w-sm relative">
+              <div className="w-full max-w-sm relative space-y-4">
                 {/* Floating Card 1 */}
                 <motion.div
                   animate={{ y: [0, -10, 0] }}
                   transition={{ duration: 4, ease: "easeInOut", repeat: Infinity }}
-                  className="glass-card rounded-2xl p-5 border-primary/20 shadow-xl mb-4 bg-card/80 backdrop-blur-md"
+                  className="glass-card rounded-2xl p-4 border-primary/20 shadow-xl bg-card/85 backdrop-blur-md"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
-                      <BookOpen className="w-5 h-5" />
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                      <BookOpen className="w-4 h-4" />
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-foreground">Casio fx-991EX Calculator</h4>
@@ -145,8 +147,8 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                    <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">Available</span>
-                    <span className="text-lg font-black text-foreground font-tabular">₹350</span>
+                    <span className="text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">Available</span>
+                    <span className="text-base font-black text-foreground font-tabular">₹350</span>
                   </div>
                 </motion.div>
 
@@ -154,11 +156,11 @@ export default function Home() {
                 <motion.div
                   animate={{ y: [0, 8, 0] }}
                   transition={{ duration: 5, ease: "easeInOut", repeat: Infinity, delay: 0.5 }}
-                  className="glass-card rounded-2xl p-5 border-border/60 shadow-xl ml-6 bg-card/90 backdrop-blur-md"
+                  className="glass-card rounded-2xl p-4 border-border/60 shadow-xl ml-6 bg-card/90 backdrop-blur-md"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
-                      <Laptop className="w-5 h-5" />
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                      <Laptop className="w-4 h-4" />
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-foreground">Lab Coat (Size L)</h4>
@@ -166,8 +168,29 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                    <span className="text-xs font-semibold text-purple-500 bg-purple-500/10 px-2.5 py-0.5 rounded-full">Handshake PIN</span>
-                    <span className="text-lg font-black text-foreground font-tabular">₹200</span>
+                    <span className="text-[11px] font-semibold text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-full">Handshake PIN</span>
+                    <span className="text-base font-black text-foreground font-tabular">₹200</span>
+                  </div>
+                </motion.div>
+
+                {/* Floating Card 3 */}
+                <motion.div
+                  animate={{ y: [0, -12, 0] }}
+                  transition={{ duration: 6, ease: "easeInOut", repeat: Infinity, delay: 1 }}
+                  className="glass-card rounded-2xl p-4 border-border/60 shadow-xl -ml-2 bg-card/85 backdrop-blur-md hidden sm:block"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+                      <ShoppingBag className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Sony WH-1000XM4 Noise Cancelling</h4>
+                      <p className="text-xs text-muted-foreground">Electronics • A-Block</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                    <span className="text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">Available</span>
+                    <span className="text-base font-black text-foreground font-tabular">₹1,200</span>
                   </div>
                 </motion.div>
               </div>
