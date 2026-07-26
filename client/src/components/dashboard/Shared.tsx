@@ -27,7 +27,9 @@ import {
 import { DealChat } from "@/components/DealChat";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DealTimeline from "./DealTimeline";
-import { CheckCircle2, MessageCircle, ShoppingBag, BookOpen, Laptop, Sofa, Shirt, Trophy, Package } from "lucide-react";
+import { CheckCircle2, MessageCircle, ShoppingBag, BookOpen, Laptop, Sofa, Shirt, Trophy, Package, ShieldCheck } from "lucide-react";
+import confetti from "canvas-confetti";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const categoryMetadata: Record<string, { icon: any; gradient: string }> = {
   Books: { icon: BookOpen, gradient: "from-amber-400 to-orange-600" },
@@ -161,10 +163,6 @@ export function ReviewModal({
     </Dialog>
   );
 }
-
-import confetti from "canvas-confetti";
-import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck } from "lucide-react";
 
 export function DealCard({
   deal,

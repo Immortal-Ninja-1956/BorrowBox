@@ -24,17 +24,19 @@ import VerifyEmail from "./pages/VerifyEmail";
 
 import AdminDashboard from "./pages/AdminDashboard";
 
-/** Smooth page enter animation — fade + subtle vertical slide */
-const pageVariants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-};
-
-const pageTransition = {
-  duration: 0.2,
-  ease: [0.25, 0.1, 0.25, 1] as const,
-};
+/** PageTransition component — eliminates hard cuts with smooth fade & subtle vertical glide */
+export function PageTransition({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 function Router() {
   const [location] = useLocation();
@@ -43,11 +45,10 @@ function Router() {
     <AnimatePresence mode="wait">
       <motion.div
         key={location}
-        variants={pageVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        transition={pageTransition}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
       >
         <Switch location={location}>
           <Route path="/" component={Home} />

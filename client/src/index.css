@@ -156,6 +156,13 @@
     transform: scale(0.97);
     transition: transform 80ms ease-out;
   }
+
+  /* Primary CTA hover glow pulse */
+  .btn-primary:hover,
+  button.bg-primary:hover:not(:disabled) {
+    box-shadow: 0 0 20px oklch(0.53 0.22 275 / 0.3);
+    transition: box-shadow 200ms ease;
+  }
 }
 
 /* Keyframe Animations */

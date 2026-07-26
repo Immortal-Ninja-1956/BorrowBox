@@ -111,10 +111,23 @@ export default function BuyerConfirmation() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-accent mx-auto mb-4" />
-          <p className="text-foreground">Loading...</p>
+      <div className="min-h-screen bg-background auth-bg py-8 px-4">
+        <div className="container max-w-4xl mx-auto space-y-6">
+          <div className="w-32 h-6 skeleton-shimmer rounded-lg" />
+          <div className="glass-card rounded-3xl p-8 space-y-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="w-48 h-8 skeleton-shimmer rounded-xl mb-2" />
+                <div className="w-32 h-4 skeleton-shimmer rounded-md" />
+              </div>
+              <div className="w-24 h-8 skeleton-shimmer rounded-full" />
+            </div>
+            <div className="w-full h-16 skeleton-shimmer rounded-2xl" />
+            <div className="grid sm:grid-cols-2 gap-6 pt-4">
+              <div className="h-44 skeleton-shimmer rounded-2xl" />
+              <div className="h-44 skeleton-shimmer rounded-2xl" />
+            </div>
+          </div>
         </div>
       </div>
     );
