@@ -1,5 +1,5 @@
 /**
- * Currency Precision Utility for BorrowBox
+ * Currency Precision Utility for CampusCart
  * Guarantees exact fixed-point DECIMAL(10,2) currency representation and integer paise arithmetic,
  * completely eliminating floating-point precision loss.
  */

@@ -1,4 +1,4 @@
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -23,7 +23,7 @@ export const authLimiter = rateLimit({
 export const pinVerifyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: 5, // 5 attempts per hour per IP
-  keyGenerator: (req) => `${req.ip}-pin`,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip || "127.0.0.1")}-pin`,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: {
@@ -44,7 +44,7 @@ export const pinVerifyLimiter = rateLimit({
 export const otpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
   limit: 3, // 3 attempts per 10 minutes per IP
-  keyGenerator: (req) => `${req.ip}-otp`,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip || "127.0.0.1")}-otp`,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: {
@@ -76,7 +76,7 @@ function extractUserIdFromBearer(req: any, prefix: string): string {
   } catch {
     // fall through to IP
   }
-  return `${prefix}-ip-${req.ip}`;
+  return `${prefix}-ip-${ipKeyGenerator(req.ip || "127.0.0.1")}`;
 }
 
 export const uploadLimiter = rateLimit({
