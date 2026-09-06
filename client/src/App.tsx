@@ -24,20 +24,6 @@ import VerifyEmail from "./pages/VerifyEmail";
 
 import AdminDashboard from "./pages/AdminDashboard";
 
-/** PageTransition component — eliminates hard cuts with smooth fade & subtle vertical glide */
-export function PageTransition({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 function Router() {
   const [location] = useLocation();
 
@@ -74,12 +60,6 @@ function Router() {
     </AnimatePresence>
   );
 }
-
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 
 import OfflineBanner from "./components/OfflineBanner";
 

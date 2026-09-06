@@ -164,7 +164,7 @@ Meetup complete → Buyer confirms delivery → Dynamic UPI QR generated → Buy
 | **User Profiles** | Complete profile with UPI ID, WhatsApp verification, trust score |
 | **Trust Score System** | Computed from completed deals and seller ratings |
 | **Rate Limiting** | Express rate limit middleware on auth, creation, and messaging endpoints |
-| **Content Security** | DOMPurify sanitization + Helmet.js security headers + CSP |
+| **Content Security** | Helmet.js security headers + Content Security Policy (CSP) |
 | **Responsive Design** | Mobile-first, works on all devices |
 | **WhatsApp OTP** | Optional verification via WhatsApp for enhanced security |
 | **UTR Tracking** | UPI transaction reference submission and verification |
@@ -229,8 +229,8 @@ This version of BorrowBox represents a major evolution from the original MVP:
                            ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                       DATA PERSISTENCE LAYER                                 │
-│  MySQL + Drizzle ORM (SQL Schema Versioning)                                 │
-│  Tables: users, items, deals, transactions, reviews, messages, reports      │
+│  PostgreSQL + Drizzle ORM (SQL Schema Versioning)                            │
+│  Tables: users, items, deals, reviews, messages, item_reports, admin_actions │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -241,7 +241,7 @@ User Action → React Component → tRPC Client Hook → Authentication (Supabas
    ↓
 Input Validation (Zod) → Business Logic (Rate Limiting, GCV Safety Check)
    ↓
-Drizzle ORM Query → MySQL Database → Response Serialization
+Drizzle ORM Query → PostgreSQL Database → Response Serialization
    ↓
 React Query Cache → UI Update → Toast Notification (Sonner)
 ```
@@ -260,7 +260,7 @@ React Query Cache → UI Update → Toast Notification (Sonner)
 | **Styling** | Tailwind CSS v4 | Utility-first CSS |
 | **Components** | shadcn/ui + Radix UI | Accessible UI components |
 | **Icons** | Lucide React | Modern icon library |
-| **Forms** | React Hook Form + Zod | Type-safe form handling |
+| **Forms** | React state + Zod | Type-safe form handling |
 | **RPC** | tRPC Client + React Query | Type-safe API + caching |
 | **Router** | wouter | Lightweight client routing |
 | **Animations** | Framer Motion | Smooth transitions |
@@ -283,14 +283,14 @@ React Query Cache → UI Update → Toast Notification (Sonner)
 | **Vision API** | @google-cloud/vision | AI-powered image safety |
 | **Security** | Helmet 8.2 + CORS | Security headers + cross-origin |
 | **Rate Limiting** | express-rate-limit | Request throttling |
-| **Email** | Resend 6.12 | Email delivery |
+| **Email** | Supabase Auth | Verification and authentication email delivery |
 | **Validation** | Zod 4.1 | Schema validation |
 
 ### Database Stack
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| **Database** | MySQL | 8.0+ |
+| **Database** | PostgreSQL | 14+ |
 | **ORM** | Drizzle ORM | 0.44.5 |
 | **Schema Tools** | Drizzle Kit | 0.31.4 |
 | **Authentication** | Supabase | 2.46.2 |
@@ -386,9 +386,7 @@ BorrowBox/
 │   │   ├── limiter.ts                  # Rate limiting config
 │   │   └── utils.ts                    # Server utilities
 │   │
-│   ├── db.ts                           # Drizzle ORM schema & connection
-│   │   ├── Schema definitions (users, items, deals, transactions, reviews, messages, reports)
-│   │   └── Database connection & migrations
+│   ├── db.ts                           # PostgreSQL connection and queries
 │   │
 │   ├── routers.ts                      # tRPC route definitions
 │   │   ├── auth.*                      # Login, Register, Logout (Supabase-managed)
@@ -465,14 +463,14 @@ Before you begin, ensure you have the following installed:
 |-----------|---------|----------|
 | **Node.js** | 18.x or 20.x | [nodejs.org](https://nodejs.org/) |
 | **pnpm** | 10.x | [pnpm.io](https://pnpm.io/) |
-| **MySQL** | 8.0+ | [mysql.com](https://www.mysql.com/) |
+| **PostgreSQL** | 14+ | [postgresql.org](https://www.postgresql.org/) |
 | **Git** | Latest | [git-scm.com](https://git-scm.com/) |
 
 **Quick version check:**
 ```bash
-node --version    # Should be v18.0.0 or higher
-pnpm --version    # Should be 10.x
-mysql --version   # Should be 8.0.x or higher
+node --version       # Should be v18.0.0 or higher
+pnpm --version       # Should be 10.x
+psql --version       # Should be 14.x or higher
 ```
 
 ### Installation
@@ -517,7 +515,7 @@ Or manually create `.env` with the following variables:
 # ==========================================
 # DATABASE CONFIGURATION
 # ==========================================
-DATABASE_URL=mysql://root:password@localhost:3306/borrowbox_dev
+DATABASE_URL=postgresql://postgres:password@localhost:5432/campuscart_dev
 
 # ==========================================
 # SUPABASE AUTHENTICATION
@@ -559,7 +557,7 @@ ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `DATABASE_URL` | MySQL connection string | `mysql://root:pass@localhost:3306/borrowbox` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:pass@localhost:5432/campuscart` |
 | `SUPABASE_URL` | Supabase project endpoint | `https://abc123.supabase.co` |
 | `SUPABASE_KEY` | Supabase anonymous key | `eyJhbG...` |
 | `GOOGLE_PROJECT_ID` | GCP project for Vision API | `my-project-12345` |
@@ -570,22 +568,21 @@ ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 
 ### Database Setup
 
-#### Step 4: Initialize MySQL Database
+#### Step 4: Initialize PostgreSQL Database
 
-Create a new MySQL database:
+Create a new PostgreSQL database:
 
 ```bash
-mysql -u root -p
+createdb campuscart_dev
 ```
 
-Then in MySQL console:
+Verify the database exists:
 
-```sql
-CREATE DATABASE borrowbox_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-SHOW DATABASES;
+```bash
+psql -l
 ```
 
-Exit with `exit`.
+The command returns to your shell after listing the databases.
 
 #### Step 5: Run Database Migrations
 
@@ -602,10 +599,10 @@ pnpm db:push
   - users
   - items
   - deals
-  - transactions
   - reviews
   - messages
-  - reports
+  - item_reports
+  - admin_actions
 ```
 
 ### Running Locally
@@ -1210,7 +1207,7 @@ pnpm test
 
 # Database migration
 pnpm db:push
-  # Pushes schema changes to MySQL
+  # Pushes schema changes to PostgreSQL
   # Creates migration files if needed
 ```
 
@@ -1274,7 +1271,7 @@ describe('Image Safety Verification', () => {
 - [ ] Configure Supabase production project
 - [ ] Set up Cloudinary production account
 - [ ] Configure Google Cloud Vision service account (production)
-- [ ] Set database to production MySQL instance
+- [ ] Set database to production PostgreSQL instance
 - [ ] Enable HTTPS and configure CSP headers
 - [ ] Set `FRONTEND_URL` to production domain
 - [ ] Run `pnpm build` and test production bundle locally
@@ -1288,7 +1285,7 @@ describe('Image Safety Verification', () => {
 - **Render**: Frontend + Backend hosting
 - **Vercel**: Frontend hosting (alternative)
 - **Railway/Fly.io**: Backend hosting (alternatives)
-- **AWS RDS**: MySQL database
+- **AWS RDS**: PostgreSQL database
 - **Supabase Hosting**: Already managed
 
 ---
@@ -1348,7 +1345,7 @@ describe('Image Safety Verification', () => {
 - Check Supabase console for auth errors
 
 #### "Database migration failed"
-- Ensure MySQL is running: `mysql -u root -p`
+- Ensure PostgreSQL is running and reachable with `psql`
 - Check `DATABASE_URL` format
 - Run `pnpm db:push` again
 - Check Drizzle config for correct database name
@@ -1390,7 +1387,7 @@ We love your input! We want to make contributing to BorrowBox as easy and transp
 2. **Authorization**: Role-based access control (buyer, seller, admin)
 3. **Rate Limiting**: Per-endpoint rate limits on sensitive actions
 4. **Input Validation**: Zod schema validation on all inputs
-5. **Content Security**: DOMPurify, Helmet CSP headers
+5. **Content Security**: Helmet CSP headers
 6. **Image Verification**: Google Cloud Vision for unsafe content
 7. **Cryptography**: Bcrypt password hashing, PIN encryption
 8. **Data Privacy**: User anonymization on account deletion
@@ -1404,7 +1401,7 @@ Found a security vulnerability? Please email `security@borrowbox.dev` (or create
 
 ### Secret Management & Rotation Policy
 - **Secrets in `.env` Only:** All API keys, secrets, database URLs, and token keys must be stored in `.env` files and environment settings. No hardcoded secrets.
-- **Secret Rotation Plan:** Detailed procedures for rotating Supabase JWT secrets, Cloudinary API credentials, and database passwords are documented in [SECRET_ROTATION_PLAN.md](file:///d:/PROGRAMMING/BorrowBox/borrowbox_fixed%20%281%29/borrowbox/docs/SECRET_ROTATION_PLAN.md).
+- **Secret Rotation Plan:** Detailed procedures for rotating Supabase JWT secrets, Cloudinary API credentials, and database passwords are documented in [SECRET_ROTATION_PLAN.md](docs/SECRET_ROTATION_PLAN.md).
 - **Admin Audit Trail:** All administrative actions (user bans/unbans, listing deletions, deal cancellations, report status updates) are logged in the `admin_actions` table and viewable via the Admin Dashboard.
 
 

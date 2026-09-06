@@ -1,15 +1,15 @@
-# BorrowBox - System Architecture & Data Flow
+# CampusCart - System Architecture & Data Flow
 
 ## 1. High-Level Architecture
 
-BorrowBox is built as a modern, full-stack TypeScript application utilizing a monolithic architecture. The frontend and backend are tightly integrated using tRPC, which provides end-to-end type safety without the need for manual API schema generation.
+CampusCart is built as a modern, full-stack TypeScript application utilizing a monolithic architecture. The frontend and backend are tightly integrated using tRPC, which provides end-to-end type safety without the need for manual API schema generation.
 
 ### 1.1. Technology Stack
 
 - **Frontend:** React (Vite), Tailwind CSS, shadcn/ui (UI components), Wouter (Routing).
 - **Backend:** Node.js, Express, tRPC (API Layer).
 - **Database:** PostgreSQL, accessed via Drizzle ORM.
-- **Authentication:** Passport.js (Local Strategy) with JWT-like session management.
+- **Authentication:** Supabase Auth with server-side session and token verification.
 
 ---
 
@@ -75,7 +75,7 @@ Item deletions (by sellers or administrators) perform soft deletion by setting a
 - **Marketplace Browsing (`trpc.items.getAll`):** Configured with `staleTime: 30 * 1000` (30 seconds) to prevent redundant network fetches while navigating.
 - **PIN Handshake (`trpc.deals.getById`):** Configured with `staleTime: 0` and active real-time polling `refetchInterval: 3000` (3 seconds) during delivery confirmation and payment processing.
 
-### 3.11. Price Suggestion Engine (Median Sold Prices)
+### 3.7. Price Suggestion Engine (Median Sold Prices)
 - **Multi-Stage Match Fallback:** `getSuggestedPrice()` queries historical transactions (`items.status = 'SOLD'` or `deals.status = 'PAID'`) using a 3-stage fallback:
   1. Title & Category match
   2. Title match across categories
@@ -95,22 +95,22 @@ Item deletions (by sellers or administrators) perform soft deletion by setting a
 
 ### 4.1. The Authentication Flow
 
-1.  User submits credentials via the Register/Login forms.
-2.  Backend validates credentials using Passport.js.
-3.  A secure session cookie (`connect.sid`) is generated and returned to the client.
-4.  Subsequent tRPC requests automatically include this cookie. The `createContext` function in tRPC extracts the user ID from the session and injects the User object into the context for protected API routes.
+1.  User submits credentials through the Register/Login forms.
+2.  Supabase Auth validates the credentials and manages the authentication session.
+3.  The client synchronizes the Supabase access token with the backend.
+4.  Subsequent tRPC requests include the authenticated session. The tRPC context verifies the token and injects the user into protected API routes.
 
 ### 4.2. The Marketplace Search Flow
 
 1.  As the user types in the search bar, a debounced React state updates.
 2.  The `Marketplace` component triggers a `trpc.items.getAll.useQuery` with the `search` string.
 3.  **Single-Query Batched Join (N+1 Prevention):** `getPagedItems` performs an `INNER JOIN users ON items.sellerId = users.id`, batching seller identity (`sellerName`, `sellerEmail`, `sellerTrustScore`, `sellerWhatsappVerified`) in a single database roundtrip.
-4.  **Search at Scale Roadmap:** Detailed in [`docs/SEARCH_MIGRATION_PLAN.md`](file:///d:/PROGRAMMING/BorrowBox/borrowbox_fixed%20%281%29/borrowbox/docs/SEARCH_MIGRATION_PLAN.md) detailing Meilisearch/Typesense integration, index schemas, dual-write synchronization, and vector search for ML recommendations.
+4.  **Search at Scale Roadmap:** Detailed in [`docs/SEARCH_MIGRATION_PLAN.md`](docs/SEARCH_MIGRATION_PLAN.md), covering Meilisearch/Typesense integration, index schemas, dual-write synchronization, and vector search for ML recommendations.
 
 
 ### 4.3. The Deal & Payment Lifecycle
 
-This is the core business logic of BorrowBox, designed to prevent fraud:
+This is the core business logic of CampusCart, designed to prevent fraud:
 
 1.  **Initiation:** Buyer clicks "I want this" on an Item. A new `Deal` is created with status `OPEN`.
 2.  **Connection:** Buyer is provided a WhatsApp link to message the Seller directly to arrange a meetup.
